@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <GoogleTestAdapterSettings>
+    <SolutionSettings>
+      <Settings>
+        <BreakOnFailure>false</BreakOnFailure>
+        <CatchExceptions>true</CatchExceptions>
+        <DebugMode>true</DebugMode>
+        <TimestampOutput>true</TimestampOutput>
+        <MaxNrOfThreads>8</MaxNrOfThreads>
+        <NrOfTestRepetitions>3</NrOfTestRepetitions>
+        <ParallelTestExecution>true</ParallelTestExecution>
+        <PrintTestOutput>true</PrintTestOutput>
+        <RunDisabledTests>false</RunDisabledTests>
+        <ShuffleTests>true</ShuffleTests>
+        <ShuffleTestsSeed>0</ShuffleTestsSeed>
+        <TestDiscoveryTimeoutInSeconds>30</TestDiscoveryTimeoutInSeconds>
+      </Settings>
+    </SolutionSettings>
+    <ProjectSettings />
+  </GoogleTestAdapterSettings>
+</RunSettings>

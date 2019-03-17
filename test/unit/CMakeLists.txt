@@ -1,0 +1,1 @@
+add_unit_test(smoke smoke.cpp)
