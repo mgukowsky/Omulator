@@ -28,6 +28,8 @@ project(
     CXX
 )
 
+message(STATUS "Starting CMake with " ${CMAKE_CXX_COMPILER_ID} " on " ${CMAKE_SYSTEM_NAME})
+
 # Need pthread on *nix
 find_package(
   Threads

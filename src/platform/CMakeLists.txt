@@ -1,5 +1,5 @@
 # Select which platform folder to use
 
-if(MSVC)
+if(${CMAKE_CXX_COMPILER_ID} MATCHES "MSVC")
   add_subdirectory(msvc)
 endif()

@@ -71,7 +71,7 @@ function(configure_target target_name is_test)
         ON
   )
 
-  if(MSVC)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     config_for_msvc(${target_name} ${is_test})
   elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     config_for_gcc(${target_name} ${is_test})
@@ -263,7 +263,10 @@ function(config_for_gcc target_name is_test)
       -Wextra
       -Wwrite-strings
       -Weffc++
-      -march=native
+
+      # Target Intel Broadwell (~2015 w/ AVX2)
+      # on an official build machine this could be march-=native
+      -march=broadwell
   )
 
   if(CMAKE_BUILD_TYPE MATCHES Debug)
@@ -293,6 +296,7 @@ function(config_for_clang target_name is_test)
       -ansi
       -pedantic
       -Wall
+      -Wextra
       -Werror
 
       # Target Intel Broadwell (~2015 w/ AVX2)
@@ -307,11 +311,34 @@ function(config_for_clang target_name is_test)
         -g
         -O0
     )
+  elseif(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
+    target_compile_options(
+      ${target_name}
+      PUBLIC
+        -g
+        -O1
+        -fsanitize=address
+        -fsanitize=memory
+        -fsanitize=thread
+        -fsanitize=undefined
+        -fno-omit-frame-pointer
+
+        # RelWithDebInfo uses sanitizers
+    )
+
+    set_target_properties(
+      ${target_name}
+      PROPERTIES
+        LINK_FLAGS_RELWITHDEBINFO
+          "-fsanitize=address -fsanitize=memory -fsanitize=thread -fsanitize=undefined"
+    )
+
   elseif(CMAKE_BUILD_TYPE MATCHES Release)
     target_compile_options(
       ${target_name}
       PUBLIC
         -O3
+        -flto
     )
   endif()
 endfunction()
