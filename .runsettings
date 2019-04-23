@@ -3,7 +3,7 @@
   <GoogleTestAdapterSettings>
     <SolutionSettings>
       <Settings>
-        <BreakOnFailure>false</BreakOnFailure>
+        <BreakOnFailure>true</BreakOnFailure>
         <CatchExceptions>true</CatchExceptions>
         <DebugMode>true</DebugMode>
         <TimestampOutput>true</TimestampOutput>

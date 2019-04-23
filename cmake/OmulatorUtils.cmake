@@ -93,9 +93,6 @@ function(config_for_msvc target_name is_test)
       # Allow generation of AVX instructions
       /arch:AVX2
 
-      # No minimal rebuild
-      /Gm-
-
       # RTTI
       /GR
 
@@ -164,6 +161,7 @@ function(config_for_msvc target_name is_test)
       _MBCS
       _WINDOWS
       WIN32
+      # Magic macro to limit how much of the Windows header gets pulled in
       WIN32_LEAN_AND_MEAN
   )
 
@@ -172,12 +170,22 @@ function(config_for_msvc target_name is_test)
     ${target_name}
     PROPERTIES
       LINK_FLAGS
+        # DYNAMICBASE: ASLR
+        # HIGHENTROPYVA: 64-bit ASLR
+        # INCREMENTAL:NO: don't use incremental linking
+        # LARGEADDRESSAWARE: 64-bit address space
+        # NXCOMPAT: Use NX bit (aka Windows Data Execution Prevention)
+        # machine:x64: 64 bit
+        # notelemetry.obj: an additional object to link against which prevents MSVC telemetry
         "/DYNAMICBASE /HIGHENTROPYVA /INCREMENTAL:NO /LARGEADDRESSAWARE /NXCOMPAT /machine:x64 notelemetry.obj"
       LINK_FLAGS_DEBUG
         # /DEBUG:FASTLINK is (obviously) faster for the linker, but /DEBUG:FULL
         # seems to play more nicely with GoogleTest in debug builds
         "/DEBUG:FULL /INCREMENTAL:NO"
       LINK_FLAGS_RELEASE
+        # LTCG: link time code generation
+        # OPT:REF: remove unreferenced functions and data
+        # OPT:ICF: merge identical functions and data
         "/LTCG /OPT:REF /OPT:ICF /INCREMENTAL:NO"
   )
 
@@ -201,6 +209,7 @@ function(config_for_msvc target_name is_test)
         /RTC1
     )
 
+    # See comment at the top of this function for why this is necessary
     if(NOT ${is_test})
       target_compile_options(
         ${target_name}
@@ -233,6 +242,7 @@ function(config_for_msvc target_name is_test)
         /Qfast_transcendentals
     )
 
+    # See comment at the top of this function for why this is necessary
     if(NOT ${is_test})
       target_compile_options(
         ${target_name}
@@ -250,6 +260,26 @@ function(config_for_msvc target_name is_test)
 
   endif()
 
+  # For Windows targets, manifest files can be added as source files and will be embedded
+  # in the resulting binary (https://cmake.org/cmake/help/v3.4/release/3.4.html#other)
+  #
+  # This particular manifest is needed for proper DPI handling
+  #
+  # N.B. the path we're using for the DPI file assumes that we are using an MSVC build environment
+  set(PerMonitorDPIAwareFile "$ENV{VCToolsInstallDir}INCLUDE\\MANIFEST\\PERMONITORHIGHDPIAWARE.MANIFEST")
+  if(EXISTS ${PerMonitorDPIAwareFile})
+    target_sources(
+      ${target_name}
+      PUBLIC
+         ${PerMonitorDPIAwareFile}
+    )
+  else()
+    message(
+      WARNING
+      "warning: could not file the DPI manifest file \"${PerMonitorDPIAwareFile}\""
+    )
+  endif()
+
 endfunction()
 
 function(config_for_gcc target_name is_test)
@@ -265,7 +295,7 @@ function(config_for_gcc target_name is_test)
       -Weffc++
 
       # Target Intel Broadwell (~2015 w/ AVX2)
-      # on an official build machine this could be march-=native
+      # on an official build machine this could be -march=native
       -march=broadwell
   )
 
