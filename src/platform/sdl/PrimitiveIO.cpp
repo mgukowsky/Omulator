@@ -1,7 +1,7 @@
 #include "omulator/PrimitiveIO.hpp"
 
-#include <iostream>
 #include <SDL2/SDL.h>
+#include <iostream>
 
 namespace omulator::PrimitiveIO {
 
