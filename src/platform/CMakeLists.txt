@@ -5,3 +5,4 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 else()
   add_subdirectory("sdl")
 endif()
+

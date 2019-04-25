@@ -3,10 +3,15 @@ cmake_minimum_required(
     3.12
 )
 
+# Allow target_link_libraries to be added outside of the                                         
+# CMakeLists.txt where the target is defined
+cmake_policy(SET CMP0079 NEW)
+
 list(
   APPEND
     CMAKE_MODULE_PATH
     ${CMAKE_CURRENT_LIST_DIR}/cmake
+    ${CMAKE_CURRENT_LIST_DIR}/third_party/cmake/FindSDL2
 )
 
 option(
