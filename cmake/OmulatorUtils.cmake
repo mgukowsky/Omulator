@@ -292,7 +292,6 @@ function(config_for_gcc target_name is_test)
       -Werror
       -Wextra
       -Wwrite-strings
-      -Weffc++
 
       # Target Intel Broadwell (~2015 w/ AVX2)
       # on an official build machine this could be -march=native
