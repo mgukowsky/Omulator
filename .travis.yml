@@ -1,0 +1,40 @@
+language: cpp
+dist: xenial
+
+# TODO: needed?
+sudo: required
+
+matrix:
+  include:
+
+    # GCC Debug build
+    - os: linux
+      env:
+        - MATRIX_BUILD_TYPE=Debug
+        - MATRIX_CC=gcc-8
+        - MATRIX_CXX=g++-8
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - [g++-8, libsdl2-dev, ninja-build]
+
+before_script:
+  - export CC=$MATRIX_CC
+  - export CXX=$MATRIX_CXX
+
+script:
+  - echo "Starting CI build on $(uname -a)"
+  - echo "  CC=${CC}; version=$($CC --version)"
+  - echo "  CXX=${CXX}; version=$($CXX --version)"
+  - echo "  CMake version=$(cmake --version)"
+
+  - mkdir -p build && cd build
+  - cmake .. -DCMAKE_BUILD_TYPE=$MATRIX_BUILD_TYPE -GNinja
+  - ninja -v
+  - ctest -j -V
+
+notifications:
+  email: false
+
