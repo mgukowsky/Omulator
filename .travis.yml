@@ -9,6 +9,7 @@ matrix:
 
     # GCC8 Debug build
     - os: linux
+      compiler: gcc
       env:
         - MATRIX_BUILD_TYPE=Debug
         - MATRIX_CC=gcc-8
@@ -22,6 +23,7 @@ matrix:
     
     # GCC8 Release build
     - os: linux
+      compiler: gcc
       env:
         - MATRIX_BUILD_TYPE=Release
         - MATRIX_CC=gcc-8
@@ -30,50 +32,50 @@ matrix:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - llvm-toolchain-xenial-7.0
           packages:
             - [g++-8, libsdl2-dev, ninja-build]
 
     # Clang-7 Debug build
     - os: linux
+      compiler: clang
       env:
         - MATRIX_BUILD_TYPE=Debug
-        - MATRIX_CC=clang-7.0
-        - MATRIX_CXX=clang++-7.0
+        - MATRIX_CC=clang-7
+        - MATRIX_CXX=clang++-7
       addons:
         apt:
           sources:
-            - ubuntu-toolchain-r-test
-            - llvm-toolchain-xenial-7.0
+            - llvm-toolchain-xenial-7
           packages:
-            - [clang-7.0, libsdl2-dev, ninja-build]
+            - [clang-7, libsdl2-dev, ninja-build]
     
     # Clang-7 RelWithDebInfo (i.e. clang sanitizers) build
     - os: linux
+      compiler: clang
       env:
         - MATRIX_BUILD_TYPE=RelWithDebInfo
-        - MATRIX_CC=clang-7.0
-        - MATRIX_CXX=clang++-7.0
+        - MATRIX_CC=clang-7
+        - MATRIX_CXX=clang++-7
       addons:
         apt:
           sources:
-            - ubuntu-toolchain-r-test
-            - llvm-toolchain-xenial-7.0
+            - llvm-toolchain-xenial-7
           packages:
-            - [clang-7.0, libsdl2-dev, ninja-build]
+            - [clang-7, libsdl2-dev, ninja-build]
  
     # Clang Release build
     - os: linux
+      compiler: clang
       env:
         - MATRIX_BUILD_TYPE=Release
-        - MATRIX_CC=clang-7.0
-        - MATRIX_CXX=clang++-7.0
+        - MATRIX_CC=clang-7
+        - MATRIX_CXX=clang++-7
       addons:
         apt:
           sources:
-            - ubuntu-toolchain-r-test
+            - llvm-toolchain-xenial-7
           packages:
-            - [clang-7.0, libsdl2-dev, ninja-build]
+            - [clang-7, libsdl2-dev, ninja-build]
  
 before_script:
   - export CC=$MATRIX_CC
