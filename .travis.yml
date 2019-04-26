@@ -7,7 +7,7 @@ sudo: required
 matrix:
   include:
 
-    # GCC Debug build
+    # GCC8 Debug build
     - os: linux
       env:
         - MATRIX_BUILD_TYPE=Debug
@@ -19,7 +19,62 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - [g++-8, libsdl2-dev, ninja-build]
+    
+    # GCC8 Release build
+    - os: linux
+      env:
+        - MATRIX_BUILD_TYPE=Release
+        - MATRIX_CC=gcc-8
+        - MATRIX_CXX=g++-8
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-xenial-7.0
+          packages:
+            - [g++-8, libsdl2-dev, ninja-build]
 
+    # Clang-7 Debug build
+    - os: linux
+      env:
+        - MATRIX_BUILD_TYPE=Debug
+        - MATRIX_CC=clang-7.0
+        - MATRIX_CXX=clang++-7.0
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-xenial-7.0
+          packages:
+            - [clang-7.0, libsdl2-dev, ninja-build]
+    
+    # Clang-7 RelWithDebInfo (i.e. clang sanitizers) build
+    - os: linux
+      env:
+        - MATRIX_BUILD_TYPE=RelWithDebInfo
+        - MATRIX_CC=clang-7.0
+        - MATRIX_CXX=clang++-7.0
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-xenial-7.0
+          packages:
+            - [clang-7.0, libsdl2-dev, ninja-build]
+ 
+    # Clang Release build
+    - os: linux
+      env:
+        - MATRIX_BUILD_TYPE=Release
+        - MATRIX_CC=clang-7.0
+        - MATRIX_CXX=clang++-7.0
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - [clang-7.0, libsdl2-dev, ninja-build]
+ 
 before_script:
   - export CC=$MATRIX_CC
   - export CXX=$MATRIX_CXX
