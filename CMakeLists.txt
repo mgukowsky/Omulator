@@ -31,6 +31,14 @@ project(
 
 message(STATUS "Starting CMake with " ${CMAKE_CXX_COMPILER_ID} " on " ${CMAKE_SYSTEM_NAME})
 
+include(CheckIPOSupported)
+include(OmulatorUtils)
+
+# Main executable
+add_executable(
+  ${PROJECT_NAME}
+)
+
 # Need pthread on *nix
 find_package(
   Threads
@@ -44,16 +52,18 @@ if(NOT MSVC)
   )
 
   # N.B. this uses our <project_root>/cmake/FindSDL2.cmake
-  find_package(SDL2 REQUIRED)
+  find_package(
+    SDL2
+      REQUIRED
+  )
+
+  target_link_libraries(
+    ${PROJECT_NAME}
+    PRIVATE
+      ${SDL2_LIBRARY}
+  )
 endif()
 
-include(CheckIPOSupported)
-include(OmulatorUtils)
-
-# Main executable
-add_executable(
-  ${PROJECT_NAME}
-)
 add_subdirectory(src)
 
 # Tests

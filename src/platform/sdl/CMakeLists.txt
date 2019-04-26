@@ -5,12 +5,6 @@ target_include_directories(
     ${SDL2_INCLUDE_DIR}
 )
 
-target_link_libraries(
-  ${PROJECT_NAME}
-  PRIVATE
-    ${SDL2_LIBRARY}
-)
-
 target_sources_local(
   ${PROJECT_NAME}
   PRIVATE
