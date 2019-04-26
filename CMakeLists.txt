@@ -32,6 +32,7 @@ project(
 message(STATUS "Starting CMake with " ${CMAKE_CXX_COMPILER_ID} " on " ${CMAKE_SYSTEM_NAME})
 
 include(CheckIPOSupported)
+include(FetchContent)
 include(OmulatorUtils)
 
 # Main executable
@@ -45,10 +46,40 @@ find_package(
     REQUIRED
 )
 
+message(
+  STATUS
+  "Downloading spdlog..."
+)
+
+# Download spdlog
+FetchContent_Declare(
+  spdlog
+  GIT_REPOSITORY
+    https://github.com/gabime/spdlog.git
+  GIT_TAG
+    v1.3.1
+)
+
+FetchContent_GetProperties(spdlog)
+if(NOT spdlog_POPULATED)
+  FetchContent_Populate(spdlog)
+
+  add_subdirectory(
+    ${spdlog_SOURCE_DIR}
+    ${spdlog_BINARY_DIR}
+  )
+endif()
+
+target_link_libraries(
+  ${PROJECT_NAME}
+  PUBLIC
+    spdlog
+)
+
 if(NOT MSVC)
   message(
     STATUS
-      "Searching for SDL2; please ensure any relevant packages are installed (i.e. libsdl2-dev)"
+    "Searching for SDL2; please ensure any relevant packages are installed (i.e. libsdl2-dev)"
   )
 
   # N.B. this uses our <project_root>/cmake/FindSDL2.cmake

@@ -33,6 +33,7 @@ target_include_directories(
 target_sources_local(
   ${PROJECT_NAME}
   PRIVATE
+    logger.cpp
     main.cpp
 )
 
