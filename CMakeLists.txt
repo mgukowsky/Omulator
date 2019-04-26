@@ -3,10 +3,6 @@ cmake_minimum_required(
     3.12
 )
 
-# Allow target_link_libraries to be added outside of the                                         
-# CMakeLists.txt where the target is defined
-cmake_policy(SET CMP0079 NEW)
-
 list(
   APPEND
     CMAKE_MODULE_PATH
@@ -40,6 +36,16 @@ find_package(
   Threads
     REQUIRED
 )
+
+if(NOT MSVC)
+  message(
+    STATUS
+      "Searching for SDL2; please ensure any relevant packages are installed (i.e. libsdl2-dev)"
+  )
+
+  # N.B. this uses our <project_root>/cmake/FindSDL2.cmake
+  find_package(SDL2 REQUIRED)
+endif()
 
 include(CheckIPOSupported)
 include(OmulatorUtils)

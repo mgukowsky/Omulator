@@ -25,15 +25,15 @@ before_script:
   - export CXX=$MATRIX_CXX
 
 script:
-  - echo "Starting CI build on $(uname -a)"
-  - echo "  CC=${CC}; version=$($CC --version)"
-  - echo "  CXX=${CXX}; version=$($CXX --version)"
-  - echo "  CMake version=$(cmake --version)"
+  - uname -a
+  - $CC --version
+  - $CXX --version
+  - cmake --version
 
   - mkdir -p build && cd build
   - cmake .. -DCMAKE_BUILD_TYPE=$MATRIX_BUILD_TYPE -GNinja
   - ninja -v
-  - ctest -j -V
+  - ctest -V -j
 
 notifications:
   email: false

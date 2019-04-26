@@ -1,11 +1,4 @@
-message(
-  STATUS
-    "Searching for SDL2; please ensure any relevant packages are installed (i.e. libsdl2-dev)"
-)
-
-# N.B. this uses our <project_root>/cmake/FindSDL2.cmake
-find_package(SDL2 REQUIRED)
-
+# N.B. we need to have run find_package(SDL2) before we get here
 target_include_directories(
   ${PROJECT_NAME}
   PUBLIC
