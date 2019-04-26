@@ -372,7 +372,12 @@ function(config_for_clang target_name is_test)
       ${target_name}
       PUBLIC
         -O3
-        -flto
     )
+  #  set_target_properties(
+  #      ${target_name}
+  #     PROPERTIES
+  #       LINK_FLAGS_RELEASE
+  #         "-flto"
+  #   )
   endif()
 endfunction()
