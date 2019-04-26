@@ -348,8 +348,12 @@ function(config_for_clang target_name is_test)
         -g
         -O1
         -fsanitize=address
-        -fsanitize=memory
-        -fsanitize=thread
+        
+        # Incompatible with ASAN, but should be added to a separate build...
+        # Don't forget to add them to the linker flags when added back in!!!
+        #-fsanitize=memory
+        #-fsanitize=thread
+        
         -fsanitize=undefined
         -fno-omit-frame-pointer
 
@@ -360,7 +364,7 @@ function(config_for_clang target_name is_test)
       ${target_name}
       PROPERTIES
         LINK_FLAGS_RELWITHDEBINFO
-          "-fsanitize=address -fsanitize=memory -fsanitize=thread -fsanitize=undefined"
+          "-fsanitize=address -fsanitize=undefined"
     )
 
   elseif(CMAKE_BUILD_TYPE MATCHES Release)
