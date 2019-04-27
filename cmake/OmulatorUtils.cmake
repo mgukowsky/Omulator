@@ -136,6 +136,7 @@ function(config_for_msvc target_name is_test)
   # /Wall in MSVC is a bit overzealous, so we disable some warnings we don't care about
   # 4307: integral constant overflow
   # 4514: compiler removed an unreferenced inline function
+  # 4571: catch(...) won't work with SEH
   # 4668: macro was undefined, so compiler replaced with '0'
   # 4710: function could not be inlined
   # 4711: function was automatically inlined
@@ -147,6 +148,7 @@ function(config_for_msvc target_name is_test)
     PUBLIC
       /wd4307
       /wd4514
+      /wd4571
       /wd4668
       /wd4710
       /wd4711

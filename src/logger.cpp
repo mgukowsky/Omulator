@@ -10,7 +10,7 @@ void omulator::logger::set_level(omulator::logger::LogLevel level) {
       spdlog::set_level(spdlog::level::critical);
       break;
 
-    case omulator::logger::LogLevel::ERROR:
+    case omulator::logger::LogLevel::ERR:
       spdlog::set_level(spdlog::level::err);
       break;
 
@@ -34,4 +34,3 @@ void omulator::logger::set_level(omulator::logger::LogLevel level) {
       break;
   }
 }
-

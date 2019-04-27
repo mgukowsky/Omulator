@@ -49,7 +49,7 @@ inline void trace(Args &&...args) {
 enum class LogLevel {
   OFF,
   CRITICAL,
-  ERROR,
+  ERR,
   WARN,
   INFO,
   DEBUG,
