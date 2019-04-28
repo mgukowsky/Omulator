@@ -182,7 +182,7 @@ function(config_for_msvc target_name is_test)
         "/DYNAMICBASE /HIGHENTROPYVA /INCREMENTAL:NO /LARGEADDRESSAWARE /NXCOMPAT /machine:x64 notelemetry.obj"
       LINK_FLAGS_DEBUG
         # /DEBUG:FASTLINK is (obviously) faster for the linker, but /DEBUG:FULL
-        # seems to play more nicely with GoogleTest in debug builds
+        # seems to play better with GoogleTest in debug builds
         "/DEBUG:FULL /INCREMENTAL:NO"
       LINK_FLAGS_RELEASE
         # LTCG: link time code generation
@@ -313,6 +313,7 @@ function(config_for_gcc target_name is_test)
       ${target_name}
       PUBLIC
         -O3
+        -fomit-frame-pointer
         -flto
         -Wl,-O3
 
@@ -373,6 +374,7 @@ function(config_for_clang target_name is_test)
       ${target_name}
       PUBLIC
         -O3
+        -fomit-frame-pointer
     )
   #  set_target_properties(
   #      ${target_name}

@@ -29,16 +29,19 @@ public:
   template<typename ...Args>
   explicit ResourceWrapper(Args &&...args)
       : instance_(allocator(std::forward<Args>(args)...)) {
-    
+
+//Clang-7 seems to have issues with the is_invocable checks...
+#ifndef __clang__
     static_assert(std::is_invocable_r_v<T, decltype(allocator), Args...>,
       "The allocator for ResourceWrapper<T,allocator,deallocator> "
       "must return an instance of type T and be callable with the arguments "
       "provided to the constructor");
     
     static_assert(std::is_nothrow_invocable_v<decltype(deallocator), T> ||
-        std::is_nothrow_invocable_v<decltype(deallocator), T&>,
+      std::is_nothrow_invocable_v<decltype(deallocator), T&>,
       "The deallocator must be noexcept and should accept a value of type T "
       "by value or reference");
+#endif
   }
 
   ~ResourceWrapper() {

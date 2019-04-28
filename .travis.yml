@@ -1,11 +1,37 @@
 language: cpp
 dist: xenial
 
-# TODO: needed?
 sudo: required
 
 matrix:
   include:
+    # GCC7 Debug build
+    - os: linux
+      compiler: gcc
+      env:
+        - MATRIX_BUILD_TYPE=Debug
+        - MATRIX_CC=gcc-7
+        - MATRIX_CXX=g++-7
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - [g++-7, libsdl2-dev, ninja-build]
+    
+    # GCC7 Release build
+    - os: linux
+      compiler: gcc
+      env:
+        - MATRIX_BUILD_TYPE=Release
+        - MATRIX_CC=gcc-7
+        - MATRIX_CXX=g++-7
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - [g++-7, libsdl2-dev, ninja-build]
 
     # GCC8 Debug build
     - os: linux
@@ -88,10 +114,7 @@ script:
   - cmake --version
 
   - mkdir -p build && cd build
-  - cmake .. -DCMAKE_BUILD_TYPE=$MATRIX_BUILD_TYPE -GNinja
-  - ninja -v
-  - ctest -V -j
+  - "cmake .. -DCMAKE_BUILD_TYPE=$MATRIX_BUILD_TYPE -GNinja && ninja -v && ctest -V -j"
 
 notifications:
   email: false
-
