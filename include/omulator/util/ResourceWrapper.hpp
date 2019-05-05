@@ -30,7 +30,7 @@ public:
   explicit ResourceWrapper(Args &&...args)
       : instance_(allocator(std::forward<Args>(args)...)) {
 
-//Clang-7 seems to have issues with the is_invocable checks...
+//TODO: clang-7 seems to have issues with the is_invocable checks...
 #ifndef __clang__
     static_assert(std::is_invocable_r_v<T, decltype(allocator), Args...>,
       "The allocator for ResourceWrapper<T,allocator,deallocator> "

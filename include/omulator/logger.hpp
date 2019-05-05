@@ -58,5 +58,5 @@ enum class LogLevel {
 
 void set_level(LogLevel level);
 
-} /* namespace omulator */
+} /* namespace omulator::logger */
 
