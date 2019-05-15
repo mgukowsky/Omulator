@@ -293,6 +293,7 @@ function(config_for_gcc target_name is_test)
       -Wall
       -Werror
       -Wextra
+      -Wshadow
       -Wwrite-strings
 
       # Target Intel Broadwell (~2015 w/ AVX2)
@@ -328,8 +329,9 @@ function(config_for_clang target_name is_test)
       -ansi
       -pedantic
       -Wall
-      -Wextra
       -Werror
+      -Wextra
+      -Wshadow
 
       # Target Intel Broadwell (~2015 w/ AVX2)
       # on an official build machine this could be march-=native
