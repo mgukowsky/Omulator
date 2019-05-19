@@ -293,7 +293,8 @@ function(config_for_gcc target_name is_test)
       -Wall
       -Werror
       -Wextra
-      -Wshadow
+      #TODO: For some reason, -Wshadow causes errors in spdlog on gcc, but not clang...
+      #-Wshadow
       -Wwrite-strings
 
       # Target Intel Broadwell (~2015 w/ AVX2)
