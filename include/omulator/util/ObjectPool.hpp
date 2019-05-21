@@ -2,10 +2,10 @@
 
 #include "omulator/PrimitiveIO.hpp"
 
+#include <cassert>
 #include <exception>
 #include <forward_list>
-#include <memory>
-//#include <mutex>
+#include <mutex>
 #include <type_traits>
 #include <vector>
 
@@ -52,9 +52,9 @@ public:
    *
    * @return A reference to an instance of T
    */
-  //TODO: project with thread safety annotations!
+  //TODO: protect with thread safety annotations!
   inline T& get() noexcept {
-    std::scoped_lock(poolLock_);
+    std::scoped_lock lck(poolLock_);
 
     if (pNextFree_ == nullptr) {
       //Die if we get an allocation error
@@ -73,16 +73,23 @@ public:
     return elementToReturn;
   }
 
-private:
-
   /**
    * Return an object to the pool. This object will become what pNextFree_
    * points to; i.e. it will be immediately returned from the next call to get().
+   *
+   * N.B. there are no protections to check if T actually came from this pool!
    */
-  inline void return_to_pool_(T &elem) noexcept {
-    *(reinterpret_cast<T**>(elem)) = pNextFree_;
-    pNextFree_ = elem;
+  //TODO: protect with thread safety annotations!
+  inline void return_to_pool(T &elem) noexcept {
+    std::scoped_lock lck(poolLock_);
+
+    assert(is_element_from_pool_(elem));
+
+    *(reinterpret_cast<T**>(&elem)) = pNextFree_;
+    pNextFree_ = &elem;
   }
+
+private:
 
   /**
    * Grow the pool by allocating a new vector and adding it to the
@@ -111,7 +118,7 @@ private:
       ++pNewMem;
     }
 
-    nextExpansionSize_ *= GROWTH_FACTOR_;
+    nextExpansionSize_ = std::size_t(nextExpansionSize_ * GROWTH_FACTOR_);
   }
 
   /**
@@ -124,17 +131,28 @@ private:
     return *(reinterpret_cast<T**>(pNextFree_));
   }
 
-  std::mutex poolLock_;
+  /**
+   * Given a T&, validate that it originated from this object pool.
+   * Primarily for assertion purposes.
+   */
+  bool is_element_from_pool_(T &elem) const noexcept {
+    bool from_this_pool = false;
 
-  //TODO: since we push to the front of the list, do the following:
-  //periodically, check if the first block in the list (which will be
-  //the most recently allocated block), and deallocate it if it hasn't
-  //been used in a while.
-  std::forward_list<std::vector<T>> poolMem_;
+    for(const auto& block : poolMem_) {
+      if (&elem >= block.data() && &elem < (block.data() + block.size())) {
+        from_this_pool = true;
+        break;
+      }
+    }
+
+    return from_this_pool;
+  }
+
+  std::size_t nextExpansionSize_;
 
   /**
    * A pointer the the next instance of T to return.
-   * 
+   *
    * When treated as a T*: points to the next available object in the pool
    * When treated as a T**: points to a pointer to the object AFTER the next
    *    available object in the pool. *(T**(pNextFree_)) will be a nullptr
@@ -142,7 +160,13 @@ private:
    */
   T *pNextFree_;
 
-  std::size_t nextExpansionSize_;
+  std::mutex poolLock_;
+
+  //TODO: since we push to the front of the list, do the following:
+  //periodically, check if the first block in the list (which will be
+  //the most recently allocated block), and deallocate it if it hasn't
+  //been used in a while.
+  std::forward_list<std::vector<T>> poolMem_;
 
   /**
    * Determines the size of the next allocation relative
