@@ -1,0 +1,32 @@
+version: '{build}'
+
+environment:
+  matrix:
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      platform: x64
+      GENERATOR: Ninja
+      BUILD_TYPE: Debug
+
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      platform: x64
+      GENERATOR: Ninja
+      BUILD_TYPE: Release
+
+install:
+  - mkdir C:\projects\deps
+  - cd C:\projects\deps
+  - appveyor DownloadFile "https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-win.zip" -FileName ninja.zip
+  - 7z x ninja.zip -oC:\projects\deps\ninja > nul
+  - set PATH=C:\projects\deps\ninja;%PATH%
+
+before_build:
+  - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64
+  - cmake --version
+  - ninja --version
+
+build_script:
+  - mkdir build
+  - cd build
+  - cmake .. -G %GENERATOR% -DCMAKE_BUILD_TYPE=%BUILD_TYPE%
+  - cmake --build
+  - ctest -V -j
