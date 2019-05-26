@@ -7,24 +7,28 @@ environment:
       GENERATOR: Ninja
       BUILD_TYPE: Debug
       OML_VS_VER: 2017
+      OML_BUILD_ARGS: -v
 
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       platform: x64
       GENERATOR: Ninja
       BUILD_TYPE: Release
       OML_VS_VER: 2017
+      OML_BUILD_ARGS: -v
 
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
       platform: x64
       GENERATOR: Ninja
       BUILD_TYPE: Debug
       OML_VS_VER: 2019
+      OML_BUILD_ARGS: -v
 
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
       platform: x64
       GENERATOR: Ninja
       BUILD_TYPE: Release
       OML_VS_VER: 2019
+      OML_BUILD_ARGS: -v
 
 install:
   - pwd
@@ -45,5 +49,5 @@ build_script:
   - mkdir build
   - cd build
   - cmake .. -G %GENERATOR% -DCMAKE_BUILD_TYPE=%BUILD_TYPE%
-  - cmake --build . -v -j
+  - cmake --build . -j -- %OML_BUILD_ARGS%
   - ctest -V -j
