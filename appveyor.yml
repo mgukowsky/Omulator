@@ -6,21 +6,25 @@ environment:
       platform: x64
       GENERATOR: Ninja
       BUILD_TYPE: Debug
+      OML_VS_VER: 2017
 
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       platform: x64
       GENERATOR: Ninja
       BUILD_TYPE: Release
+      OML_VS_VER: 2017
 
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
       platform: x64
       GENERATOR: Ninja
       BUILD_TYPE: Debug
+      OML_VS_VER: 2019
 
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
       platform: x64
       GENERATOR: Ninja
       BUILD_TYPE: Release
+      OML_VS_VER: 2019
 
 install:
   - pwd
@@ -32,9 +36,10 @@ install:
 
 before_build:
   - cd C:\projects\Omulator
-  - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64
+  - call "C:\Program Files (x86)\Microsoft Visual Studio\%OML_VS_VER%\Community\VC\Auxiliary\Build\vcvars64.bat"
   - cmake --version
   - ninja --version
+  - git submodule update --init --recursive
 
 build_script:
   - mkdir build
