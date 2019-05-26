@@ -45,5 +45,5 @@ build_script:
   - mkdir build
   - cd build
   - cmake .. -G %GENERATOR% -DCMAKE_BUILD_TYPE=%BUILD_TYPE%
-  - cmake --build
+  - cmake --build . -j -v
   - ctest -V -j
