@@ -46,34 +46,8 @@ find_package(
     REQUIRED
 )
 
-message(
-  STATUS
-  "Downloading spdlog..."
-)
-
-# Download spdlog
-FetchContent_Declare(
-  spdlog
-  GIT_REPOSITORY
-    https://github.com/gabime/spdlog.git
-  GIT_TAG
-    v1.3.1
-)
-
-FetchContent_GetProperties(spdlog)
-if(NOT spdlog_POPULATED)
-  FetchContent_Populate(spdlog)
-
-  add_subdirectory(
-    ${spdlog_SOURCE_DIR}
-    ${spdlog_BINARY_DIR}
-  )
-endif()
-
-target_link_libraries(
-  ${PROJECT_NAME}
-  PUBLIC
-    spdlog
+add_subdirectory(
+  "third_party/spdlog"
 )
 
 if(NOT MSVC)
@@ -87,13 +61,16 @@ if(NOT MSVC)
     SDL2
       REQUIRED
   )
-
-  target_link_libraries(
-    ${PROJECT_NAME}
-    PRIVATE
-      ${SDL2_LIBRARY}
-  )
 endif()
+
+# CMake prefers we call target_link_libraries in the same CMake directory
+# where the target is declared...
+target_link_libraries(
+  ${PROJECT_NAME}
+  PUBLIC
+    spdlog
+    ${SDL2_LIBRARY}
+)
 
 add_subdirectory(src)
 
@@ -101,6 +78,7 @@ add_subdirectory(src)
 if(OMULATOR_BUILD_TESTS)
   include(CTest)
   enable_testing()
-
+  
+  add_subdirectory("third_party/googletest")
   add_subdirectory("test")
 endif()

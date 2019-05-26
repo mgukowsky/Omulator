@@ -78,7 +78,7 @@ function(configure_target target_name is_test)
         NDEBUG
     )
   endif()
-
+  
   if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     config_for_msvc(${target_name} ${is_test})
   elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
