@@ -12,7 +12,18 @@ environment:
       GENERATOR: Ninja
       BUILD_TYPE: Release
 
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+      platform: x64
+      GENERATOR: Ninja
+      BUILD_TYPE: Debug
+
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+      platform: x64
+      GENERATOR: Ninja
+      BUILD_TYPE: Release
+
 install:
+  - pwd
   - mkdir C:\projects\deps
   - cd C:\projects\deps
   - appveyor DownloadFile "https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-win.zip" -FileName ninja.zip
@@ -20,6 +31,7 @@ install:
   - set PATH=C:\projects\deps\ninja;%PATH%
 
 before_build:
+  - cd C:\projects\Omulator
   - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64
   - cmake --version
   - ninja --version
