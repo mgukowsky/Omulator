@@ -24,7 +24,7 @@ template<typename T>
 class ObjectPool {
 public:
   ObjectPool(const std::size_t initialSize)
-      : nextExpansionSize_(initialSize), pNextFree_(nullptr) {
+      : nextExpansionSize_(initialSize), pNextFree_(nullptr), size_(0) {
 
     static_assert(std::is_trivial_v<T>, 
       "ObjectPool<T> is only valid if T is a trivial type; "
@@ -53,7 +53,7 @@ public:
    * @return A reference to an instance of T
    */
   //TODO: protect with thread safety annotations!
-  inline T& get() noexcept {
+  inline T* get() noexcept {
     std::scoped_lock lck(poolLock_);
 
     if (pNextFree_ == nullptr) {
@@ -68,7 +68,7 @@ public:
       }
     }
 
-    T &elementToReturn = *pNextFree_;
+    T *elementToReturn = pNextFree_;
     pNextFree_ = peek_();
     return elementToReturn;
   }
@@ -80,13 +80,20 @@ public:
    * N.B. there are no protections to check if T actually came from this pool!
    */
   //TODO: protect with thread safety annotations!
-  inline void return_to_pool(T &elem) noexcept {
+  inline void return_to_pool(T *elem) noexcept {
     std::scoped_lock lck(poolLock_);
 
     assert(is_element_from_pool_(elem));
 
-    *(reinterpret_cast<T**>(&elem)) = pNextFree_;
-    pNextFree_ = &elem;
+    *(reinterpret_cast<T**>(elem)) = pNextFree_;
+    pNextFree_ = elem;
+  }
+
+  /**
+   * Returns the of the pool, in # of T elements.
+   */
+  std::size_t size() const noexcept {
+    return size_;
   }
 
 private:
@@ -118,7 +125,8 @@ private:
       ++pNewMem;
     }
 
-    nextExpansionSize_ = std::size_t(nextExpansionSize_ * GROWTH_FACTOR_);
+    size_ += nextExpansionSize_;
+    nextExpansionSize_ = std::size_t(size_ * GROWTH_FACTOR_);
   }
 
   /**
@@ -132,14 +140,14 @@ private:
   }
 
   /**
-   * Given a T&, validate that it originated from this object pool.
+   * Given a T*, validate that it originated from this object pool.
    * Primarily for assertion purposes.
    */
-  bool is_element_from_pool_(T &elem) const noexcept {
+  bool is_element_from_pool_(T *elem) const noexcept {
     bool from_this_pool = false;
 
-    for(const auto& block : poolMem_) {
-      if (&elem >= block.data() && &elem < (block.data() + block.size())) {
+    for(const auto &block : poolMem_) {
+      if (elem >= block.data() && elem < (block.data() + block.size())) {
         from_this_pool = true;
         break;
       }
@@ -167,6 +175,8 @@ private:
   //the most recently allocated block), and deallocate it if it hasn't
   //been used in a while.
   std::forward_list<std::vector<T>> poolMem_;
+
+  std::size_t size_;
 
   /**
    * Determines the size of the next allocation relative
