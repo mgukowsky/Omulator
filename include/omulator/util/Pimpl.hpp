@@ -24,7 +24,8 @@ class Pimpl {
 public:
   template<typename ...Args>
   explicit Pimpl(Args &&...args)
-      : ptr_(std::make_unique<T>(std::forward<Args>(args)...)) {
+    : ptr_(std::make_unique<T>(std::forward<Args>(args)...))
+  {
 
   }
 

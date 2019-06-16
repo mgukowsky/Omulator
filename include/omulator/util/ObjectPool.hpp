@@ -24,8 +24,8 @@ template<typename T>
 class ObjectPool {
 public:
   ObjectPool(const std::size_t initialSize)
-      : nextExpansionSize_(initialSize), pNextFree_(nullptr), size_(0) {
-
+    : nextExpansionSize_(initialSize), pNextFree_(nullptr), size_(0)
+  {
     static_assert(std::is_trivial_v<T>, 
       "ObjectPool<T> is only valid if T is a trivial type; "
       "i.e. has no user-defined constructor");
@@ -144,16 +144,16 @@ private:
    * Primarily for assertion purposes.
    */
   bool is_element_from_pool_(T *elem) const noexcept {
-    bool from_this_pool = false;
+    bool fromThisPool = false;
 
     for(const auto &block : poolMem_) {
       if (elem >= block.data() && elem < (block.data() + block.size())) {
-        from_this_pool = true;
+        fromThisPool = true;
         break;
       }
     }
 
-    return from_this_pool;
+    return fromThisPool;
   }
 
   std::size_t nextExpansionSize_;

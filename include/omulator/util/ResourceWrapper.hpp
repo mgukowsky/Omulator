@@ -28,7 +28,8 @@ public:
    */
   template<typename ...Args>
   explicit ResourceWrapper(Args &&...args)
-      : instance_(allocator(std::forward<Args>(args)...)) {
+    : instance_(allocator(std::forward<Args>(args)...))
+  {
 
 //TODO: clang-7 seems to have issues with the is_invocable checks...
 #ifndef __clang__

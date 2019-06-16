@@ -2,61 +2,77 @@
 
 #include <spdlog/spdlog.h>
 
+#include <string>
 #include <utility>
 
-namespace omulator::logger {
+namespace omulator {
 
 /**
- * Logging functions to abstract away the underlying log library. All logging
+ * Logging class to abstract away the underlying log library. All logging
  * functions accept a libfmt-style series of arguments, ie. log("fmt string", args...)
  */
 
-//TODO: any way to make these noexcept?
-template<typename ...Args>
-inline void critical(Args &&...args) {
-  spdlog::critical(std::forward<Args>(args)...);
-}
+class Logger {
+public:
+  enum class LogLevel {
+    OFF,
+    CRITICAL,
+    ERR,
+    WARN,
+    INFO,
+    DEBUG,
+    TRACE
+  };
 
-template<typename ...Args>
-inline void error(Args &&...args) {
-  spdlog::error(std::forward<Args>(args)...);
-}
+  // N.B. that "%+" is spdlog's default format
+  Logger(const omulator::Logger::LogLevel initialLevel,
+    const std::string &pattern = "%+");
+  ~Logger();
 
-template<typename ...Args>
-inline void warn(Args &&...args) {
-  spdlog::warn(std::forward<Args>(args)...);
-}
+  Logger(const Logger&) = delete;
+  Logger& operator=(const Logger&) = delete;
+  Logger(Logger&&) = delete;
+  Logger& operator=(Logger&&) = delete;
 
-template<typename ...Args>
-inline void info(Args &&...args) {
-  spdlog::info(std::forward<Args>(args)...);
-}
+  //TODO: OK for all Logging functions to be noexcept?
+  template<typename ...Args>
+  inline void critical(Args &&...args) const noexcept {
+    spdlog::critical(std::forward<Args>(args)...);
+  }
 
-template<typename ...Args>
-inline void debug(Args &&...args) {
-  spdlog::debug(std::forward<Args>(args)...);
-}
+  template<typename ...Args>
+  inline void error(Args &&...args) const noexcept {
+    spdlog::error(std::forward<Args>(args)...);
+  }
 
-template<typename ...Args>
-inline void trace(Args &&...args) {
-  spdlog::trace(std::forward<Args>(args)...);
-}
+  template<typename ...Args>
+  inline void warn(Args &&...args) const noexcept {
+    spdlog::warn(std::forward<Args>(args)...);
+  }
 
-/**
- * The remainder of the functions here serve to manipulate the state of the underlying
- * logging library.
- */
-enum class LogLevel {
-  OFF,
-  CRITICAL,
-  ERR,
-  WARN,
-  INFO,
-  DEBUG,
-  TRACE
-};
+  template<typename ...Args>
+  inline void info(Args &&...args) const noexcept {
+    spdlog::info(std::forward<Args>(args)...);
+  }
 
-void set_level(LogLevel level);
+  template<typename ...Args>
+  inline void debug(Args &&...args) const noexcept {
+    spdlog::debug(std::forward<Args>(args)...);
+  }
 
-} /* namespace omulator::logger */
+  template<typename ...Args>
+  inline void trace(Args &&...args) const noexcept {
+    spdlog::trace(std::forward<Args>(args)...);
+  }
+
+  /**
+   * The remainder of the functions here serve to manipulate the state of the underlying
+   * logging library.
+   */
+  void set_level(LogLevel level);
+  void set_pattern(const std::string &pattern);
+
+}; /* class Logger */
+
+} /* namespace omulator */
 

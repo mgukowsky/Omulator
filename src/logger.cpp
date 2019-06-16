@@ -1,36 +1,52 @@
-#include "omulator/logger.hpp"
+#include "omulator/Logger.hpp"
 
-void omulator::logger::set_level(omulator::logger::LogLevel level) {
+omulator::Logger::Logger(const omulator::Logger::LogLevel initialLevel,
+  const std::string &pattern )
+{
+  set_level(initialLevel);
+  spdlog::set_pattern(pattern);
+  info("Initializing logger!");
+}
+
+omulator::Logger::~Logger() {
+  info("Shutting down logger!");
+}
+
+void omulator::Logger::set_level(omulator::Logger::LogLevel level) {
   switch(level) {
-    case omulator::logger::LogLevel::OFF:
+    case LogLevel::OFF:
       spdlog::set_level(spdlog::level::off);
       break;
 
-    case omulator::logger::LogLevel::CRITICAL:
+    case LogLevel::CRITICAL:
       spdlog::set_level(spdlog::level::critical);
       break;
 
-    case omulator::logger::LogLevel::ERR:
+    case LogLevel::ERR:
       spdlog::set_level(spdlog::level::err);
       break;
 
-    case omulator::logger::LogLevel::WARN:
+    case LogLevel::WARN:
       spdlog::set_level(spdlog::level::warn);
       break;
 
-    case omulator::logger::LogLevel::INFO:
+    case LogLevel::INFO:
       spdlog::set_level(spdlog::level::info);
       break;
   
-    case omulator::logger::LogLevel::DEBUG:
+    case LogLevel::DEBUG:
       spdlog::set_level(spdlog::level::debug);
       break;
 
-    case omulator::logger::LogLevel::TRACE:
+    case LogLevel::TRACE:
       spdlog::set_level(spdlog::level::trace);
       break;
 
     default:
       break;
   }
+}
+
+void omulator::Logger::set_pattern(const std::string &pattern) {
+  spdlog::set_pattern(pattern.c_str());
 }
