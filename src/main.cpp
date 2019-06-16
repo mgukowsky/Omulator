@@ -1,10 +1,6 @@
-#include "omulator/PrimitiveIO.hpp"
-#include "omulator/logger.hpp"
+#include "omulator/Logger.hpp"
 #include "omulator/main.hpp"
-
-#include <exception>
-#include <stdexcept>
-#include <string>
+#include "omulator/util/exception_handler.hpp"
 
 int main([[maybe_unused]] const int argc, [[maybe_unused]] const char **argv) {
   try {
@@ -14,8 +10,7 @@ int main([[maybe_unused]] const int argc, [[maybe_unused]] const char **argv) {
 
   // Top level exception handler
   catch(...) {
-    omulator::PrimitiveIO::alert_err("Something went wrong...");
-    return 1;
+    omulator::util::exception_handler();
   }
 
   return 0;

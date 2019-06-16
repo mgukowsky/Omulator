@@ -5,7 +5,7 @@
  * conventional IO functionality cannot be guaranteed (i.e. during early
  * application initialization, handling a catastrophic error, etc.).
  *
- * These functions are platform-specific
+ * These functions are platform-specific.
  */
 namespace omulator::PrimitiveIO {
 
@@ -13,6 +13,11 @@ namespace omulator::PrimitiveIO {
    * Log to stdout
    */
   void log_msg(const char *msg);
+
+  /**
+   * Log to stderr
+   */
+  void log_err(const char *msg);
 
   /**
    * Log to stdout and show the message in a dialog box

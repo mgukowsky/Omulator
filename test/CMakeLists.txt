@@ -2,6 +2,8 @@
 include(FetchContent)
 
 # Use to add tests
+# TESTNAME must have a corresponding ${TESTNAME}_test.cpp, in addition to any other
+# source files.
 # From https://cliutils.gitlab.io/modern-cmake/chapters/testing/googletest.html
 macro(add_unit_test TESTNAME)
   add_executable(${TESTNAME})
@@ -18,6 +20,7 @@ macro(add_unit_test TESTNAME)
   target_sources_local(
     ${TESTNAME}
     PRIVATE
+      ${TESTNAME}_test.cpp
       ${ARGN}
   )
 
