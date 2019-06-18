@@ -1,6 +1,7 @@
 #pragma once
 
 #include "omulator/PrimitiveIO.hpp"
+#include "omulator/util/exception_handler.hpp"
 
 #include <cassert>
 #include <exception>
@@ -63,8 +64,7 @@ public:
         grow_();
       }
       catch (...) {
-        omulator::PrimitiveIO::alert_err("Something went wrong...");
-        std::terminate();
+        omulator::util::exception_handler();
       }
     }
 

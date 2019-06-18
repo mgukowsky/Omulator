@@ -90,8 +90,8 @@ TEST(ObjectPool_test, returnForeignMemToPool) {
     omulator::util::ObjectPool<MemBlock> op(4);
     MemBlock foreignMem;
     op.return_to_pool(&foreignMem);
-  }, "") << "Memory from outside the ObjectPool should not be accepted by "
-    "return_to_pool()";
+  }, "") << 
+    "Memory from outside the ObjectPool should be rejected by return_to_pool()";
 #else
   ASSERT_EQ(1, 1);
 #endif
