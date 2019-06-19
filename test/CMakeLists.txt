@@ -1,6 +1,3 @@
-# Download GoogleTest
-include(FetchContent)
-
 # Use to add tests
 # TESTNAME must have a corresponding ${TESTNAME}_test.cpp, in addition to any other
 # source files.

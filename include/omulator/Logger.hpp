@@ -1,6 +1,13 @@
 #pragma once
 
+#if defined(_MSC_VER) && defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
 #include <spdlog/spdlog.h>
+#if defined(_MSC_VER) && defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 #include <string>
 #include <utility>

@@ -29,7 +29,15 @@ project(
     CXX
 )
 
-message(STATUS "Starting CMake with " ${CMAKE_CXX_COMPILER_ID} " on " ${CMAKE_SYSTEM_NAME})
+message(
+  STATUS
+    "Starting CMake with "
+    ${CMAKE_CXX_COMPILER_ID}
+    " on "
+    ${CMAKE_SYSTEM_NAME}
+    "; MSVC: "
+    ${MSVC}
+)
 
 include(CheckIPOSupported)
 include(FetchContent)

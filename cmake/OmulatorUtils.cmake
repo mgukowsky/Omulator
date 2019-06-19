@@ -79,7 +79,7 @@ function(configure_target target_name is_test)
     )
   endif()
   
-  if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+  if(MSVC)
     config_for_msvc(${target_name} ${is_test})
   elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     config_for_gcc(${target_name} ${is_test})
@@ -115,31 +115,57 @@ function(config_for_msvc target_name is_test)
       # ISO compliancy
       /Zc:forScope
       /Zc:inline
-      /Zc:referenceBinding
       /Zc:rvalueCast
       /Zc:strictStrings
       /Zc:ternary
-      /Zc:throwingNew
       /Zc:wchar_t
 
       # Warnings and additional output
       /diagnostics:classic
-      /FAcs 
       /Fa${CMAKE_CURRENT_BINARY_DIR}/
-      /Wall
-      /WL
       /WX
-
-      # Experimental MSVC feature which ignores errors from system headers. N.B. this
-      # will eventually no longer be experimental and will have to change. This sets
-      # warnings from <angle bracket> headers to W0
-      /experimental:external
-      /external:anglebrackets
-      /external:W0
 
       # Additional optimizations for x64, off for now...
       #/favor:INTEL64
   )
+
+  # While most flags will work with MSVC and clang-cl, certain flags are specific to
+  # each compiler
+  if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    target_compile_options(
+      ${target_name}
+      PUBLIC
+        # Experimental MSVC feature which ignores errors from system headers. N.B. this
+        # will eventually no longer be experimental and will have to change. This sets
+        # warnings from <angle bracket> headers to W0. Needs to be off for clang-cl, though.
+        /experimental:external
+        /external:anglebrackets
+        /external:W0
+
+        # Create assembly dump
+        /FAcs
+
+        # ISO compliancy
+        /Zc:referenceBinding
+        /Zc:throwingNew
+
+        # All warnings
+        /Wall
+
+        # One line diagnostics
+        /WL
+    )
+  elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(
+      ${target_name}
+      PUBLIC
+        # clang-cl barfs on a bunch of headers with higher warn levels (but not on Linux?)
+        -W3
+        -Wno-c++98-compat
+        -Wno-c++98-compat-pedantic
+    )
+  endif()
+
 
   # /Wall in MSVC is a bit overzealous, so we disable some warnings we don't care about
   # 4307: integral constant overflow
@@ -236,9 +262,6 @@ function(config_for_msvc target_name is_test)
         # Maximum optimization
         /O2 /Ob2
 
-        # Whole program optimization
-        /GL
-
         # Optimize globals
         /Gw
 
@@ -247,10 +270,19 @@ function(config_for_msvc target_name is_test)
 
         # Function level linking
         /Gy
-
-        # Fast transcendentals
-        /Qfast_transcendentals
     )
+
+    if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+      target_compile_options(
+        ${target_name}
+        PUBLIC
+          # Whole program optimization
+          /GL
+
+          # Fast transcendentals
+          /Qfast_transcendentals
+      )
+    endif()
 
     # See comment at the top of this function for why this is necessary
     if(NOT ${is_test})
