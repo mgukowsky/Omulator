@@ -48,5 +48,5 @@ void omulator::Logger::set_level(omulator::Logger::LogLevel level) {
 }
 
 void omulator::Logger::set_pattern(const std::string &pattern) {
-  spdlog::set_pattern(pattern.c_str());
+  spdlog::set_pattern(pattern);
 }

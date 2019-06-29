@@ -1,5 +1,6 @@
 #pragma once
 
+//Disable warnings from spdlog when using clang-cl
 #if defined(_MSC_VER) && defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Weverything"
