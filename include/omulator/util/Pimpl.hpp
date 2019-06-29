@@ -24,7 +24,7 @@ class Pimpl {
 public:
   template<typename ...Args>
   explicit Pimpl(Args &&...args)
-    : ptr_(std::make_unique<T>(std::forward<Args>(args)...))
+    : pimpl_(std::make_unique<T>(std::forward<Args>(args)...))
   {
 
   }
@@ -40,11 +40,11 @@ public:
   Pimpl& operator=(Pimpl&&) noexcept = default;
 
   //Functions enabling this class to act as a pointer proxy
-  inline T* operator->() noexcept { return ptr_.get(); }
-  inline T& operator*() noexcept { return *ptr_.get(); }
+  inline T* operator->() noexcept { return pimpl_.get(); }
+  inline T& operator*() noexcept { return *pimpl_.get(); }
 
-  inline const T* operator->() const noexcept { return ptr_.get(); }
-  inline const T& operator*() const noexcept { return *ptr_.get(); }
+  inline const T* operator->() const noexcept { return pimpl_.get(); }
+  inline const T& operator*() const noexcept { return *pimpl_.get(); }
 
 private:
   std::unique_ptr<T> pimpl_;

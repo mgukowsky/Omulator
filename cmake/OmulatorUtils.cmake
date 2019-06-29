@@ -22,6 +22,26 @@ function(add_clang_tidy_pass target_name)
   endif()
 endfunction()
 
+function(define_target_arch target_name)
+  # if x64, will be AMD64 on Windows or x86_64 on Linux
+  if(CMAKE_SYSTEM_PROCESSOR MATCHES "AMD64|x86_64")
+    target_compile_definitions(
+      ${target_name}
+      PUBLIC
+        OML_ARCH_X64
+    )
+  # should be "arm" on ARM Linux (I think?)
+  elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
+    target_compile_definitions(
+      ${target_name}
+      PUBLIC
+        OML_ARCH_ARM
+    )
+  else()
+    message(FATAL_ERROR "Unknown architecture...")
+  endif()
+endfunction()
+
 # From https://crascit.com/2016/01/31/enhanced-source-file-handling-with-target_sources/
 # NOTE: This helper function assumes no generator expressions are used
 #       for the source files
@@ -70,6 +90,8 @@ function(configure_target target_name is_test)
       POSITION_INDEPENDENT_CODE
         ON
   )
+
+  define_target_arch(${target_name})
 
   if(CMAKE_BUILD_TYPE MATCHES Release)
     target_compile_definitions(
@@ -171,6 +193,8 @@ function(config_for_msvc target_name is_test)
   # 4307: integral constant overflow
   # 4514: compiler removed an unreferenced inline function
   # 4571: catch(...) won't work with SEH
+  # 4625: copy constructor implicity deleted; allows us to use rule of 0/3/5
+  # 4626: assignment operator implicitly deleted; allows us to use rule of 0/3/5
   # 4668: macro was undefined, so compiler replaced with '0'
   # 4710: function could not be inlined
   # 4711: function was automatically inlined
@@ -183,6 +207,8 @@ function(config_for_msvc target_name is_test)
       /wd4307
       /wd4514
       /wd4571
+      /wd4625
+      /wd4626
       /wd4668
       /wd4710
       /wd4711
