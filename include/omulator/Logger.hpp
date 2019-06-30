@@ -1,12 +1,12 @@
 #pragma once
 
 //Disable warnings from spdlog when using clang-cl
-#if defined(_MSC_VER) && defined(__clang__)
+#if defined(OML_COMPILER_CLANG_CL)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Weverything"
 #endif
 #include <spdlog/spdlog.h>
-#if defined(_MSC_VER) && defined(__clang__)
+#if defined(OML_COMPILER_CLANG_CL)
 #pragma clang diagnostic pop
 #endif
 

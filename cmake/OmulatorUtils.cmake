@@ -42,6 +42,36 @@ function(define_target_arch target_name)
   endif()
 endfunction()
 
+function(define_target_compiler target_name)
+  if(MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_definitions(
+      ${target_name}
+      PUBLIC
+        OML_COMPILER_CLANG_CL
+    )
+  elseif(MSVC)
+    target_compile_definitions(
+      ${target_name}
+      PUBLIC
+        OML_COMPILER_MSVC
+    )
+  elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    target_compile_definitions(
+      ${target_name}
+      PUBLIC
+        OML_COMPILER_GCC
+    )
+  elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_definitions(
+      ${target_name}
+      PUBLIC
+        OML_COMPILER_CLANG
+    )
+  else()
+    message(FATAL_ERROR "Unknown compiler: " ${CMAKE_CXX_COMPILER_ID})
+  endif()
+endfunction()
+
 # From https://crascit.com/2016/01/31/enhanced-source-file-handling-with-target_sources/
 # NOTE: This helper function assumes no generator expressions are used
 #       for the source files
@@ -92,6 +122,7 @@ function(configure_target target_name is_test)
   )
 
   define_target_arch(${target_name})
+  define_target_compiler(${target_name})
 
   if(CMAKE_BUILD_TYPE MATCHES Release)
     target_compile_definitions(
