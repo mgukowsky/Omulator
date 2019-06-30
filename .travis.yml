@@ -3,12 +3,6 @@ dist: xenial
 
 sudo: required
 
-env:
-  global:
-    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
-    #   via the "travis encrypt" command using the project repo's public key
-    - secure: "E+qlpMQwKW3RN1+7LHQB7CTyGI2XCCDytG0JVXj158HC/iKrKx2E97HPuyGmyYQ9XZLte36vlBqNKUduDuiBDGMJZ8Hb0NeXNgWF3nY2yKnTYq29itHesaQkSbzBg7CigOXN5x6nnTrv6OfGrUPpcYipfwosTEryShJubP5/QTo="
-
 matrix:
   include:
     # GCC7 Debug build
@@ -66,29 +60,6 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - [g++-8, libsdl2-dev, ninja-build]
-
-    # Coverity build
-    - os: linux
-      compiler: gcc
-      before_install: echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
-      env:
-        - MATRIX_BUILD_TYPE=Debug
-        - MATRIX_CC=gcc-8
-        - MATRIX_CXX=g++-8
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - [g++-8, libsdl2-dev, ninja-build]
-        coverity_scan:
-          project:
-            name: "mgukowsky/Omulator"
-            description: "The Omnibus Emulator"
-          notification_email: ""
-          build_command_prepend: "mkdir coverity_build; cd coverity_build; cmake .. -DCMAKE_BUILD_TYPE=$MATRIX_BUILD_TYPE -GNinja"
-          build_command: "ninja -v; cd .."
-          branch_pattern: coverity_scan
 
     # Clang-7 Debug build
     # - os: linux
