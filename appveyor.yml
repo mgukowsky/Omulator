@@ -94,4 +94,4 @@ build_script:
   - cd build
   - cmake .. -G %GENERATOR% -DCMAKE_BUILD_TYPE=%BUILD_TYPE%
   - cmake --build . -j -- %OML_BUILD_ARGS%
-  - ctest -V -j
+  - ctest -V -j --schedule-random

@@ -2,8 +2,11 @@
 
 #include <iostream>
 
+/**
+ * Mocks for primitive i/o functions. N.B. these still write to stdout/stderr
+ * b/c we have test cases which monitor stdout/stderr.
+ */
 namespace omulator::PrimitiveIO {
-  const char *lastMsgLogged = nullptr;
 
   void log_msg(const char *msg) { std::cout << msg; }
 

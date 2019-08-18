@@ -6,8 +6,8 @@
 namespace omulator::util {
 
 /**
- * A generic RAII wrapper; intended for managing C APIs with manual allocation and 
- * deallocation functions.
+ * A generic RAII wrapper; intended for managing C-style APIs with manual 
+ * allocation and deallocation functions.
  * 
  * @param T the underlying type
  * @param allocator a callable which returns an instance of T.

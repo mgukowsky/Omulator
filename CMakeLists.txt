@@ -35,8 +35,6 @@ message(
     ${CMAKE_CXX_COMPILER_ID}
     " on "
     ${CMAKE_SYSTEM_NAME}
-    "; MSVC: "
-    ${MSVC}
 )
 
 include(CheckIPOSupported)

@@ -2,7 +2,7 @@
 
 /**
  * Keeps #include's for intrinsic headers in one place, across architectures
- * and compilers
+ * and compilers.
  */
 
 #if defined(OML_COMPILER_MSVC) || defined(OML_COMPILER_CLANG_CL)

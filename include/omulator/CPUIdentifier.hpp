@@ -7,7 +7,7 @@ namespace omulator {
 
 class CPUIdentifier {
 public:
-  //Must be declared here for Pimpl to work
+  //Must be declared here for pImpl to work
   CPUIdentifier();
   ~CPUIdentifier();
   bool is_cpu_supported() const noexcept;

@@ -33,6 +33,7 @@ target_include_directories(
 target_sources_local(
   ${PROJECT_NAME}
   PRIVATE
+    Latch.cpp
     Logger.cpp
     main.cpp
 )

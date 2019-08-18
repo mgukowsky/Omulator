@@ -59,7 +59,6 @@ public:
 
     if (pNextFree_ == nullptr) {
       //Die if we get an allocation error
-      //TODO: replace with Lippincott function
       try {
         grow_();
       }
