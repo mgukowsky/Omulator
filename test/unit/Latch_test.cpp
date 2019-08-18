@@ -81,13 +81,12 @@ TEST(Latch_test, advanced_count_down_and_wait) {
   omulator::Latch l(NUM_THREADS + 1);
   std::vector<std::thread> v;
 
-  for(int i = 0; i < NUM_THREADS; ++i) {
-    std::size_t id = static_cast<std::size_t>(i);
-    arrDone[id] = false;
+  for(std::size_t i = 0; i < NUM_THREADS; ++i) {
+    arrDone[i] = false;
 
-    v.emplace_back([&, id](){
+    v.emplace_back([&, i](){
       l.count_down_and_wait();
-      arrDone[id] = true;
+      arrDone[i] = true;
     });
   }
 
