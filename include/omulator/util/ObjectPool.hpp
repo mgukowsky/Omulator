@@ -77,6 +77,7 @@ public:
    * points to; i.e. it will be immediately returned from the next call to get().
    *
    * N.B. there are no protections to check if T actually came from this pool!
+   * @param elem The element to return to the pool.
    */
   //TODO: protect with thread safety annotations!
   inline void return_to_pool(T *elem) noexcept {
@@ -141,6 +142,8 @@ private:
   /**
    * Given a T*, validate that it originated from this object pool.
    * Primarily for assertion purposes.
+   *
+   * @param elem The element to return to the pool.
    */
   bool is_element_from_pool_(T *elem) const noexcept {
     bool fromThisPool = false;
