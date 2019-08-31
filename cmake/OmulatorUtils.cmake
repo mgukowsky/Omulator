@@ -124,13 +124,12 @@ function(configure_target target_name is_test)
   define_target_arch(${target_name})
   define_target_compiler(${target_name})
 
-  if(CMAKE_BUILD_TYPE MATCHES Release)
-    target_compile_definitions(
-      ${target_name}
-      PUBLIC
-        NDEBUG
-    )
-  endif()
+  target_compile_definitions(
+    ${target_name}
+    PUBLIC
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:NDEBUG>
+      $<$<BOOL:${OMULATOR_USE_RTM}>:OML_USE_RTM>
+  )
   
   if(MSVC)
     config_for_msvc(${target_name} ${is_test})
@@ -391,6 +390,9 @@ function(config_for_gcc target_name is_test)
       # Target Intel Broadwell (~2015 w/ AVX2)
       # on an official build machine this could be -march=native
       -march=broadwell
+
+      # Need to specify RTM if necessary (-march=broadwell is not sufficient)
+      $<$<BOOL:${OMULATOR_USE_RTM}>:-mrtm>
   )
 
   if(CMAKE_BUILD_TYPE MATCHES Debug)
@@ -428,6 +430,9 @@ function(config_for_clang target_name is_test)
       # Target Intel Broadwell (~2015 w/ AVX2)
       # on an official build machine this could be march-=native
       -march=broadwell
+
+      # Need to specify RTM if necessary (-march=broadwell is not sufficient)
+      $<$<BOOL:${OMULATOR_USE_RTM}>:-mrtm>
   )
 
   if(CMAKE_BUILD_TYPE MATCHES Debug)

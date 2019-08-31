@@ -114,7 +114,7 @@ script:
   - cmake --version
 
   - mkdir -p build && cd build
-  - "cmake .. -DCMAKE_BUILD_TYPE=$MATRIX_BUILD_TYPE -GNinja && ninja -v && ctest -V -j --schedule-random"
+  - "cmake .. -DCMAKE_BUILD_TYPE=$MATRIX_BUILD_TYPE -GNinja && ninja -v && ctest -V -j --schedule-random --repeat-until-fail 3"
 
 notifications:
   email: false
