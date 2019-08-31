@@ -114,7 +114,7 @@ matrix:
 before_script:
   - export CC=$MATRIX_CC
   - export CXX=$MATRIX_CXX
-  - travis_retry wget --no-check-certificate https://cmake.org/files/v3.3/cmake-3.14.5-Linux-x86_64.tar.gz
+  - travis_retry wget --no-check-certificate https://cmake.org/files/v3.14/cmake-3.14.5-Linux-x86_64.tar.gz
   - tar -xf cmake-3.14.5-Linux-x86_64.tar.gz
   - export PATH=$(pwd)/cmake-3.14.5-Linux-x86_64:$(pwd)/cmake-3.14.5-Linux-x86_64/bin:$PATH
 
