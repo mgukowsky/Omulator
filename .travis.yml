@@ -126,7 +126,7 @@ script:
 
   - mkdir -p build && cd build
   - "cmake .. -DCMAKE_BUILD_TYPE=$MATRIX_BUILD_TYPE -GNinja && ninja -v && ctest -V -j --schedule-random --repeat-until-fail 3"
-  - "if [ $MATRIX_SONARCLOUD -eq 1 ]; then sonar-scanner; fi"
+  - "if [ $MATRIX_SONARCLOUD -eq 1 ]; then cd .. && sonar-scanner; fi"
 
 notifications:
   email: false
