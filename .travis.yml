@@ -1,5 +1,5 @@
 language: cpp
-dist: trusty
+dist: xenial
 
 sudo: required
 
@@ -12,7 +12,6 @@ matrix:
         - MATRIX_BUILD_TYPE=Debug
         - MATRIX_CC=gcc-7
         - MATRIX_CXX=g++-7
-        - MATRIX_SONARCLOUD=0
       addons:
         apt:
           sources:
@@ -27,7 +26,6 @@ matrix:
         - MATRIX_BUILD_TYPE=Release
         - MATRIX_CC=gcc-7
         - MATRIX_CXX=g++-7
-        - MATRIX_SONARCLOUD=0
       addons:
         apt:
           sources:
@@ -42,7 +40,6 @@ matrix:
         - MATRIX_BUILD_TYPE=Debug
         - MATRIX_CC=gcc-8
         - MATRIX_CXX=g++-8
-        - MATRIX_SONARCLOUD=0
       addons:
         apt:
           sources:
@@ -50,24 +47,19 @@ matrix:
           packages:
             - [g++-8, libsdl2-dev, ninja-build]
     
-    # GCC8 Release build (N.B. this is what we will submit to SonarCloud)
+    # GCC8 Release build
     - os: linux
       compiler: gcc
       env:
         - MATRIX_BUILD_TYPE=Release
         - MATRIX_CC=gcc-8
         - MATRIX_CXX=g++-8
-        - MATRIX_SONARCLOUD=1
       addons:
         apt:
           sources:
             - ubuntu-toolchain-r-test
           packages:
             - [g++-8, libsdl2-dev, ninja-build]
-        sonarcloud:
-          organization: "mgukowsky"
-          token:
-            secure: "DtdiT2Pgwcbp5KLX/dYVW4VCVu3qVhNraILz6Qk5ZmSFuH8sdFPAH//YWmolN6/ROiVkjLnBLi3NLPIvsybehC26oGOxtIPkeXh38hTONahOc3e25zh9F7GGUb7Bz/A+fYMXHPs+aSkp1D8IYUexQKOri2p2jElIjsFwyS38UsF1NTm7/BZgefCu46SzXS2dxLx2HRj0C6yheA+dREmlMq1wa46RWtU5aW5T+w7LlQDDp3GbmXz0LX35rGPywBRqtS+i7HdBAybE/AXW1VH1RymkQomTVjfSoN39fTCqJSK+r6nRx/9RMb1VYGkVDZvqZdSyE9oBG/PkXt6BTqROVcxpathqb71kYLDISwkz3MRBm3MUGMuvrQG99wnUini4sVp4CPzDhSm7EsQ3eAuFE479fkTq2ouBP5f9tx5WA2a4KYwHSIeIbyndKocEKVn7ZLjzh6x+pPDAIin7XZtRWPug6MSnDdhSpN7AIIv/nRHrahv4N6TrxYc77XAtSfVsrTjKrUXAKn2uCxbwNi6UYU23IcQcdZ0Pj9X3l2mAizfy0ASOf+IcttRvSmK2jQiH2JFqssyKLq+7kVC54sRSkGNBI6Wx7rHNk5DQrMwD+0NB2ycQLJPuQdMKS8YNMR6vEPdmjNAOiSIHpX2ooezKHempjTC/vwZ4m6qIlc/6xWg="
 
     # Clang-7 Debug build
     # - os: linux
@@ -114,9 +106,6 @@ matrix:
 before_script:
   - export CC=$MATRIX_CC
   - export CXX=$MATRIX_CXX
-  - travis_retry wget --no-check-certificate https://cmake.org/files/v3.14/cmake-3.14.5-Linux-x86_64.tar.gz
-  - tar -xf cmake-3.14.5-Linux-x86_64.tar.gz
-  - export PATH=$(pwd)/cmake-3.14.5-Linux-x86_64:$(pwd)/cmake-3.14.5-Linux-x86_64/bin:$PATH
 
 script:
   - uname -a
@@ -126,7 +115,6 @@ script:
 
   - mkdir -p build && cd build
   - "cmake .. -DCMAKE_BUILD_TYPE=$MATRIX_BUILD_TYPE -GNinja && ninja -v && ctest -V -j --schedule-random --repeat-until-fail 3"
-  - "if [ $MATRIX_SONARCLOUD -eq 1 ]; then cd .. && sonar-scanner; fi"
 
 notifications:
   email: false
