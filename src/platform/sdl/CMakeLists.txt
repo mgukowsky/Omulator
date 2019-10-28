@@ -5,7 +5,7 @@ target_include_directories(
     ${SDL2_INCLUDE_DIR}
 )
 
-target_sources_local(
+target_sources(
   ${PROJECT_NAME}
   PRIVATE
     CPUIdentifier.cpp

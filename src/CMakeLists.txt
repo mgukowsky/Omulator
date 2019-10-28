@@ -30,7 +30,7 @@ target_include_directories(
     $<INSTALL_INTERFACE:include>
 )
 
-target_sources_local(
+target_sources(
   ${PROJECT_NAME}
   PRIVATE
     Latch.cpp

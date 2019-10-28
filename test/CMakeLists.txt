@@ -14,7 +14,7 @@ macro(add_unit_test TESTNAME)
       $<INSTALL_INTERFACE:test/include>
   )
 
-  target_sources_local(
+  target_sources(
     ${TESTNAME}
     PRIVATE
       ${TESTNAME}_test.cpp

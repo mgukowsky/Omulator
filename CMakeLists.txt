@@ -1,7 +1,28 @@
 cmake_minimum_required(
   VERSION
-    3.12
+    3.13
 )
+
+# Set the default build type. From https://blog.kitware.com/cmake-and-the-default-build-type
+if(NOT CMAKE_BUILD_TYPE)
+  message(STATUS "CMAKE_BUILD_TYPE not specified; defaulting to 'Debug'")
+  set(
+    CMAKE_BUILD_TYPE
+      "Debug"
+    CACHE
+    STRING
+    "The CMake build type. Can be one of 'Debug|Release|MinSizeRel|RelWithDebInfo'"
+    FORCE
+  )
+
+  set_property(
+    CACHE
+    CMAKE_BUILD_TYPE
+    PROPERTY
+    STRINGS
+      "Debug" "Release" "MinSizeRel" "RelWithDebInfo"
+  )
+endif()
 
 list(
   APPEND

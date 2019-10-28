@@ -1,4 +1,4 @@
-target_sources_local(
+target_sources(
   ${PROJECT_NAME}
   PRIVATE
     CPUIdentifier.cpp
