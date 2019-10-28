@@ -1,5 +1,5 @@
 language: cpp
-dist: xenial
+dist: bionic
 
 sudo: required
 
@@ -102,7 +102,15 @@ matrix:
     #         - llvm-toolchain-xenial-7
     #       packages:
     #         - [clang-7, libsdl2-dev, ninja-build]
- 
+
+# Need to get the most recent version of CMake, as the 3.12 version installed by default is
+# insufficient. Right now we're just dumping the downloaded files into whatever directory 
+# travis plops us into, but that should be OK?
+install:
+  - wget https://github.com/Kitware/CMake/releases/download/v3.15.4/cmake-3.15.4-Linux-x86_64.tar.gz
+  - tar -xzf cmake-3.15.4-Linux-x86_64.tar.gz
+  - export PATH=`pwd`/cmake-3.15.4-Linux-x86_64/bin:$PATH
+
 before_script:
   - export CC=$MATRIX_CC
   - export CXX=$MATRIX_CXX
