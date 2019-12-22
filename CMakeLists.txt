@@ -37,12 +37,6 @@ option(
   ON
 )
 
-option(
-	OMULATOR_USE_RTM
-	"Utilise Restricted Transactional Memory (RTM) extensions on Intel x64 platforms"
-	OFF
-)
-
 # Override CMake default options by passing it the Overrides.cmake module.
 # N.B. this is the preferred (although slightly magical) way to do this,
 # according to my research
