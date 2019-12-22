@@ -73,10 +73,6 @@ find_package(
     REQUIRED
 )
 
-add_subdirectory(
-  "third_party/spdlog"
-)
-
 if(NOT MSVC)
   message(
     STATUS
@@ -95,7 +91,6 @@ endif()
 target_link_libraries(
   ${PROJECT_NAME}
   PUBLIC
-    spdlog
     ${SDL2_LIBRARY}
 )
 
