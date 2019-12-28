@@ -84,16 +84,17 @@ if(NOT MSVC)
     SDL2
       REQUIRED
   )
+
+  # CMake prefers we call target_link_libraries in the same CMake directory
+  # where the target is declared...
+  target_link_libraries(
+    ${PROJECT_NAME}
+    PUBLIC
+      ${SDL2_LIBRARY}
+  )
 endif()
 
-# CMake prefers we call target_link_libraries in the same CMake directory
-# where the target is declared...
-target_link_libraries(
-  ${PROJECT_NAME}
-  PUBLIC
-    ${SDL2_LIBRARY}
-)
-
+add_subdirectory(platform)
 add_subdirectory(src)
 
 # Tests

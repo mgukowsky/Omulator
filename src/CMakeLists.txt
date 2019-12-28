@@ -40,8 +40,6 @@ target_sources(
     main.cpp
 )
 
-add_subdirectory(platform)
-
 # Finally, require a pass through clang-tidy
 # Unfortunately, clang-tidy barfs on the -std:c++17 flag with MSVC :(
 # And it barfs on non-clang flags in GCC :( :(
