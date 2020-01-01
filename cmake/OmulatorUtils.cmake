@@ -167,8 +167,9 @@ function(config_for_msvc target_name is_test)
         /Zc:referenceBinding
         /Zc:throwingNew
 
-        # All warnings
-        /Wall
+        # MSVC's Wall is ridiculous and triggers a deluge of false positives in its OWN headers,
+        # so W4 is the next best thing
+        /W4
 
         # One line diagnostics
         /WL

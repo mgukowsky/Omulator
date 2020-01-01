@@ -8,7 +8,7 @@
         <DebugMode>true</DebugMode>
         <TimestampOutput>true</TimestampOutput>
         <MaxNrOfThreads>8</MaxNrOfThreads>
-        <NrOfTestRepetitions>3</NrOfTestRepetitions>
+        <NrOfTestRepetitions>1</NrOfTestRepetitions>
         <ParallelTestExecution>true</ParallelTestExecution>
         <PrintTestOutput>true</PrintTestOutput>
         <RunDisabledTests>false</RunDisabledTests>

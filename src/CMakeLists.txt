@@ -46,3 +46,5 @@ target_sources(
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang" AND ${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   add_clang_tidy_pass(${PROJECT_NAME})
 endif()
+
+add_subdirectory(scheduler)

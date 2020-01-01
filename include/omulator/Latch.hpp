@@ -38,5 +38,8 @@ private:
 
 }; /* class Latch */
 
+// In case we ever want to switch over to the C++20 implementation...
+using Latch_ty = Latch;
+
 } /* namespace omulator */
 
