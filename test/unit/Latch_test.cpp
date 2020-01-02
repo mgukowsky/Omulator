@@ -5,6 +5,7 @@
 #include <array>
 #include <chrono>
 #include <condition_variable>
+#include <future>
 #include <mutex>
 #include <stdexcept>
 #include <thread>
@@ -24,13 +25,16 @@ TEST(Latch_test, basic_wait) {
 
   bool done = false;
 
+  std::promise<void> promise1, promise2;
+
   std::thread t([&]{
+    promise1.set_value();
     l.wait();
     done = true;
+    promise2.set_value();
   });
-
-  std::this_thread::sleep_for(THRD_DELAY);
-
+  
+  promise1.get_future().wait();
   EXPECT_FALSE(done)
     << "Latch.wait() should block until the internal counter reaches 0";
 
@@ -38,8 +42,8 @@ TEST(Latch_test, basic_wait) {
     << "a Latch should not be ready before the internal counter reaches 0";
 
   l.count_down();
-  std::this_thread::sleep_for(THRD_DELAY);
 
+  promise2.get_future().wait();
   EXPECT_TRUE(done)
     << "Functions waiting on a latch should unblock when the internal counter reaches 0";
 
@@ -80,6 +84,7 @@ TEST(Latch_test, advanced_count_down_and_wait) {
   std::array<bool, NUM_THREADS> arrDone;
   omulator::Latch l(NUM_THREADS + 1);
   std::vector<std::thread> v;
+  std::promise<void> promise1, promise2;
 
   for(std::size_t i = 0; i < NUM_THREADS; ++i) {
     arrDone[i] = false;
