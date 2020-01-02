@@ -93,6 +93,11 @@ private:
    */
   std::condition_variable jobCV_;
 
+  /**
+   * Used to protect access to jobCV_.
+   */
+  Lock_ty jobCVLock_;
+
   std::atomic_bool done_;
 
   // N.B. since the thread uses the this pointer, keep this as the last member
