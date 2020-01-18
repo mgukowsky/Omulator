@@ -23,6 +23,9 @@ namespace omulator::scheduler {
  */
 class Worker {
 public:
+  /**
+   * Blocks until the underlying thread has started and is ready to receive work.
+   */
   Worker();
 
   /**
@@ -35,15 +38,19 @@ public:
   Worker(Worker&&) = delete;
   Worker& operator=(Worker&&) = delete;
 
-   /**
-    * Add a task to this Worker's work queue. The priority will determine where in the queue the
-    * task is placed.
-    *
-    * @param work
-    *   The task to perform. Should be a callable taking no arguments and returning void. N.B. we
-    *   take this in as a universal reference as this may be given as a one-off lambda rvalue given
-    *   at the call site or a reference to an lvalue functor defined elsewhere.
-    */
+  /**
+   * Add a task to this Worker's work queue. The priority will determine where in the queue the
+   * task is placed.
+   *
+   * @param work
+   *   The task to perform. Should be a callable taking no arguments and returning void. N.B. we
+   *   take this in as a universal reference as this may be given as a one-off lambda rvalue given
+   *   at the call site or a reference to an lvalue functor defined elsewhere.
+   *
+   * @param priority
+   *   The priority of the task; the higher the priority the sooner the task will be scheduled for
+   *   execution.
+   */
   template<typename Callable>
   void add_job(Callable &&work, 
     const omulator::scheduler::Priority priority = omulator::scheduler::Priority::NORMAL)
@@ -51,10 +58,13 @@ public:
     static_assert(std::is_invocable_r_v<void, Callable>,
       "Jobs submitted to a Worker must return void and take no arguments");
 
-    std::scoped_lock queueLock(jobQueueLock_);
+    {
+      std::scoped_lock queueLock(jobQueueLock_);
 
-    jobQueue_.emplace(jobQueue_.end(), std::forward<Callable>(work), priority);
-    std::push_heap(jobQueue_.begin(), jobQueue_.end(), JOB_COMPARATOR);
+      jobQueue_.emplace(jobQueue_.end(), std::forward<Callable>(work), priority);
+      std::push_heap(jobQueue_.begin(), jobQueue_.end(), JOB_COMPARATOR);
+    }
+
     jobCV_.notify_one();
   }
 
@@ -62,6 +72,11 @@ public:
    * Returns a read-only version of the underlying work queue.
    */
   const std::deque<Job_ty>& job_queue() const noexcept;
+
+   /**
+    * Returns the ID of the underlying thread.
+    */
+  const std::thread::id thread_id() const noexcept;
 
 private:
   Latch_ty startupLatch_;
@@ -94,10 +109,8 @@ private:
   std::condition_variable jobCV_;
 
   /**
-   * Used to protect access to jobCV_.
+   * Indicates when the underlying thread should exit.
    */
-  Lock_ty jobCVLock_;
-
   std::atomic_bool done_;
 
   // N.B. since the thread uses the this pointer, keep this as the last member

@@ -25,6 +25,8 @@ Worker::Worker() : startupLatch_(1), done_(false), thread_(&Worker::thread_proc_
   // initial job queue is NOT empty, however, uncomment the following line.
   //std::make_heap(jobQueue_.begin(), jobQueue_.end());
   startupLatch_.count_down();
+  
+  //TODO: Do we want to do anything with thread priority? Do we care? Need to profile tho...
 }
 
 Worker::~Worker() {
@@ -41,6 +43,10 @@ const std::deque<Job_ty>& Worker::job_queue() const noexcept {
   return jobQueue_;
 }
 
+const std::thread::id Worker::thread_id() const noexcept {
+  return thread_.get_id();
+}
+
 void Worker::thread_proc_() {
   // Don't do anything until the parent thread is ready.
   startupLatch_.wait();
@@ -48,7 +54,7 @@ void Worker::thread_proc_() {
   while(!done_) {
 
     {
-      std::unique_lock cvLock(jobCVLock_);
+      std::unique_lock cvLock(jobQueueLock_);
 
       // N.B. we use wait_for in case there is some subtle race condition that can arise on the
       // implementation's end.
@@ -57,13 +63,7 @@ void Worker::thread_proc_() {
       //
       // The period chosen here doesn't represent anything special; if can certainly be changed
       // per profiler results if necessary.
-      jobCV_.wait_for(cvLock, 100ms, [this]() noexcept {
-
-        // N.B. we make the predicate function atomic so that work cannot be added while the
-        // check is taking place.
-        std::scoped_lock queueLock(jobQueueLock_);
-        return !jobQueue_.empty() || done_;
-      });
+      jobCV_.wait_for(cvLock, 10ms, [this]() noexcept { return !jobQueue_.empty() || done_; });
     }
 
     // This empty check does not need to be protected; even if a task is added while the check is
@@ -73,8 +73,7 @@ void Worker::thread_proc_() {
         break;
       }
 
-      // Could be a Job_ty*, but std::optional has a slightly better smell, I think
-      std::optional<Job_ty> currentJob{ std::nullopt };
+      Job_ty currentJob;
       {
         std::scoped_lock queueLock(jobQueueLock_);
 
@@ -93,7 +92,7 @@ void Worker::thread_proc_() {
         jobQueue_.pop_back();
       }
 
-      currentJob.value().task();
+      currentJob.task();
       // TODO: When the current task finishes executing, check to see if an exception was raised and,
       // if so, log it.
     }

@@ -27,8 +27,16 @@ enum class Priority : U8 {
  */
 struct Job_ty {
 
+  static auto constexpr NULL_TASK = []{};
+
   /**
-   * We need a trivial ctor here to handle templated callable args (helps us use emplace
+   * A trivial constructor which performs no action and has minimal priority.
+   */
+  Job_ty()
+    : task(NULL_TASK), priority(Priority::MIN) {}
+
+  /**
+   * We need a simple ctor here to handle templated callable args (helps us use emplace
    * functions elsewhere).
    */
   template<typename Callable>
@@ -45,7 +53,7 @@ struct Job_ty {
  * TODO: Do we also want to factor in how long the job has been around for (i.e.
  * allow a job that has been waiting in the queue to have a chance to run?)
  */
-static constexpr auto JOB_COMPARATOR = [](const Job_ty& a, const Job_ty& b) -> bool {
+static constexpr auto JOB_COMPARATOR = [](const Job_ty &a, const Job_ty &b) -> bool {
   return a.priority < b.priority;
 };
 

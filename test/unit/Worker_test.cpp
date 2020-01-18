@@ -44,7 +44,7 @@ TEST(Worker_test, jobPriorityTest) {
   for(int i = 0; i < 10; ++i) {
     worker.add_job([&, i] {
       v.push_back(i);
-    }, omulator::scheduler::Priority{ normalPriority + i });
+    }, omulator::scheduler::Priority{ static_cast<omulator::U8>(normalPriority + i) });
   }
 
   worker.add_job([&]{ promise2.set_value(); }, omulator::scheduler::Priority::LOW);
