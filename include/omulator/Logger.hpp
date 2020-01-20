@@ -1,6 +1,6 @@
 #pragma once
 
-//Disable warnings from spdlog when using clang-cl
+// Disable warnings from spdlog when using clang-cl
 #if defined(OML_COMPILER_CLANG_CL)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Weverything"
@@ -29,47 +29,46 @@ public:
     WARN,
     INFO,
     DEBUG,
-    TRACE
+    TRACE,
   };
 
   // N.B. that "%+" is spdlog's default format
-  Logger(const omulator::Logger::LogLevel initialLevel,
-    const std::string &pattern = "%+");
+  Logger(const omulator::Logger::LogLevel initialLevel, const std::string &pattern = "%+");
   ~Logger();
 
-  Logger(const Logger&) = delete;
-  Logger& operator=(const Logger&) = delete;
-  Logger(Logger&&) = delete;
-  Logger& operator=(Logger&&) = delete;
+  Logger(const Logger &) = delete;
+  Logger &operator=(const Logger &) = delete;
+  Logger(Logger &&)                 = delete;
+  Logger &operator=(Logger &&) = delete;
 
-  //TODO: OK for all Logging functions to be noexcept?
-  template<typename ...Args>
-  inline void critical(Args &&...args) const noexcept {
+  // TODO: OK for all Logging functions to be noexcept?
+  template<typename... Args>
+  inline void critical(Args &&... args) const noexcept {
     spdlog::critical(std::forward<Args>(args)...);
   }
 
-  template<typename ...Args>
-  inline void error(Args &&...args) const noexcept {
+  template<typename... Args>
+  inline void error(Args &&... args) const noexcept {
     spdlog::error(std::forward<Args>(args)...);
   }
 
-  template<typename ...Args>
-  inline void warn(Args &&...args) const noexcept {
+  template<typename... Args>
+  inline void warn(Args &&... args) const noexcept {
     spdlog::warn(std::forward<Args>(args)...);
   }
 
-  template<typename ...Args>
-  inline void info(Args &&...args) const noexcept {
+  template<typename... Args>
+  inline void info(Args &&... args) const noexcept {
     spdlog::info(std::forward<Args>(args)...);
   }
 
-  template<typename ...Args>
-  inline void debug(Args &&...args) const noexcept {
+  template<typename... Args>
+  inline void debug(Args &&... args) const noexcept {
     spdlog::debug(std::forward<Args>(args)...);
   }
 
-  template<typename ...Args>
-  inline void trace(Args &&...args) const noexcept {
+  template<typename... Args>
+  inline void trace(Args &&... args) const noexcept {
     spdlog::trace(std::forward<Args>(args)...);
   }
 
@@ -83,4 +82,3 @@ public:
 }; /* class Logger */
 
 } /* namespace omulator */
-

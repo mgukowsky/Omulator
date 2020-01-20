@@ -1,5 +1,6 @@
-#include "mocks/Dummy.hpp"
 #include "omulator/util/ResourceWrapper.hpp"
+
+#include "mocks/Dummy.hpp"
 
 #include <gtest/gtest.h>
 
@@ -13,15 +14,11 @@ Dummy dummy_factory() {
   return d;
 }
 
-void dummy_dealloc([[maybe_unused]] Dummy d) noexcept {
-  flag = 0x56;
-}
+void dummy_dealloc([[maybe_unused]] Dummy d) noexcept { flag = 0x56; }
 
-void rdummy_dealloc([[maybe_unused]] Dummy &d) noexcept {
-  flag = 0x78;
-}
+void rdummy_dealloc([[maybe_unused]] Dummy &d) noexcept { flag = 0x78; }
 
-} /* namespace <anonymous> */
+}  // namespace
 
 TEST(ResourceWrapper_test, passByValue) {
   Dummy::reset();

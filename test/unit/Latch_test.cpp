@@ -14,32 +14,29 @@
 using namespace std::chrono_literals;
 
 namespace {
-  // small amt of time to wait for a thread operation to advance.
-  constexpr auto THRD_DELAY = 10ms;
-} /* namespace <anonymous> */
+// small amt of time to wait for a thread operation to advance.
+constexpr auto THRD_DELAY = 10ms;
+}  // namespace
 
 TEST(Latch_test, basic_wait) {
   omulator::Latch l(1);
-  EXPECT_FALSE(l.is_ready())
-    << "a Latch should not be ready before calling a wait function";
+  EXPECT_FALSE(l.is_ready()) << "a Latch should not be ready before calling a wait function";
 
   bool done = false;
 
   std::promise<void> promise1, promise2;
 
-  std::thread t([&]{
+  std::thread t([&] {
     promise1.set_value();
     l.wait();
     done = true;
     promise2.set_value();
   });
-  
-  promise1.get_future().wait();
-  EXPECT_FALSE(done)
-    << "Latch.wait() should block until the internal counter reaches 0";
 
-  EXPECT_FALSE(l.is_ready())
-    << "a Latch should not be ready before the internal counter reaches 0";
+  promise1.get_future().wait();
+  EXPECT_FALSE(done) << "Latch.wait() should block until the internal counter reaches 0";
+
+  EXPECT_FALSE(l.is_ready()) << "a Latch should not be ready before the internal counter reaches 0";
 
   l.count_down();
 
@@ -47,8 +44,7 @@ TEST(Latch_test, basic_wait) {
   EXPECT_TRUE(done)
     << "Functions waiting on a latch should unblock when the internal counter reaches 0";
 
-  EXPECT_TRUE(l.is_ready())
-    << "a Latch should be ready when the internal counter reaches 0";
+  EXPECT_TRUE(l.is_ready()) << "a Latch should be ready when the internal counter reaches 0";
 
   t.join();
 }
@@ -62,7 +58,7 @@ TEST(Latch_test, basic_wait) {
  */
 TEST(Latch_test, wait_on_destroyed_latch) {
   omulator::Latch *pl;
-  
+
   {
     omulator::Latch l(1);
     pl = &l;
@@ -89,7 +85,7 @@ TEST(Latch_test, advanced_count_down_and_wait) {
   for(std::size_t i = 0; i < NUM_THREADS; ++i) {
     arrDone[i] = false;
 
-    v.emplace_back([&, i](){
+    v.emplace_back([&, i]() {
       l.count_down_and_wait();
       arrDone[i] = true;
     });
@@ -98,19 +94,17 @@ TEST(Latch_test, advanced_count_down_and_wait) {
   std::this_thread::sleep_for(THRD_DELAY);
 
   for(const auto &done : arrDone) {
-    EXPECT_FALSE(done)
-      << "Latch::count_down_and_wait() should block until the counter reaches 0";
+    EXPECT_FALSE(done) << "Latch::count_down_and_wait() should block until the counter reaches 0";
   }
 
-  l.count_down_and_wait(); //should return immediately
+  l.count_down_and_wait();  // should return immediately
   EXPECT_TRUE(l.is_ready())
     << "Latch::count_down_and_wait() should return immediately when the counter becomes 0";
 
   std::this_thread::sleep_for(THRD_DELAY);
 
   for(const auto &done : arrDone) {
-    EXPECT_TRUE(done)
-      << "Latch::count_down_and_wait() should unblock when the counter reaches 0";
+    EXPECT_TRUE(done) << "Latch::count_down_and_wait() should unblock when the counter reaches 0";
   }
 
   for(auto &t : v) {

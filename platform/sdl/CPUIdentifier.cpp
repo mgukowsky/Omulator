@@ -6,9 +6,7 @@ namespace omulator {
 
 class CPUIdentifier::CPUIdentifier_impl {
 public:
-
   bool is_cpu_supported() const noexcept {
-
 #if defined(OML_ARCH_X64)
     return __builtin_cpu_supports("avx2");
 #elif defined(OML_ARCH_ARM)
@@ -16,16 +14,13 @@ public:
 #else
 #error Unknown architecture
 #endif
-
   }
 }; /* class CPUIdentifier_impl */
 
-//Required for pImpl to work
-CPUIdentifier::CPUIdentifier() = default;
+// Required for pImpl to work
+CPUIdentifier::CPUIdentifier()  = default;
 CPUIdentifier::~CPUIdentifier() = default;
 
-bool CPUIdentifier::is_cpu_supported() const noexcept {
-  return impl_->is_cpu_supported();
-}
+bool CPUIdentifier::is_cpu_supported() const noexcept { return impl_->is_cpu_supported(); }
 
 } /* namespace omulator */

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <atomic>
-#include <cstddef>
 #include <condition_variable>
+#include <cstddef>
 #include <mutex>
 
 namespace omulator {
@@ -16,8 +16,8 @@ public:
   ~Latch();
 
   // Not copyable, per the spec.
-  Latch(const Latch&) = delete;
-  Latch& operator=(const Latch&) = delete;
+  Latch(const Latch &) = delete;
+  Latch &operator=(const Latch &) = delete;
 
   void count_down(std::ptrdiff_t n = 1);
   void count_down_and_wait();
@@ -42,4 +42,3 @@ private:
 using Latch_ty = Latch;
 
 } /* namespace omulator */
-

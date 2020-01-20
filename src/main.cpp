@@ -1,6 +1,7 @@
+#include "omulator/main.hpp"
+
 #include "omulator/CPUIdentifier.hpp"
 #include "omulator/Logger.hpp"
-#include "omulator/main.hpp"
 #include "omulator/util/exception_handler.hpp"
 
 int main([[maybe_unused]] const int argc, [[maybe_unused]] const char **argv) {

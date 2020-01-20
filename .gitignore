@@ -266,5 +266,9 @@ CMakeSettings.json
 utils.sh
 
 # Other build products from more recent Visual Studio versions
+.vscode/
 out/
 Testing/
+
+# ctags files
+tags

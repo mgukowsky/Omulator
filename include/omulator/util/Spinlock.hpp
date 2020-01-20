@@ -28,10 +28,10 @@ public:
    */
   ~Spinlock() = default;
 
-  Spinlock(const Spinlock&) = delete;
-  Spinlock& operator=(const Spinlock&) = delete;
-  Spinlock(Spinlock&&) = delete;
-  Spinlock& operator=(Spinlock&&) = delete;
+  Spinlock(const Spinlock &) = delete;
+  Spinlock &operator=(const Spinlock &) = delete;
+  Spinlock(Spinlock &&)                 = delete;
+  Spinlock &operator=(Spinlock &&) = delete;
 
   /**
    * Optimistically attempt to lock the spinlock. Will block
@@ -56,9 +56,7 @@ public:
   /**
    * Release the spinlock.
    */
-  OML_FORCEINLINE void unlock() noexcept {
-    lock_.clear(std::memory_order_release);
-  }
+  OML_FORCEINLINE void unlock() noexcept { lock_.clear(std::memory_order_release); }
 
 private:
   /**

@@ -1,17 +1,13 @@
 #include "omulator/PrimitiveIO.hpp"
 
-#include <iostream>
 #include <Windows.h>
+#include <iostream>
 
 namespace omulator::PrimitiveIO {
 
-void log_msg(const char *msg) {
-  std::cout << msg << std::endl;
-}
+void log_msg(const char *msg) { std::cout << msg << std::endl; }
 
-void log_err(const char *msg) {
-  std::cerr << msg << std::endl;
-}
+void log_err(const char *msg) { std::cerr << msg << std::endl; }
 
 void alert_info(const char *msg) {
   log_msg(msg);

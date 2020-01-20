@@ -25,14 +25,13 @@ template<typename T>
 class ObjectPool {
 public:
   ObjectPool(const std::size_t initialSize)
-    : nextExpansionSize_(initialSize), pNextFree_(nullptr), size_(0)
-  {
-    static_assert(std::is_trivial_v<T>, 
-      "ObjectPool<T> is only valid if T is a trivial type; "
-      "i.e. has no user-defined constructor");
+    : nextExpansionSize_(initialSize), pNextFree_(nullptr), size_(0) {
+    static_assert(std::is_trivial_v<T>,
+                  "ObjectPool<T> is only valid if T is a trivial type; "
+                  "i.e. has no user-defined constructor");
 
-    static_assert(sizeof(T) >= sizeof(void*),
-      "ObjectPool<T> is only valid if sizeof(T) >= sizeof(void*)");
+    static_assert(sizeof(T) >= sizeof(void *),
+                  "ObjectPool<T> is only valid if sizeof(T) >= sizeof(void*)");
 
     grow_();
   }
@@ -40,10 +39,10 @@ public:
   ~ObjectPool() = default;
 
   // no moving, no copying
-  ObjectPool(const ObjectPool&) = delete;
-  ObjectPool& operator=(const ObjectPool&) = delete;
-  ObjectPool(ObjectPool&&) = delete;
-  ObjectPool& operator=(ObjectPool&&) = delete;
+  ObjectPool(const ObjectPool &) = delete;
+  ObjectPool &operator=(const ObjectPool &) = delete;
+  ObjectPool(ObjectPool &&)                 = delete;
+  ObjectPool &operator=(ObjectPool &&) = delete;
 
   /**
    * Returns a reference to a T object from the pool. N.B. this is a RAW piece
@@ -53,22 +52,22 @@ public:
    *
    * @return A reference to an instance of T
    */
-  //TODO: protect with thread safety annotations!
-  inline T* get() noexcept {
+  // TODO: protect with thread safety annotations!
+  inline T *get() noexcept {
     std::scoped_lock lck(poolLock_);
 
-    if (pNextFree_ == nullptr) {
-      //Die if we get an allocation error
+    if(pNextFree_ == nullptr) {
+      // Die if we get an allocation error
       try {
         grow_();
       }
-      catch (...) {
+      catch(...) {
         omulator::util::exception_handler();
       }
     }
 
     T *elementToReturn = pNextFree_;
-    pNextFree_ = peek_();
+    pNextFree_         = peek_();
     return elementToReturn;
   }
 
@@ -79,25 +78,22 @@ public:
    * N.B. there are no protections to check if T actually came from this pool!
    * @param elem The element to return to the pool.
    */
-  //TODO: protect with thread safety annotations!
+  // TODO: protect with thread safety annotations!
   inline void return_to_pool(T *elem) noexcept {
     std::scoped_lock lck(poolLock_);
 
     assert(is_element_from_pool_(elem));
 
-    *(reinterpret_cast<T**>(elem)) = pNextFree_;
-    pNextFree_ = elem;
+    *(reinterpret_cast<T **>(elem)) = pNextFree_;
+    pNextFree_                      = elem;
   }
 
   /**
    * Returns the of the pool, in # of T elements.
    */
-  std::size_t size() const noexcept {
-    return size_;
-  }
+  std::size_t size() const noexcept { return size_; }
 
 private:
-
   /**
    * Grow the pool by allocating a new vector and adding it to the
    * from of the poolMem_ forward_list.
@@ -113,7 +109,7 @@ private:
     // Initialize each element to be a pointer to the element AFTER it,
     // or nullptr if it's the last one.
     for(std::size_t i = 0; i < nextExpansionSize_; ++i) {
-      T **ppNextElem = reinterpret_cast<T**>(pNewMem);
+      T **ppNextElem = reinterpret_cast<T **>(pNewMem);
 
       if((i + 1) < nextExpansionSize_) {
         *ppNextElem = pNewMem + 1;
@@ -131,13 +127,11 @@ private:
 
   /**
    * Return the pointer that pNextFree_ points to.
-   * 
+   *
    * @return A valid pointer, or a nullptr indicating that
    *    the pool needs to grow.
    */
-  inline T* peek_() const noexcept {
-    return *(reinterpret_cast<T**>(pNextFree_));
-  }
+  inline T *peek_() const noexcept { return *(reinterpret_cast<T **>(pNextFree_)); }
 
   /**
    * Given a T*, validate that it originated from this object pool.
@@ -149,7 +143,7 @@ private:
     bool fromThisPool = false;
 
     for(const auto &block : poolMem_) {
-      if (elem >= block.data() && elem < (block.data() + block.size())) {
+      if(elem >= block.data() && elem < (block.data() + block.size())) {
         fromThisPool = true;
         break;
       }
@@ -172,10 +166,10 @@ private:
 
   std::mutex poolLock_;
 
-  //TODO: since we push to the front of the list, do the following:
-  //periodically, check if the first block in the list (which will be
-  //the most recently allocated block), and deallocate it if it hasn't
-  //been used in a while.
+  // TODO: since we push to the front of the list, do the following:
+  // periodically, check if the first block in the list (which will be
+  // the most recently allocated block), and deallocate it if it hasn't
+  // been used in a while.
   std::forward_list<std::vector<T>> poolMem_;
 
   std::size_t size_;

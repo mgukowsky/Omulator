@@ -1,16 +1,13 @@
 #include "omulator/Logger.hpp"
 
 omulator::Logger::Logger(const omulator::Logger::LogLevel initialLevel,
-  const std::string &pattern )
-{
+                         const std::string &pattern) {
   set_level(initialLevel);
   spdlog::set_pattern(pattern);
   info("Initializing logger!");
 }
 
-omulator::Logger::~Logger() {
-  info("Shutting down logger!");
-}
+omulator::Logger::~Logger() { info("Shutting down logger!"); }
 
 void omulator::Logger::set_level(omulator::Logger::LogLevel level) {
   switch(level) {
@@ -33,7 +30,7 @@ void omulator::Logger::set_level(omulator::Logger::LogLevel level) {
     case LogLevel::INFO:
       spdlog::set_level(spdlog::level::info);
       break;
-  
+
     case LogLevel::DEBUG:
       spdlog::set_level(spdlog::level::debug);
       break;
@@ -47,6 +44,4 @@ void omulator::Logger::set_level(omulator::Logger::LogLevel level) {
   }
 }
 
-void omulator::Logger::set_pattern(const std::string &pattern) {
-  spdlog::set_pattern(pattern);
-}
+void omulator::Logger::set_pattern(const std::string &pattern) { spdlog::set_pattern(pattern); }

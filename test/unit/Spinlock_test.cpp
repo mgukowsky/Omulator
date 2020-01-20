@@ -12,12 +12,10 @@ TEST(Spinlock_test, basicLock) {
   omulator::util::Spinlock s;
 
   s.lock();
-  EXPECT_FALSE(s.try_lock())
-    << "Spinlock::lock() should acquire the lock";
+  EXPECT_FALSE(s.try_lock()) << "Spinlock::lock() should acquire the lock";
 
   s.unlock();
-  EXPECT_TRUE(s.try_lock())
-    << "Spinlock::unlock() should release the lock";
+  EXPECT_TRUE(s.try_lock()) << "Spinlock::unlock() should release the lock";
 
   s.unlock();
 }

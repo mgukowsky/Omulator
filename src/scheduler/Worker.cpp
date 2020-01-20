@@ -15,18 +15,17 @@ namespace {
  */
 const auto WORKER_WAIT_TIMEOUT = 100ms;
 
-} /* namespace <anonymous> */
+}  // namespace
 
 namespace omulator::scheduler {
 
 Worker::Worker() : startupLatch_(1), done_(false), thread_(&Worker::thread_proc_, this) {
-
   // As long as the job queue is initially empty, the following line is pointless. If the
   // initial job queue is NOT empty, however, uncomment the following line.
-  //std::make_heap(jobQueue_.begin(), jobQueue_.end());
+  // std::make_heap(jobQueue_.begin(), jobQueue_.end());
   startupLatch_.count_down();
-  
-  //TODO: Do we want to do anything with thread priority? Do we care? Need to profile tho...
+
+  // TODO: Do we want to do anything with thread priority? Do we care? Need to profile tho...
 }
 
 Worker::~Worker() {
@@ -39,20 +38,15 @@ Worker::~Worker() {
   }
 }
 
-const std::deque<Job_ty>& Worker::job_queue() const noexcept {
-  return jobQueue_;
-}
+const std::deque<Job_ty> &Worker::job_queue() const noexcept { return jobQueue_; }
 
-const std::thread::id Worker::thread_id() const noexcept {
-  return thread_.get_id();
-}
+const std::thread::id Worker::thread_id() const noexcept { return thread_.get_id(); }
 
 void Worker::thread_proc_() {
   // Don't do anything until the parent thread is ready.
   startupLatch_.wait();
 
   while(!done_) {
-
     {
       std::unique_lock cvLock(jobQueueLock_);
 
@@ -93,10 +87,9 @@ void Worker::thread_proc_() {
       }
 
       currentJob.task();
-      // TODO: When the current task finishes executing, check to see if an exception was raised and,
-      // if so, log it.
+      // TODO: When the current task finishes executing, check to see if an exception was raised
+      // and, if so, log it.
     }
-    
   }
 }
 

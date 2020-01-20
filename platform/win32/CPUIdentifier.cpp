@@ -10,12 +10,11 @@ namespace omulator {
 class CPUIdentifier::CPUIdentifier_impl {
 public:
   bool is_cpu_supported() const noexcept {
-
 #if defined(OML_ARCH_X64)
 
     // See MSVC and Intel's documentation for the CPUID instruction for an explanation
     // of what these numbers refer to.
-    constexpr int AVX2_BIT = 0x0020;
+    constexpr int AVX2_BIT             = 0x0020;
     constexpr std::size_t CPUID_BLOCKS = 4u;
     constexpr int EX_FEATURE_LEAF_FUNC = 0x07;
 
@@ -27,16 +26,13 @@ public:
 #else
 #error Unknown architecture
 #endif
-
   }
 }; /* class CPUIdentifier_impl */
 
-//Must be defined here for pImpl to work
-CPUIdentifier::CPUIdentifier() = default;
+// Must be defined here for pImpl to work
+CPUIdentifier::CPUIdentifier()  = default;
 CPUIdentifier::~CPUIdentifier() = default;
 
-bool CPUIdentifier::is_cpu_supported() const noexcept {
-  return impl_->is_cpu_supported();
-}
+bool CPUIdentifier::is_cpu_supported() const noexcept { return impl_->is_cpu_supported(); }
 
 } /* namespace omulator */

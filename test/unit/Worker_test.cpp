@@ -12,13 +12,12 @@ using namespace std::chrono_literals;
 TEST(Worker_test, addSingleJob) {
   omulator::scheduler::Worker worker;
 
-  EXPECT_TRUE(worker.job_queue().empty())
-    << "The Worker's work queue should initially be empty";
+  EXPECT_TRUE(worker.job_queue().empty()) << "The Worker's work queue should initially be empty";
 
   int i = 1;
   std::promise<void> readyPromise;
 
-  worker.add_job([&]{
+  worker.add_job([&] {
     ++i;
     readyPromise.set_value();
   });
@@ -42,19 +41,17 @@ TEST(Worker_test, jobPriorityTest) {
   // If priority is obeyed, the vector will be filled with 9..0. If priority is ignored,
   // then the vector will be random or filled with 0..9.
   for(int i = 0; i < 10; ++i) {
-    worker.add_job([&, i] {
-      v.push_back(i);
-    }, omulator::scheduler::Priority{ static_cast<omulator::U8>(normalPriority + i) });
+    worker.add_job([&, i] { v.push_back(i); },
+                   omulator::scheduler::Priority{static_cast<omulator::U8>(normalPriority + i)});
   }
 
-  worker.add_job([&]{ promise2.set_value(); }, omulator::scheduler::Priority::LOW);
+  worker.add_job([&] { promise2.set_value(); }, omulator::scheduler::Priority::LOW);
 
   promise1.set_value();
   promise2.get_future().wait();
 
   for(int i = 0; i < 10; ++i) {
-    EXPECT_EQ(i, v.back())
-      << "Workers should select tasks from their job queue based on priority";
+    EXPECT_EQ(i, v.back()) << "Workers should select tasks from their job queue based on priority";
     v.pop_back();
   }
 }

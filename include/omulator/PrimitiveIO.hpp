@@ -9,24 +9,24 @@
  */
 namespace omulator::PrimitiveIO {
 
-  /**
-   * Log to stdout
-   */
-  void log_msg(const char *msg);
+/**
+ * Log to stdout
+ */
+void log_msg(const char *msg);
 
-  /**
-   * Log to stderr
-   */
-  void log_err(const char *msg);
+/**
+ * Log to stderr
+ */
+void log_err(const char *msg);
 
-  /**
-   * Log to stdout and show the message in a dialog box
-   */
-  void alert_info(const char *msg);
+/**
+ * Log to stdout and show the message in a dialog box
+ */
+void alert_info(const char *msg);
 
-  /**
-   * Log to stderr and show the message in a dialog box
-   */
-  void alert_err(const char *msg);
+/**
+ * Log to stderr and show the message in a dialog box
+ */
+void alert_err(const char *msg);
 
 } /* namespace omulator::PrimitiveIO */

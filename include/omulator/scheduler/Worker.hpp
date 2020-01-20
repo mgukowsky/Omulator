@@ -33,10 +33,10 @@ public:
    */
   ~Worker();
 
-  Worker(const Worker&) = delete;
-  Worker& operator=(const Worker&) = delete;
-  Worker(Worker&&) = delete;
-  Worker& operator=(Worker&&) = delete;
+  Worker(const Worker &) = delete;
+  Worker &operator=(const Worker &) = delete;
+  Worker(Worker &&)                 = delete;
+  Worker &operator=(Worker &&) = delete;
 
   /**
    * Add a task to this Worker's work queue. The priority will determine where in the queue the
@@ -52,11 +52,11 @@ public:
    *   execution.
    */
   template<typename Callable>
-  void add_job(Callable &&work, 
-    const omulator::scheduler::Priority priority = omulator::scheduler::Priority::NORMAL)
-  {
+  void add_job(Callable &&work,
+               const omulator::scheduler::Priority priority
+               = omulator::scheduler::Priority::NORMAL) {
     static_assert(std::is_invocable_r_v<void, Callable>,
-      "Jobs submitted to a Worker must return void and take no arguments");
+                  "Jobs submitted to a Worker must return void and take no arguments");
 
     {
       std::scoped_lock queueLock(jobQueueLock_);
@@ -71,17 +71,17 @@ public:
   /**
    * Returns a read-only version of the underlying work queue.
    */
-  const std::deque<Job_ty>& job_queue() const noexcept;
+  const std::deque<Job_ty> &job_queue() const noexcept;
 
-   /**
-    * Returns the ID of the underlying thread.
-    */
+  /**
+   * Returns the ID of the underlying thread.
+   */
   const std::thread::id thread_id() const noexcept;
 
 private:
   Latch_ty startupLatch_;
 
-  //TODO **IMPORTANT**: Should maybe be a spinlock?
+  // TODO **IMPORTANT**: Should maybe be a spinlock?
   using Lock_ty = std::mutex;
 
   /**
@@ -89,7 +89,7 @@ private:
    * b/c the deque is a great enabler for work stealing by other Workers: this worker can
    * pop high-priority work off the front and other threads can pop low-priority work off
    * the back (or pull the next-highest priority task if needed).
-   * 
+   *
    * We also use a deque rather than a vector here (std::vector is also compatible with
    * the set of STL heap functions we'll be using) since the most common operation for
    * the work queue will be pushing onto the back and popping off of the front, and
@@ -114,14 +114,14 @@ private:
   std::atomic_bool done_;
 
   // N.B. since the thread uses the this pointer, keep this as the last member
-  // initialized in the header, such that compilers should wait to set up the thread 
+  // initialized in the header, such that compilers should wait to set up the thread
   // until everthing else in the object is ready to go, and whine if we do anything
   // to the contrary.
   std::thread thread_;
   void thread_proc_();
 
-//  class WorkerImpl;
-//  omulator::util::Pimpl<WorkerImpl> impl_;
-}; 
+  //  class WorkerImpl;
+  //  omulator::util::Pimpl<WorkerImpl> impl_;
+};
 
 } /* namespace omulator::scheduler */
