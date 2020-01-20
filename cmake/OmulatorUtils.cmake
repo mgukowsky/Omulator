@@ -95,6 +95,9 @@ function(configure_target target_name is_test)
     ${target_name}
     PUBLIC
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:NDEBUG>
+
+      # _REENTRANT signals parts of the stdlib to use threadsafe functions
+      $<$<BOOL:UNIX>:_REENTRANT>
   )
   
   if(MSVC)
@@ -351,7 +354,7 @@ function(config_for_gcc target_name is_test)
       -Werror
       -Wextra
       #TODO: For some reason, -Wshadow causes errors in spdlog on gcc, but not clang...
-      #-Wshadow
+      -Wshadow
       -Wwrite-strings
 
       # Target Intel Broadwell (~2015 w/ AVX2)

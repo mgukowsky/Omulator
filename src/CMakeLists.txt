@@ -27,8 +27,16 @@ target_include_directories(
   ${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/spdlog/include>
     $<INSTALL_INTERFACE:include>
+)
+
+# We include third-party headers as system headers so that
+# they don't trigger warnings
+target_include_directories(
+  ${PROJECT_NAME}
+  SYSTEM
+  PUBLIC
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/spdlog/include>
     $<INSTALL_INTERFACE:third_party/spdlog/include>
 )
 
