@@ -27,13 +27,23 @@ public:
   void wait() const;
 
 private:
-  std::atomic_ptrdiff_t counter_;
+  std::ptrdiff_t counter_;
 
   // This variable and the associated mutex must be mutable, since Latch::wait is const
   // but these variables are used in that function.
   mutable std::condition_variable cv_;
   std::atomic_bool destructorInvoked_;
-  mutable std::mutex mtx_;
+
+  /**
+   * Used to protect accesses to counter_
+   */
+  mutable std::mutex counterMtx_;
+
+  /**
+   * Used exclusively by cv_
+   */
+  mutable std::mutex cvMtx_;
+
   std::atomic_bool ready_;
 
 }; /* class Latch */
