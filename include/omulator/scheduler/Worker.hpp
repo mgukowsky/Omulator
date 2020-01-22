@@ -76,7 +76,7 @@ public:
   /**
    * Returns the ID of the underlying thread.
    */
-  const std::thread::id thread_id() const noexcept;
+  std::thread::id thread_id() const noexcept;
 
 private:
   Latch_ty startupLatch_;

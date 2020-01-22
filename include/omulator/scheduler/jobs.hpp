@@ -38,8 +38,8 @@ struct Job_ty {
    * functions elsewhere).
    */
   template<typename Callable>
-  Job_ty(Callable &&callable, Priority priority)
-    : task(std::forward<Callable>(callable)), priority(priority) {}
+  Job_ty(Callable &&callable, Priority priorityArg)
+    : task(std::forward<Callable>(callable)), priority(priorityArg) {}
 
   std::packaged_task<void()> task;
   Priority priority;

@@ -13,7 +13,7 @@ namespace {
  * there is any work to be done. The quantity here is arbitrary, and can be tuned as per
  * profiling results if necessary.
  */
-const auto WORKER_WAIT_TIMEOUT = 100ms;
+const auto WORKER_WAIT_TIMEOUT = 10ms;
 
 }  // namespace
 
@@ -40,7 +40,7 @@ Worker::~Worker() {
 
 const std::deque<Job_ty> &Worker::job_queue() const noexcept { return jobQueue_; }
 
-const std::thread::id Worker::thread_id() const noexcept { return thread_.get_id(); }
+std::thread::id Worker::thread_id() const noexcept { return thread_.get_id(); }
 
 void Worker::thread_proc_() {
   // Don't do anything until the parent thread is ready.
@@ -57,7 +57,7 @@ void Worker::thread_proc_() {
       //
       // The period chosen here doesn't represent anything special; if can certainly be changed
       // per profiler results if necessary.
-      jobCV_.wait_for(cvLock, 10ms, [this]() noexcept { return !jobQueue_.empty() || done_; });
+      jobCV_.wait_for(cvLock, WORKER_WAIT_TIMEOUT, [this]() noexcept { return !jobQueue_.empty() || done_; });
     }
 
     // This empty check does not need to be protected; even if a task is added while the check is
