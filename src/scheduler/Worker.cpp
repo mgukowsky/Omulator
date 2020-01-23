@@ -5,18 +5,6 @@
 
 using namespace std::chrono_literals;
 
-namespace {
-
-/**
- * Since it's possible for the worker to be notified before it enters an alertable state (i.e.
- * calling a wait functiuon on jobCV_), we periodically have the threads wake up to check if
- * there is any work to be done. The quantity here is arbitrary, and can be tuned as per
- * profiling results if necessary.
- */
-const auto WORKER_WAIT_TIMEOUT = 10ms;
-
-}  // namespace
-
 namespace omulator::scheduler {
 
 Worker::Worker() : startupLatch_(1), done_(false), thread_(&Worker::thread_proc_, this) {
@@ -45,6 +33,17 @@ std::thread::id Worker::thread_id() const noexcept { return thread_.get_id(); }
 void Worker::thread_proc_() {
   // Don't do anything until the parent thread is ready.
   startupLatch_.wait();
+
+  /**
+   * Since it's possible for the worker to be notified before it enters an alertable state (i.e.
+   * calling a wait functiuon on jobCV_), we periodically have the threads wake up to check if
+   * there is any work to be done. The quantity here is arbitrary, and can be tuned as per
+   * profiling results if necessary.
+   *
+   * N.B. putting this here instead of at file scope makes the static analyzer happy, since
+   * operator""ms can technically throw.
+   */
+  constexpr auto WORKER_WAIT_TIMEOUT = 10ms;
 
   while(!done_) {
     {

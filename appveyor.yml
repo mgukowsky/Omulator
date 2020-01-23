@@ -29,14 +29,14 @@ environment:
       OML_VS_VER: 2017
       OML_BUILD_ARGS: -v
 
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-      platform: x64
-      GENERATOR: Ninja
-      BUILD_TYPE: Release
-      CC: clang-cl
-      CXX: clang-cl
-      OML_VS_VER: 2017
-      OML_BUILD_ARGS: -v
+#    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+#      platform: x64
+#      GENERATOR: Ninja
+#      BUILD_TYPE: Release
+#      CC: clang-cl
+#      CXX: clang-cl
+#      OML_VS_VER: 2017
+#      OML_BUILD_ARGS: -v
 
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
       platform: x64
@@ -65,14 +65,14 @@ environment:
       OML_VS_VER: 2019
       OML_BUILD_ARGS: -v
 
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-      platform: x64
-      GENERATOR: Ninja
-      BUILD_TYPE: Release
-      CC: clang-cl
-      CXX: clang-cl
-      OML_VS_VER: 2019
-      OML_BUILD_ARGS: -v
+#    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+#      platform: x64
+#      GENERATOR: Ninja
+#      BUILD_TYPE: Release
+#      CC: clang-cl
+#      CXX: clang-cl
+#      OML_VS_VER: 2019
+#      OML_BUILD_ARGS: -v
 
 install:
   - pwd

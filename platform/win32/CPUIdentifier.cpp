@@ -9,7 +9,7 @@ namespace omulator {
 
 class CPUIdentifier::CPUIdentifier_impl {
 public:
-  bool is_cpu_supported() const noexcept {
+  static bool is_cpu_supported() noexcept {
 #if defined(OML_ARCH_X64)
 
     // See MSVC and Intel's documentation for the CPUID instruction for an explanation
@@ -33,6 +33,6 @@ public:
 CPUIdentifier::CPUIdentifier()  = default;
 CPUIdentifier::~CPUIdentifier() = default;
 
-bool CPUIdentifier::is_cpu_supported() const noexcept { return impl_->is_cpu_supported(); }
+bool CPUIdentifier::is_cpu_supported() noexcept { return CPUIdentifier_impl::is_cpu_supported(); }
 
 } /* namespace omulator */
