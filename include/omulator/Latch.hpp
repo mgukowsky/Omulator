@@ -32,17 +32,13 @@ private:
   // This variable and the associated mutex must be mutable, since Latch::wait is const
   // but these variables are used in that function.
   mutable std::condition_variable cv_;
-  std::atomic_bool destructorInvoked_;
 
   /**
    * Used to protect accesses to counter_
    */
   mutable std::mutex counterMtx_;
 
-  /**
-   * Used exclusively by cv_
-   */
-  mutable std::mutex cvMtx_;
+  std::atomic_bool destructorInvoked_;
 
   std::atomic_bool ready_;
 

@@ -22,7 +22,7 @@ TEST(Latch_test, basic_wait) {
   omulator::Latch l(1);
   EXPECT_FALSE(l.is_ready()) << "a Latch should not be ready before calling a wait function";
 
-  bool done = false;
+  std::atomic_bool done = false;
 
   std::promise<void> promise1, promise2;
 

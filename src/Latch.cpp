@@ -6,7 +6,7 @@ namespace omulator {
 
 Latch::Latch(std::ptrdiff_t value) : counter_(value), destructorInvoked_(false), ready_(false) {}
 
-Latch::~Latch() { destructorInvoked_.store(true, std::memory_order_release); }
+Latch::~Latch() { destructorInvoked_ = true; }
 
 void Latch::count_down(std::ptrdiff_t n) {
   std::scoped_lock lck(counterMtx_);
@@ -25,7 +25,7 @@ void Latch::count_down(std::ptrdiff_t n) {
   counter_ -= n;
 
   if(counter_ == 0) {
-    ready_.store(true, std::memory_order_release);
+    ready_ = true;
     cv_.notify_all();
   }
 }
@@ -35,7 +35,7 @@ void Latch::count_down_and_wait() {
   wait();
 }
 
-bool Latch::is_ready() const noexcept { return ready_.load(std::memory_order_acquire); }
+bool Latch::is_ready() const noexcept { return ready_; }
 
 void Latch::wait() const {
   {
@@ -45,13 +45,13 @@ void Latch::wait() const {
     if(counter_ == 0) {
       return;
     }
-    else if(destructorInvoked_.load(std::memory_order_acquire)) {
+    else if(destructorInvoked_) {
       throw std::runtime_error(
         "Attempted to call Latch::wait on a Latch that is being destructed.");
     }
   }
 
-  std::unique_lock mtxLck(cvMtx_);
+  std::unique_lock mtxLck(counterMtx_);
   cv_.wait(mtxLck, [this]() noexcept { return is_ready(); });
 }
 
