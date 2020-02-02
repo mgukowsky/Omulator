@@ -30,10 +30,15 @@ TEST(Worker_test, addSingleJob) {
 TEST(Worker_test, jobPriorityTest) {
   omulator::scheduler::Worker worker;
 
-  std::promise<void> promise1, promise2;
+  std::promise<void> startSignal, readySignal, doneSignal;
 
   // A dummy job to hold the worker in stasis until we're ready.
-  worker.add_job([&] { promise1.get_future().wait(); });
+  worker.add_job([&] { 
+    startSignal.set_value();   
+    readySignal.get_future().wait();
+  });
+
+  startSignal.get_future().wait();
 
   std::vector<int> v;
   const int normalPriority = static_cast<int>(omulator::scheduler::Priority::NORMAL);
@@ -45,10 +50,10 @@ TEST(Worker_test, jobPriorityTest) {
                    omulator::scheduler::Priority{static_cast<omulator::U8>(normalPriority + i)});
   }
 
-  worker.add_job([&] { promise2.set_value(); }, omulator::scheduler::Priority::LOW);
+  worker.add_job([&] { doneSignal.set_value(); }, omulator::scheduler::Priority::LOW);
 
-  promise1.set_value();
-  promise2.get_future().wait();
+  readySignal.set_value();
+  doneSignal.get_future().wait();
 
   for(int i = 0; i < 10; ++i) {
     EXPECT_EQ(i, v.back()) << "Workers should select tasks from their job queue based on priority";
