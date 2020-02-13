@@ -3,13 +3,37 @@
 require 'open3'
 require 'pathname'
 
+BUILD_DIR = 'build'
+GENERATOR = 'Ninja'
+
+# Use either the ninja or make flag for a verbose build
+GENERATOR_FLAGS = GENERATOR == 'Ninja' ? '-v' : 'V=1'
+
 class OmulatorBuilder
-  def build
-    spawn_cmd 'cmake -B build -GNinja && cmake --build build -j -- -v' 
+  # Basic cmake build
+  def build(**kwargs)
+    spawn_cmd "cmake -B #{BUILD_DIR} -G#{GENERATOR} #{kwargs[:addl_cmake_args] || ''}"\
+      "&& cmake --build -j #{BUILD_DIR} #{kwargs[:addl_cmake_bld_args] || ''} "\
+      "-- #{GENERATOR_FLAGS} #{kwargs[:addl_generator_args] || ''}"
+  end
+
+  # Same as build, except have the generator perform a clean first
+  def rebuild 
+    build addl_cmake_bld_args: '--clean-first'
+  end
+
+  # Have the generator perform a clean
+  def clean
+    build addl_cmake_bld_args: '--target clean'
+  end
+
+  # Delete _ALL_ build products (i.e. CMake cache in addition to build products)
+  def cleanall
+    spawn_cmd "rm -rf #{BUILD_DIR}"
   end
 
   def test
-    Dir.chdir 'build'
+    Dir.chdir "#{BUILD_DIR}"
     spawn_cmd 'ctest -V -j --schedule-random --repeat-until-fail 3'
     Dir.chdir '..'
   end
@@ -18,12 +42,16 @@ class OmulatorBuilder
 
   def spawn_cmd(cmd)
     # spawn a subprocess with stdout and stderr merged, and block till it's done
+    puts "->'#{cmd}'"
     Open3.popen2e cmd do |stdin, stdout_err, wait_thr|
       while line = stdout_err.gets
         puts line
       end
 
-      abort unless wait_thr.value.success?
+      unless wait_thr.value.success?
+        puts "Build command failed!"
+        abort
+      end
     end
   end
 end
@@ -34,11 +62,8 @@ def main()
 
   cmds = []
 
-  if ARGV.empty?
-    cmds << "build"
-  else
-    cmds.concat ARGV
-  end
+  cmds << 'build' if ARGV.empty?
+  cmds.concat ARGV
 
   # Verify all commands are valid before executing them
   cmds.each do |cmd|
@@ -51,6 +76,8 @@ def main()
   ob = OmulatorBuilder.new
 
   cmds.each { |cmd| ob.send cmd.to_sym }
+
+  puts "All build commands succeeded!"
 end
 
 main if __FILE__ == $0
