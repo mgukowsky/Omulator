@@ -1,5 +1,5 @@
 ---
-Checks:          'clang-diagnostic-*,clang-analyzer-*,bugprone-*,cert-*,clang-analyzer-*,clang-diagnostic-*,cppcoreguidelines-*,google-*,-google-readability-namespace-comments,-google-readability-todo,hicpp-*,llvm-*,-llvm-namespace-comment,misc-*,modernize-*,-modernize-use-trailing-return-type,performance-*,readability-*,-readability-else-after-return'
+Checks:          'clang-diagnostic-*,clang-analyzer-*,bugprone-*,cert-*,clang-analyzer-*,clang-diagnostic-*,cppcoreguidelines-*,google-*,-google-readability-namespace-comments,-google-readability-todo,hicpp-*,llvm-*,-llvm-namespace-comment,-llvm-header-guard,misc-*,modernize-*,-modernize-use-trailing-return-type,performance-*,readability-*,-readability-avoid-const-params-in-decls,-readability-else-after-return'
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: true
