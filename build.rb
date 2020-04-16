@@ -13,7 +13,7 @@ class OmulatorBuilder
   # Basic cmake build
   def build(**kwargs)
     spawn_cmd "cmake -B #{BUILD_DIR} -G#{GENERATOR} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON #{kwargs[:addl_cmake_args] || ''}"\
-      "&& cmake --build -j #{BUILD_DIR} #{kwargs[:addl_cmake_bld_args] || ''} "\
+      "&& cmake --build #{BUILD_DIR} -j #{kwargs[:addl_cmake_bld_args] || ''} "\
       "-- #{GENERATOR_FLAGS} #{kwargs[:addl_generator_args] || ''}"
   end
 
