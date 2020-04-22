@@ -10,7 +10,7 @@ POSSIBLE_TOOLCHAINS = %i[msvc gcc clang clang_cl]
 TOOLCHAIN_TOOLS = {
   msvc:     %w[cl.exe cl.exe link.exe],
   gcc:      %w[gcc g++ ld],
-  clang:    %w[clang clang++ lld],
+  clang:    %w[clang clang++ ld.lld],
   clang_cl: %w[clang-cl.exe clang-cl.exe lld-link.exe] 
 }
 

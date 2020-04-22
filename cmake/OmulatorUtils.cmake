@@ -73,6 +73,9 @@ function(define_target_compiler target_name)
 endfunction()
 
 function(configure_target target_name is_test)
+  define_target_arch(${target_name})
+  define_target_compiler(${target_name})
+
   target_compile_features(
     ${target_name}
     PUBLIC
@@ -82,14 +85,15 @@ function(configure_target target_name is_test)
   set_target_properties(
     ${target_name}
     PROPERTIES
+      CXX_STANDARD
+        17
+      CXX_STANDARD_REQUIRED
+        ON
       CXX_EXTENSIONS
         OFF
       POSITION_INDEPENDENT_CODE
         ON
   )
-
-  define_target_arch(${target_name})
-  define_target_compiler(${target_name})
 
   target_compile_definitions(
     ${target_name}
