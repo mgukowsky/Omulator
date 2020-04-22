@@ -403,6 +403,14 @@ function(config_for_clang target_name is_test)
       -march=broadwell
   )
 
+  target_link_options(
+    ${target_name}
+    PUBLIC
+      -fuse-ld=lld
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},RelWithDebInfo>:-fsanitize=address>
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},RelWithDebInfo>:-fsanitize=undefined>
+  )
+
   if(CMAKE_BUILD_TYPE MATCHES Debug)
     target_compile_options(
       ${target_name}
@@ -427,13 +435,6 @@ function(config_for_clang target_name is_test)
         -fno-omit-frame-pointer
 
         # RelWithDebInfo uses sanitizers
-    )
-
-    set_target_properties(
-      ${target_name}
-      PROPERTIES
-        LINK_FLAGS_RELWITHDEBINFO
-          "-fsanitize=address -fsanitize=undefined"
     )
 
   elseif(CMAKE_BUILD_TYPE MATCHES Release)
