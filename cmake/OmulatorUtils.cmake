@@ -1,27 +1,3 @@
-function(add_clang_tidy_pass target_name)
-  find_program(
-    CLANG_TIDY_EXE
-    NAMES
-      "clang-tidy"
-    DOC
-      "Path to clang-tidy"
-  )
-
-  if(CLANG_TIDY_EXE)
-    set(
-      DO_CLANG_TIDY
-      "${CLANG_TIDY_EXE}"
-    )
-
-    set_target_properties(
-      ${target_name}
-      PROPERTIES
-        CXX_CLANG_TIDY
-          ${DO_CLANG_TIDY}
-    )
-  endif()
-endfunction()
-
 function(define_target_arch target_name)
   # if x64, will be AMD64 on Windows or x86_64 on Linux
   if(CMAKE_SYSTEM_PROCESSOR MATCHES "AMD64|x86_64")
@@ -357,98 +333,56 @@ function(config_for_gcc target_name is_test)
       -Wall
       -Werror
       -Wextra
-      #TODO: For some reason, -Wshadow causes errors in spdlog on gcc, but not clang...
       -Wshadow
       -Wwrite-strings
 
       # Target Intel Broadwell (~2015 w/ AVX2)
       # on an official build machine this could be -march=native
       -march=broadwell
-  )
 
-  if(CMAKE_BUILD_TYPE MATCHES Debug)
-    target_compile_options(
-      ${target_name}
-      PUBLIC
-        -g
-        -O0
-        -rdynamic
-    )
-  elseif(CMAKE_BUILD_TYPE MATCHES Release)
-    target_compile_options(
-      ${target_name}
-      PUBLIC
-        -O3
-        -fomit-frame-pointer
-        -flto
-        -Wl,-O3
-
-    )
-  endif()
-endfunction()
-
-function(config_for_clang target_name is_test)
-  target_compile_options(
-    ${target_name}
-    PUBLIC
-      -ansi
-      -pedantic
-      -Wall
-      -Werror
-      -Wextra
-      -Wshadow
-
-      # Target Intel Broadwell (~2015 w/ AVX2)
-      # on an official build machine this could be march-=native
-      -march=broadwell
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:-g -O0>
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:-O3 -fomit-frame-pointer -flto>
   )
 
   target_link_options(
     ${target_name}
     PUBLIC
-      -fuse-ld=lld
-      $<$<STREQUAL:${CMAKE_BUILD_TYPE},RelWithDebInfo>:-fsanitize=address>
-      $<$<STREQUAL:${CMAKE_BUILD_TYPE},RelWithDebInfo>:-fsanitize=undefined>
+      -pie
+      # -rdynamic can help play nicely with backtraces
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:-g -rdynamic>
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:-Wl,-O3>
+
+      # --relax enables global addressing optimizations if using GCC
+      $<$<CXX_COMPILER_ID:GNU>:-Wl,--relax>
+  )
+endfunction()
+
+function(config_for_clang target_name is_test)
+  config_for_gcc(${target_name} ${is_test})
+
+  target_compile_options(
+    ${target_name}
+    PUBLIC
+      # -fno-omit-frame-pointer is needed to help the sanitizers
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},RelWithDebInfo>:-g -O1 -fno-omit-frame-pointer>
+
+      # Clang sanitizers (ASAN and UBSAN)
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},RelWithDebInfo>:-fsanitize=address -fsanitize=undefined>
+
+      # Additional sanitizers which are incompatible with ASAN, but should be added to a
+      # separate build...
+      # $<$<STREQUAL:${CMAKE_BUILD_TYPE},RelWithDebInfo>: -fsanitize=memory>
+      # $<$<STREQUAL:${CMAKE_BUILD_TYPE},RelWithDebInfo>: -fsanitize=thread>
   )
 
-  if(CMAKE_BUILD_TYPE MATCHES Debug)
-    target_compile_options(
-      ${target_name}
-      PUBLIC
-        -g
-        -O0
-    )
-  elseif(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
-    target_compile_options(
-      ${target_name}
-      PUBLIC
-        -g
-        -O1
-        -fsanitize=address
-        
-        # Incompatible with ASAN, but should be added to a separate build...
-        # Don't forget to add them to the linker flags when added back in!!!
-        #-fsanitize=memory
-        #-fsanitize=thread
-        
-        -fsanitize=undefined
-        -fno-omit-frame-pointer
+  target_link_options(
+    ${target_name}
+    PUBLIC
+      # Need to reclare sanitizers for the linker
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},RelWithDebInfo>:-g -fsanitize=address -fsanitize=undefined>
 
-        # RelWithDebInfo uses sanitizers
-    )
-
-  elseif(CMAKE_BUILD_TYPE MATCHES Release)
-    target_compile_options(
-      ${target_name}
-      PUBLIC
-        -O3
-        -fomit-frame-pointer
-    )
-  #  set_target_properties(
-  #      ${target_name}
-  #     PROPERTIES
-  #       LINK_FLAGS_RELEASE
-  #         "-flto"
-  #   )
-  endif()
+      # Use the LLVM linker if sanitizers aren't needed
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:-fuse-ld=lld>
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:-fuse-ld=lld>
+  )
 endfunction()
