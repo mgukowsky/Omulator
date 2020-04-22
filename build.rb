@@ -91,7 +91,7 @@ def main()
   OptionParser.new do |opts|
     opts.banner = <<~EOF
       This script is a wrapper around the CMake build process 
-      Usage: build.rb [options] [rules]
+      Usage: build.rb [options] [actions]
       Possible actions: #{POSSIBLE_ACTIONS}
       The 'build' action will be performed by default if no actions are given
     EOF
@@ -115,7 +115,7 @@ def main()
     cmds << potential_action if POSSIBLE_ACTIONS.include?(potential_action)
   end
   
-  ob = OmulatorBuilder.new(options)
+  ob = OmulatorBuilder.new(**options)
 
   cmds << 'build' if cmds.empty?
 
