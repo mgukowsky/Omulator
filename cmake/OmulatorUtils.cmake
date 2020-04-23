@@ -128,62 +128,19 @@ function(config_for_msvc target_name is_test)
 
       # Additional optimizations for x64, off for now...
       #/favor:INTEL64
-  )
 
-  # While most flags will work with MSVC and clang-cl, certain flags are specific to
-  # each compiler
-  if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-    target_compile_options(
-      ${target_name}
-      PUBLIC
-        # Experimental MSVC feature which ignores errors from system headers. N.B. this
-        # will eventually no longer be experimental and will have to change. This sets
-        # warnings from <angle bracket> headers to W0. Needs to be off for clang-cl, though.
-        /experimental:external
-        /external:anglebrackets
-        /external:W0
-
-        # Create assembly dump
-        /FAcs
-
-        # ISO compliancy
-        /Zc:referenceBinding
-        /Zc:throwingNew
-
-        # MSVC's Wall is ridiculous and triggers a deluge of false positives in its OWN headers,
-        # so W4 is the next best thing
-        /W4
-
-        # One line diagnostics
-        /WL
-    )
-  elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    target_compile_options(
-      ${target_name}
-      PUBLIC
-        # clang-cl barfs on a bunch of headers with higher warn levels (but not on Linux?)
-        -W3
-        -Wno-c++98-compat
-        -Wno-c++98-compat-pedantic
-    )
-  endif()
-
-
-  # /Wall in MSVC is a bit overzealous, so we disable some warnings we don't care about
-  # 4307: integral constant overflow
-  # 4514: compiler removed an unreferenced inline function
-  # 4571: catch(...) won't work with SEH
-  # 4625: copy constructor implicity deleted; allows us to use rule of 0/3/5
-  # 4626: assignment operator implicitly deleted; allows us to use rule of 0/3/5
-  # 4668: macro was undefined, so compiler replaced with '0'
-  # 4710: function could not be inlined
-  # 4711: function was automatically inlined
-  # 4820: compiler needed to insert padding in class/struct
-  # 4946: reinterpret_cast between related classes (i.e. reinterpret_cast<Derived*>(Base*))
-  # 5045: Spectre mitigation with /Qspectre (range checks)
-  target_compile_options(
-    ${target_name}
-    PUBLIC
+      # /Wall in MSVC is a bit overzealous, so we disable some warnings we don't care about
+      # 4307: integral constant overflow
+      # 4514: compiler removed an unreferenced inline function
+      # 4571: catch(...) won't work with SEH
+      # 4625: copy constructor implicity deleted; allows us to use rule of 0/3/5
+      # 4626: assignment operator implicitly deleted; allows us to use rule of 0/3/5
+      # 4668: macro was undefined, so compiler replaced with '0'
+      # 4710: function could not be inlined
+      # 4711: function was automatically inlined
+      # 4820: compiler needed to insert padding in class/struct
+      # 4946: reinterpret_cast between related classes (i.e. reinterpret_cast<Derived*>(Base*))
+      # 5045: Spectre mitigation with /Qspectre (range checks)
       /wd4307
       /wd4514
       /wd4571
@@ -195,6 +152,29 @@ function(config_for_msvc target_name is_test)
       /wd4820
       /wd4946
       /wd5045
+
+      # Experimental MSVC feature which ignores errors from system headers. N.B. this
+      # will eventually no longer be experimental and will have to change. This sets
+      # warnings from <angle bracket> headers to W0. Needs to be off for clang-cl, though.
+      $<$<CXX_COMPILER_ID:MSVC>:/experimental:external /external:anglebrackets /external:W0>
+
+      # Create an assembly dump, force ISO compliancy
+      $<$<CXX_COMPILER_ID:MSVC>:/FAcs /Zc:referenceBinding /Zc:throwingNew>
+
+      # MSVC's Wall is ridiculous and triggers a deluge of false positives in its OWN headers,
+      # so W4 is the next best thing. WL puts diagnostics on one line.
+      $<$<CXX_COMPILER_ID:MSVC>:/W4 /WL>
+
+      # Stop clang-cl from complaining about Windows code
+      $<$<CXX_COMPILER_ID:Clang>:-W3 -Wno-c++98-compat -Wno-c++98-compat-pedantic>
+
+      # Make a PDB, don't inline and don't optimize, use buffer overflow canaries, and add 
+      # security and runtime checks
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:/Zi /Ob0 /Od /GS /sdl /RTC1>
+
+      # Maximum optimization, optimize globals, no buffer overflow canaries, and 
+      # function level linking
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:/O2 /Ob2 /Gw /GS- /Gy $<$<CXX_COMPILER_ID:Clang>:-flto>>
   )
 
   target_compile_definitions(
@@ -208,50 +188,36 @@ function(config_for_msvc target_name is_test)
   )
 
   # We want fine-grained control over the MSVC linker...
-  set_target_properties(
+  target_link_options(
     ${target_name}
-    PROPERTIES
-      LINK_FLAGS
-        # DYNAMICBASE: ASLR
-        # HIGHENTROPYVA: 64-bit ASLR
-        # INCREMENTAL:NO: don't use incremental linking
-        # LARGEADDRESSAWARE: 64-bit address space
-        # NXCOMPAT: Use NX bit (aka Windows Data Execution Prevention)
-        # machine:x64: 64 bit
-        # notelemetry.obj: an additional object to link against which prevents MSVC telemetry
-        "/DYNAMICBASE /HIGHENTROPYVA /INCREMENTAL:NO /LARGEADDRESSAWARE /NXCOMPAT /machine:x64 notelemetry.obj"
-      LINK_FLAGS_DEBUG
-        # /DEBUG:FASTLINK is (obviously) faster for the linker, but /DEBUG:FULL
-        # seems to play better with GoogleTest in debug builds
-        "/DEBUG:FULL /INCREMENTAL:NO"
-      LINK_FLAGS_RELEASE
-        # LTCG: link time code generation
-        # OPT:REF: remove unreferenced functions and data
-        # OPT:ICF: merge identical functions and data
-        "/LTCG /OPT:REF /OPT:ICF /INCREMENTAL:NO"
+    PUBLIC
+      # ASLR
+      /DYNAMICBASE
+      # 64-bit ASLR
+      /HIGHENTROPYVA
+      # don't use incremental linking
+      /INCREMENTAL:NO
+      # 64-bit address space
+      /LARGEADDRESSAWARE
+      # Use NX bit (aka Windows Data Execution Prevention)
+      /NXCOMPAT
+      # 64 bit
+      /machine:x64
+      # an additional object to link against which prevents MSVC telemetry
+      notelemetry.obj
+
+      # /DEBUG:FASTLINK is (obviously) faster for the linker, but /DEBUG:FULL
+      # seems to play better with GoogleTest in debug builds
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:/DEBUG:FULL>
+
+      # LTCG: link time code generation; lld-link seems to not understand neither /LTCG or -flto ¯\_(ツ)_/¯
+      # OPT:REF: remove unreferenced functions and data
+      # OPT:ICF: merge identical functions and data
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:$<$<CXX_COMPILER_ID:MSVC>:/LTCG> /OPT:REF /OPT:ICF>
   )
 
-  # Release vs Debug stuff
+  # See comment at the top of this function for why this is necessary
   if(CMAKE_BUILD_TYPE MATCHES Debug)
-    target_compile_options(
-      ${target_name}
-      PUBLIC
-        # Make a PDB
-        /Zi
-
-        # Don't inline and don't optimize
-        /Ob0
-        /Od
-
-        # Buffer overflow canaries
-        /GS 
-
-        # Security & Runtime checks
-        /sdl
-        /RTC1
-    )
-
-    # See comment at the top of this function for why this is necessary
     if(NOT ${is_test})
       target_compile_options(
         ${target_name}
@@ -260,46 +226,18 @@ function(config_for_msvc target_name is_test)
           /MDd
       )
     endif()
+  endif()
 
-  elseif(CMAKE_BUILD_TYPE MATCHES Release)
+  if(CMAKE_BUILD_TYPE MATCHES Release AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     target_compile_options(
       ${target_name}
       PUBLIC
-        # Maximum optimization
-        /O2 /Ob2
+        # Whole program optimization
+        /GL
 
-        # Optimize globals
-        /Gw
-
-        # No buffer overflow canaries
-        /GS-
-
-        # Function level linking
-        /Gy
+        # Fast transcendentals
+        /Qfast_transcendentals
     )
-
-    if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-      target_compile_options(
-        ${target_name}
-        PUBLIC
-          # Whole program optimization
-          /GL
-
-          # Fast transcendentals
-          /Qfast_transcendentals
-      )
-    endif()
-
-    # See comment at the top of this function for why this is necessary
-    if(NOT ${is_test})
-      target_compile_options(
-        ${target_name}
-        PUBLIC
-          # Multithreaded shared runtime
-          /MD
-      )
-    endif()
-
   endif()
 
   # For Windows targets, manifest files can be added as source files and will be embedded
@@ -350,7 +288,7 @@ function(config_for_gcc target_name is_test)
       -pie -Wl,-pie
       # -rdynamic can help play nicely with backtraces
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:-g -rdynamic>
-      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:-Wl,-O3>
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:-flto -Wl,-O3>
 
       # --relax enables global addressing optimizations if using GCC
       $<$<CXX_COMPILER_ID:GNU>:-Wl,--relax>
