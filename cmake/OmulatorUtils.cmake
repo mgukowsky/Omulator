@@ -347,7 +347,7 @@ function(config_for_gcc target_name is_test)
   target_link_options(
     ${target_name}
     PUBLIC
-      -pie
+      -pie -Wl,-pie
       # -rdynamic can help play nicely with backtraces
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:-g -rdynamic>
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:-Wl,-O3>
