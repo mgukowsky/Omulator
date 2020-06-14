@@ -102,6 +102,7 @@ if(OMULATOR_BUILD_TESTS)
   include(CTest)
   enable_testing()
   
+  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
   add_subdirectory("third_party/googletest")
   add_subdirectory("test")
 endif()

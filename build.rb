@@ -7,13 +7,7 @@ require 'pathname'
 
 POSSIBLE_ACTIONS = %w[build rebuild clean cleanall test]
 POSSIBLE_BUILD_TYPES = %w[Debug Release RelWithDebInfo MinSizeRel]
-POSSIBLE_TOOLCHAINS = %i[msvc gcc clang clang_cl]
-TOOLCHAIN_TOOLS = {
-  msvc:     %w[cl.exe cl.exe link.exe],
-  gcc:      %w[gcc g++ ld],
-  clang:    %w[clang clang++ ld.lld],
-  clang_cl: %w[clang-cl.exe clang-cl.exe lld-link.exe] 
-}
+POSSIBLE_TOOLCHAINS = %w[msvc gcc clang clang-cl clang-cl-wsl]
 
 class OmulatorBuilder
   attr_accessor :verbose
@@ -21,17 +15,14 @@ class OmulatorBuilder
   def initialize(**kwargs)
     @build_dir  = kwargs[:build_dir]  || POSSIBLE_ACTIONS.first
     @build_type = kwargs[:build_type] || POSSIBLE_BUILD_TYPES.first
+    @toolchain  = kwargs[:toolchain]  || nil
     @verbose    = kwargs[:verbose]    || false
-
-    if kwargs[:toolchain]
-      set_toolchain(*TOOLCHAIN_TOOLS[kwargs[:toolchain]])
-    end
   end
 
   # Basic cmake build
   def build(**kwargs)
     spawn_cmd "cmake -B #{@build_dir} -GNinja -DCMAKE_BUILD_TYPE=#{@build_type} "\
-      "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON #{@toolchain_args} #{kwargs[:addl_cmake_args]}"\
+      "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON #{toolchain_args} #{kwargs[:addl_cmake_args]}"\
       "&& cmake --build #{@build_dir} -j #{kwargs[:addl_cmake_bld_args]} "\
       "-- #{'-v' if verbose?} #{kwargs[:addl_generator_args]}"
   end
@@ -56,16 +47,28 @@ class OmulatorBuilder
     spawn_cmd "ctest #{'-V' if verbose?} -j --schedule-random --repeat-until-fail 3"
     Dir.chdir '..'
   end
+
+  def toolchain_args
+    if @toolchain
+      args = "-DCMAKE_TOOLCHAIN_FILE=#{__dir__}/cmake/Toolchain-#{@toolchain}.cmake"
+      if @toolchain == "clang-cl-wsl"
+        args += " -DHOST_ARCH=#{ENV['WSL_HOST_ARCH']} "\
+          "-DLLVM_NATIVE_TOOLCHAIN=#{ENV['WSL_LLVM_NATIVE_TOOLCHAIN']} "\
+          "-DMSVC_BASE=#{ENV['WSL_MSVC_BASE']} "\
+          "-DWINSDK_BASE=#{ENV['WSL_WINSDK_BASE']} "\
+          "-DWINSDK_VER=#{ENV['WSL_WINSDK_VER']}"
+      end
+      args
+    else
+      ""
+    end
+  end
   
   def verbose?
     !!@verbose
   end
 
   private
-
-  def set_toolchain(cc, cxx, ld)
-    @toolchain_args = "-DCMAKE_C_COMPILER=#{cc} -DCMAKE_CXX_COMPILER=#{cxx} -DCMAKE_LINKER=#{ld}"
-  end
 
   def spawn_cmd(cmd)
     # spawn a subprocess with stdout and stderr merged, and block till it's done
@@ -109,7 +112,7 @@ def main()
     end
 
     opts.on('--toolchain [TOOLCHAIN]', POSSIBLE_TOOLCHAINS, 
-            "Specify the toolchain [#{POSSIBLE_TOOLCHAINS.collect(&:to_s).join('|')}]") do |toolchain|
+            "Specify the toolchain [#{POSSIBLE_TOOLCHAINS.join('|')}]") do |toolchain|
       options[:toolchain] = toolchain
     end
 

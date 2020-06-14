@@ -1,4 +1,4 @@
-configure_target(${PROJECT_NAME} FALSE)
+configure_target(${PROJECT_NAME})
 
 # If MSVC, specify we don't want to display a console window
 if(CMAKE_BUILD_TYPE MATCHES Release AND MSVC)

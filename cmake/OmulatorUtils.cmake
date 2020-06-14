@@ -48,7 +48,7 @@ function(define_target_compiler target_name)
   endif()
 endfunction()
 
-function(configure_target target_name is_test)
+function(configure_target target_name)
   define_target_arch(${target_name})
   define_target_compiler(${target_name})
 
@@ -81,20 +81,16 @@ function(configure_target target_name is_test)
   )
   
   if(MSVC)
-    config_for_msvc(${target_name} ${is_test})
+    config_for_msvc(${target_name})
   elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    config_for_gcc(${target_name} ${is_test})
+    config_for_gcc(${target_name})
   elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    config_for_clang(${target_name} ${is_test})
+    config_for_clang(${target_name})
   endif()
 
 endfunction()
 
-# For whatever reason, the conventional gtest_force_shared_crt flag
-# DOES NOT WORK with my CMake setup. Given this, we pass in the is_test
-# flag to determine which runtime we should link against (especially
-# important for MSVC)
-function(config_for_msvc target_name is_test)
+function(config_for_msvc target_name)
 
   target_compile_options(
     ${target_name}
@@ -216,18 +212,6 @@ function(config_for_msvc target_name is_test)
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:$<$<CXX_COMPILER_ID:MSVC>:/LTCG> /OPT:REF /OPT:ICF>
   )
 
-  # See comment at the top of this function for why this is necessary
-  if(CMAKE_BUILD_TYPE MATCHES Debug)
-    if(NOT ${is_test})
-      target_compile_options(
-        ${target_name}
-        PUBLIC
-          # Multithreaded debug shared runtime
-          /MDd
-      )
-    endif()
-  endif()
-
   if(CMAKE_BUILD_TYPE MATCHES Release AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     target_compile_options(
       ${target_name}
@@ -262,7 +246,7 @@ function(config_for_msvc target_name is_test)
 
 endfunction()
 
-function(config_for_gcc target_name is_test)
+function(config_for_gcc target_name)
   target_compile_options(
     ${target_name}
     PUBLIC
@@ -294,8 +278,8 @@ function(config_for_gcc target_name is_test)
   )
 endfunction()
 
-function(config_for_clang target_name is_test)
-  config_for_gcc(${target_name} ${is_test})
+function(config_for_clang target_name)
+  config_for_gcc(${target_name})
 
   target_compile_options(
     ${target_name}

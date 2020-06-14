@@ -21,7 +21,7 @@ macro(add_unit_test TESTNAME)
       ${ARGN}
   )
 
-  configure_target(${TESTNAME} TRUE)
+  configure_target(${TESTNAME})
   target_link_libraries(
     ${TESTNAME}
     gtest
