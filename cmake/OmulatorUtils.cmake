@@ -174,7 +174,7 @@ function(config_for_msvc target_name is_test)
 
       # Maximum optimization, optimize globals, no buffer overflow canaries, and 
       # function level linking
-      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:/O2 /Ob2 /Gw /GS- /Gy $<$<CXX_COMPILER_ID:Clang>:-flto>>
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:/O2 /Ob2 /Gw /GS- /Gy>
   )
 
   target_compile_definitions(
@@ -279,16 +279,15 @@ function(config_for_gcc target_name is_test)
       -march=broadwell
 
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:-g -O0>
-      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:-O3 -fomit-frame-pointer -flto>
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:-O3 -fomit-frame-pointer>
   )
 
   target_link_options(
     ${target_name}
     PUBLIC
-      -pie -Wl,-pie
       # -rdynamic can help play nicely with backtraces
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:-g -rdynamic>
-      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:-flto -Wl,-O3>
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:-Wl,-O3>
 
       # --relax enables global addressing optimizations if using GCC
       $<$<CXX_COMPILER_ID:GNU>:-Wl,--relax>
