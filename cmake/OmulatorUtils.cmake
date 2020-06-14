@@ -69,6 +69,8 @@ function(configure_target target_name)
         OFF
       POSITION_INDEPENDENT_CODE
         ON
+      MSVC_RUNTIME_LIBRARY
+        MultiThreaded$<$<CONFIG:Debug>:Debug>DLL
   )
 
   target_compile_definitions(
@@ -227,7 +229,9 @@ function(config_for_msvc target_name)
   # For Windows targets, manifest files can be added as source files and will be embedded
   # in the resulting binary (https://cmake.org/cmake/help/v3.4/release/3.4.html#other)
   #
-  # This particular manifest is needed for proper DPI handling
+  # This particular manifest is needed for proper DPI handling. There is
+  # a VS_DPI_AWARE property that can be set on the target, but that only
+  # has an effect when using a Visual Studio generator.
   #
   # N.B. the path we're using for the DPI file assumes that we are using an MSVC build environment
   set(PerMonitorDPIAwareFile "$ENV{VCToolsInstallDir}INCLUDE\\MANIFEST\\PERMONITORHIGHDPIAWARE.MANIFEST")
