@@ -9,7 +9,7 @@
 #include <stdexcept>
 #include <vector>
 
-TEST(exception_handler, exceptionHandling) {
+TEST(exception_handler, DISABLED_exceptionHandling) {
   ASSERT_DEATH(
     {
       try {
@@ -24,7 +24,7 @@ TEST(exception_handler, exceptionHandling) {
     << "std::exception instances should be handled";
 }
 
-TEST(exception_handler, badAlloc) {
+TEST(exception_handler, DISABLED_badAlloc) {
   ASSERT_DEATH(
     {
       try {
@@ -39,7 +39,7 @@ TEST(exception_handler, badAlloc) {
     << "bad_alloc should be handled with a descriptive message";
 }
 
-TEST(exception_handler, unknownException) {
+TEST(exception_handler, DISABLED_unknownException) {
   ASSERT_DEATH(
     {
       try {
@@ -53,7 +53,7 @@ TEST(exception_handler, unknownException) {
     << "exceptions other than std::exception should be handled";
 }
 
-TEST(exception_handler, callWithoutException) {
+TEST(exception_handler, DISABLED_callWithoutException) {
   ASSERT_DEATH({ omulator::util::exception_handler(); },
                "Global exception handler called without an active exception")
     << "should alert the user when called without an exception";
