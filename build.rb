@@ -7,7 +7,7 @@ require 'pathname'
 
 POSSIBLE_ACTIONS = %w[build rebuild clean cleanall test]
 POSSIBLE_BUILD_TYPES = %w[Debug Release RelWithDebInfo MinSizeRel]
-POSSIBLE_TOOLCHAINS = %w[msvc gcc clang clang-cl clang-cl-wsl]
+POSSIBLE_TOOLCHAINS = %w[msvc gcc clang clang-cl clang-cl-wsl msvc-wsl]
 
 class OmulatorBuilder
   attr_accessor :verbose
@@ -25,6 +25,8 @@ class OmulatorBuilder
       "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON #{toolchain_args} #{kwargs[:addl_cmake_args]}"\
       "&& cmake --build #{@build_dir} -j #{kwargs[:addl_cmake_bld_args]} "\
       "-- #{'-v' if verbose?} #{kwargs[:addl_generator_args]}"
+    # CMake screws up the permissions for executables with the msvc-wsl toolchain
+    spawn_cmd "find #{@build_dir} -iname *.exe | xargs chmod 755" if @toolchain == "msvc-wsl"
   end
 
   # Same as build, except have the generator perform a clean first
