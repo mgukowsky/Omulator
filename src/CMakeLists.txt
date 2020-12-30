@@ -1,3 +1,5 @@
+include(CheckIPOSupported)
+
 configure_target(${PROJECT_NAME})
 
 # If MSVC, specify we don't want to display a console window

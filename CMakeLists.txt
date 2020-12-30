@@ -1,12 +1,16 @@
 cmake_minimum_required(
   VERSION
-    3.15
+    3.16
 )
 
 # CMake policy settings
 
-# Use the MSVC_RUNTIME_LIBRARY to select an MSVC runtime
+# Add appropriate PIE flags when POSTION_INDEPENDENT_CODE is set
+cmake_policy(SET CMP0083 NEW)
+# Use the MSVC_RUNTIME_LIBRARY to select and MSVC runtime
 cmake_policy(SET CMP0091 NEW)
+# Don't place MSVC warning flags in the default CMake cache entries
+cmake_policy(SET CMP0092 NEW)
 
 # Set the default build type. From https://blog.kitware.com/cmake-and-the-default-build-type
 if(NOT CMAKE_BUILD_TYPE)
@@ -63,8 +67,6 @@ message(
     ${CMAKE_SYSTEM_NAME}
 )
 
-include(CheckIPOSupported)
-include(FetchContent)
 include(OmulatorUtils)
 
 # Main executable
@@ -72,10 +74,14 @@ add_executable(
   ${PROJECT_NAME}
 )
 
-# Need pthread on *nix
 find_package(
   Threads
     REQUIRED
+)
+target_link_libraries(
+  ${PROJECT_NAME}
+  PUBLIC
+    Threads::Threads
 )
 
 if(NOT MSVC)

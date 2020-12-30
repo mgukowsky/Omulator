@@ -13,10 +13,11 @@ class OmulatorBuilder
   attr_accessor :verbose
 
   def initialize(**kwargs)
-    @build_dir  = kwargs[:build_dir]  || POSSIBLE_ACTIONS.first
     @build_type = kwargs[:build_type] || POSSIBLE_BUILD_TYPES.first
     @toolchain  = kwargs[:toolchain]  || nil
     @verbose    = kwargs[:verbose]    || false
+
+    @build_dir  = File.join "build", @toolchain, @build_type
   end
 
   # Basic cmake build
