@@ -5,7 +5,7 @@ require 'open3'
 require 'optparse'
 require 'pathname'
 
-POSSIBLE_ACTIONS = %w[build rebuild clean cleanall test]
+POSSIBLE_ACTIONS = %w[analyze build rebuild clean cleanall test]
 POSSIBLE_BUILD_TYPES = %w[Debug Release RelWithDebInfo MinSizeRel]
 POSSIBLE_TOOLCHAINS = %w[msvc gcc clang clang-cl clang-cl-wsl msvc-wsl]
 
@@ -19,6 +19,14 @@ class OmulatorBuilder
     @verbose    = kwargs[:verbose]    || false
 
     @build_dir  = File.join "build", @toolchain, @build_type
+    @proj_dir = __dir__
+  end
+
+  # Perform static analysis. For best results, don't build tests!
+  def analyze
+    Dir.chdir @build_dir
+    spawn_cmd "run-clang-tidy -header-filter='\.hpp'"
+    Dir.chdir @proj_dir
   end
 
   # Basic cmake build
@@ -49,14 +57,14 @@ class OmulatorBuilder
   end
 
   def test
-    Dir.chdir "#{@build_dir}"
+    Dir.chdir @build_dir
     spawn_cmd "ctest #{'-V' if verbose?} -j --schedule-random --repeat-until-fail 3"
-    Dir.chdir '..'
+    Dir.chdir @proj_dir
   end
 
   def toolchain_args
     if @toolchain
-      args = "-DCMAKE_TOOLCHAIN_FILE=#{__dir__}/cmake/Toolchain-#{@toolchain}.cmake"
+      args = "-DCMAKE_TOOLCHAIN_FILE=#{@proj_dir}/cmake/Toolchain-#{@toolchain}.cmake"
       if @toolchain == "clang-cl-wsl"
         args += " -DHOST_ARCH=#{ENV['WSL_HOST_ARCH']} "\
           "-DLLVM_NATIVE_TOOLCHAIN=#{ENV['WSL_LLVM_NATIVE_TOOLCHAIN']} "\
