@@ -1,4 +1,7 @@
+include(ConfigureTarget)
+
 include(CheckIPOSupported)
+include(CheckPIESupported)
 
 configure_target(${PROJECT_NAME})
 
@@ -12,8 +15,19 @@ if(CMAKE_BUILD_TYPE MATCHES Release AND MSVC)
   )
 endif()
 
+# Best practice to check for PIE before enabling it
+check_pie_supported()
+if(CMAKE_CXX_LINK_PIE_SUPPORTED)
+  set_target_properties(
+    ${PROJECT_NAME}
+      PROPERTIES
+        POSITION_INDEPENDENT_CODE
+          TRUE
+  )
+endif()
+
 # Use IPO if Release and available
-if(CMAKE_BUILD_TYPE MATCHES Release AND NOT (${CMAKE_CXX_COMPILER_ID} MATCHES "MSVC"))
+if(CMAKE_BUILD_TYPE MATCHES Release)
   check_ipo_supported(RESULT is_ipo_supported)
   if(is_ipo_supported)
     set_target_properties(

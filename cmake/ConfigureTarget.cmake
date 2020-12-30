@@ -1,52 +1,4 @@
-function(define_target_arch target_name)
-  # if x64, will be AMD64 on Windows or x86_64 on Linux
-  if(CMAKE_SYSTEM_PROCESSOR MATCHES "AMD64|x86_64")
-    target_compile_definitions(
-      ${target_name}
-      PUBLIC
-        OML_ARCH_X64
-    )
-  # should be "arm" on ARM Linux (I think?)
-  elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
-    target_compile_definitions(
-      ${target_name}
-      PUBLIC
-        OML_ARCH_ARM
-    )
-  else()
-    message(FATAL_ERROR "Unknown architecture...")
-  endif()
-endfunction()
-
-function(define_target_compiler target_name)
-  if(MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    target_compile_definitions(
-      ${target_name}
-      PUBLIC
-        OML_COMPILER_CLANG_CL
-    )
-  elseif(MSVC)
-    target_compile_definitions(
-      ${target_name}
-      PUBLIC
-        OML_COMPILER_MSVC
-    )
-  elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    target_compile_definitions(
-      ${target_name}
-      PUBLIC
-        OML_COMPILER_GCC
-    )
-  elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    target_compile_definitions(
-      ${target_name}
-      PUBLIC
-        OML_COMPILER_CLANG
-    )
-  else()
-    message(FATAL_ERROR "Unknown compiler: " ${CMAKE_CXX_COMPILER_ID})
-  endif()
-endfunction()
+include(ToolchainDefines)
 
 function(configure_target target_name)
   define_target_arch(${target_name})
@@ -55,20 +7,18 @@ function(configure_target target_name)
   target_compile_features(
     ${target_name}
     PUBLIC
-      cxx_std_17
+      cxx_std_20
   )
 
   set_target_properties(
     ${target_name}
     PROPERTIES
       CXX_STANDARD
-        17
+        20
       CXX_STANDARD_REQUIRED
         ON
       CXX_EXTENSIONS
         OFF
-      POSITION_INDEPENDENT_CODE
-        ON
       MSVC_RUNTIME_LIBRARY
         MultiThreaded$<$<CONFIG:Debug>:Debug>DLL
   )

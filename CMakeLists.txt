@@ -67,8 +67,6 @@ message(
     ${CMAKE_SYSTEM_NAME}
 )
 
-include(OmulatorUtils)
-
 # Main executable
 add_executable(
   ${PROJECT_NAME}
