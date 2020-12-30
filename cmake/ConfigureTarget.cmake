@@ -212,6 +212,27 @@ function(config_for_gcc target_name)
       -Wshadow
       -Wwrite-strings
 
+      # Additional warnings recommended by
+      # https://github.com/lefticus/cppbestpractices/blob/master/02-Use_the_Tools_Available.md#compilers
+      -Wnon-virtual-dtor
+      -Wold-style-cast
+      -Wold-style-cast
+      -Wcast-align
+      -Wunused
+      -Woverloaded-virtual
+      -Wpedantic
+      #-Wconversion
+      -Wsign-conversion
+      $<$<CXX_COMPILER_ID:GNU>:-Wmisleading-indentation>
+      $<$<CXX_COMPILER_ID:GNU>:-Wduplicated-cond>
+      $<$<CXX_COMPILER_ID:GNU>:-Wduplicated-branches>
+      $<$<CXX_COMPILER_ID:GNU>:-Wlogical-op>
+      $<$<CXX_COMPILER_ID:GNU>:-Wnull-dereference>
+      $<$<CXX_COMPILER_ID:GNU>:-Wuseless-cast>
+      -Wdouble-promotion
+      -Wformat=2
+
+
       # Target Intel Broadwell (~2015 w/ AVX2)
       # on an official build machine this could be -march=native
       -march=broadwell

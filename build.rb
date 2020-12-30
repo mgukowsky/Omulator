@@ -14,6 +14,7 @@ class OmulatorBuilder
 
   def initialize(**kwargs)
     @build_type = kwargs[:build_type] || POSSIBLE_BUILD_TYPES.first
+    @notests    = kwargs[:notests]    || false
     @toolchain  = kwargs[:toolchain]  || nil
     @verbose    = kwargs[:verbose]    || false
 
@@ -23,7 +24,9 @@ class OmulatorBuilder
   # Basic cmake build
   def build(**kwargs)
     spawn_cmd "cmake -B #{@build_dir} -GNinja -DCMAKE_BUILD_TYPE=#{@build_type} "\
-      "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON #{toolchain_args} #{kwargs[:addl_cmake_args]}"\
+      "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON "\
+      "-DOMULATOR_BUILD_TESTS=#{@notests ? 'OFF' : 'ON'} "\
+      "#{toolchain_args} #{kwargs[:addl_cmake_args]}"\
       "&& cmake --build #{@build_dir} -j #{kwargs[:addl_cmake_bld_args]} "\
       "-- #{'-v' if verbose?} #{kwargs[:addl_generator_args]}"
     # CMake screws up the permissions for executables with the msvc-wsl toolchain
@@ -112,6 +115,10 @@ def main()
     opts.on('-h', '--help', 'Prints this help') do
       puts opts
       exit
+    end
+
+    opts.on('--notests', 'Do not build tests') do |v|
+      options[:notests] = v
     end
 
     opts.on('--toolchain [TOOLCHAIN]', POSSIBLE_TOOLCHAINS, 
