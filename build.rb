@@ -8,6 +8,8 @@ require 'rbconfig'
 
 COMPILE_COMMANDS_FILE = 'compile_commands.json'
 
+OUTPUT_DIR = 'build'
+
 POSSIBLE_ACTIONS = %w[analyze build rebuild clean cleanall test]
 POSSIBLE_BUILD_TYPES = %w[Debug Release RelWithDebInfo MinSizeRel]
 POSSIBLE_TOOLCHAINS = %w[msvc gcc clang clang-cl clang-cl-wsl msvc-wsl]
@@ -21,7 +23,7 @@ class OmulatorBuilder
     @toolchain  = kwargs[:toolchain]  || default_toolchain
     @verbose    = kwargs[:verbose]    || false
 
-    @build_dir  = File.join "build", @toolchain, @build_type
+    @build_dir  = File.join OUTPUT_DIR, @toolchain, @build_type
     @proj_dir = __dir__
   end
 
@@ -76,7 +78,7 @@ class OmulatorBuilder
 
   # Delete _ALL_ build products (i.e. CMake cache in addition to build products)
   def cleanall
-    FileUtils.rm_r(@build_dir, force: true, verbose: true)
+    FileUtils.rm_r(OUTPUT_DIR, force: true, verbose: true)
   end
 
   def test
