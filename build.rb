@@ -40,6 +40,13 @@ class OmulatorBuilder
       "-- #{'-v' if verbose?} #{kwargs[:addl_generator_args]}"
     # CMake screws up the permissions for executables with the msvc-wsl toolchain
     spawn_cmd "find #{@build_dir} -iname *.exe | xargs chmod 755" if @toolchain == "msvc-wsl"
+
+    # Make compile_commands.json available for tools that need it in the working directory
+    begin
+      File.symlink("#{@build_dir}/compile_commands.json", "compile_commands.json")
+    rescue NotImplementedError => msg
+      puts "Unable to create symlink to compile_commands.json (#{msg})"
+    end
   end
 
   def default_toolchain
