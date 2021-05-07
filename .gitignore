@@ -270,6 +270,7 @@ utils.sh
 .vscode/
 out/
 Testing/
+compile_commands.json
 
 # ctags files
 tags

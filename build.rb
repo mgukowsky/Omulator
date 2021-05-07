@@ -4,6 +4,7 @@ require 'fileutils'
 require 'open3'
 require 'optparse'
 require 'pathname'
+require 'rbconfig'
 
 POSSIBLE_ACTIONS = %w[analyze build rebuild clean cleanall test]
 POSSIBLE_BUILD_TYPES = %w[Debug Release RelWithDebInfo MinSizeRel]
@@ -15,7 +16,7 @@ class OmulatorBuilder
   def initialize(**kwargs)
     @build_type = kwargs[:build_type] || POSSIBLE_BUILD_TYPES.first
     @notests    = kwargs[:notests]    || false
-    @toolchain  = kwargs[:toolchain]  || nil
+    @toolchain  = kwargs[:toolchain]  || default_toolchain
     @verbose    = kwargs[:verbose]    || false
 
     @build_dir  = File.join "build", @toolchain, @build_type
@@ -41,8 +42,20 @@ class OmulatorBuilder
     spawn_cmd "find #{@build_dir} -iname *.exe | xargs chmod 755" if @toolchain == "msvc-wsl"
   end
 
+  def default_toolchain
+    os = RbConfig::CONFIG['host_os']
+    case os
+    when /mswin/
+      "msvc"
+    when /linux/
+      "gcc"
+    else
+      raise "Cannot infer toolchain for OS '#{os}'; please supply a --toolchain argument"
+    end
+  end
+
   # Same as build, except have the generator perform a clean first
-  def rebuild 
+  def rebuild
     build addl_cmake_bld_args: '--clean-first'
   end
 
@@ -77,7 +90,7 @@ class OmulatorBuilder
       ""
     end
   end
-  
+
   def verbose?
     !!@verbose
   end
@@ -102,14 +115,14 @@ end
 
 def main()
   pn = Pathname.new($0)
-  Dir.chdir(pn.dirname) 
+  Dir.chdir(pn.dirname)
 
   cmds = []
   options = {}
 
   OptionParser.new do |opts|
     opts.banner = <<~EOF
-      This script is a wrapper around the CMake build process 
+      This script is a wrapper around the CMake build process
       Usage: build.rb [options] [actions]
       Possible actions: #{POSSIBLE_ACTIONS}
       The 'build' action will be performed by default if no actions are given
@@ -118,6 +131,14 @@ def main()
     opts.on('--build-type [BUILD_TYPE]', POSSIBLE_BUILD_TYPES,
             "Specify the CMake build type [#{POSSIBLE_BUILD_TYPES.join('|')}]") do |build_type|
       options[:build_type] = build_type
+    end
+
+    opts.on('--debug', 'Perform a debug build; same as --build-type Debug') do
+      options[:build_type] = "Debug"
+    end
+
+    opts.on('--release', 'Perform a release build; same as --build-type Release') do
+      options[:build_type] = "Release"
     end
 
     opts.on('-h', '--help', 'Prints this help') do
@@ -129,7 +150,7 @@ def main()
       options[:notests] = v
     end
 
-    opts.on('--toolchain [TOOLCHAIN]', POSSIBLE_TOOLCHAINS, 
+    opts.on('--toolchain [TOOLCHAIN]', POSSIBLE_TOOLCHAINS,
             "Specify the toolchain [#{POSSIBLE_TOOLCHAINS.join('|')}]") do |toolchain|
       options[:toolchain] = toolchain
     end
@@ -138,11 +159,11 @@ def main()
       options[:verbose] = v
     end
   end.parse!
-  
+
   ARGV.each do |potential_action|
     cmds << potential_action if POSSIBLE_ACTIONS.include?(potential_action)
   end
-  
+
   ob = OmulatorBuilder.new(**options)
 
   cmds << 'build' if cmds.empty?
@@ -161,4 +182,3 @@ def main()
 end
 
 main if __FILE__ == $0
-
