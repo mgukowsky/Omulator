@@ -6,6 +6,8 @@ require 'optparse'
 require 'pathname'
 require 'rbconfig'
 
+COMPILE_COMMANDS_FILE = 'compile_commands.json'
+
 POSSIBLE_ACTIONS = %w[analyze build rebuild clean cleanall test]
 POSSIBLE_BUILD_TYPES = %w[Debug Release RelWithDebInfo MinSizeRel]
 POSSIBLE_TOOLCHAINS = %w[msvc gcc clang clang-cl clang-cl-wsl msvc-wsl]
@@ -43,7 +45,8 @@ class OmulatorBuilder
 
     # Make compile_commands.json available for tools that need it in the working directory
     begin
-      File.symlink("#{@build_dir}/compile_commands.json", "compile_commands.json")
+      File.delete(COMPILE_COMMANDS_FILE) if File.exist?(COMPILE_COMMANDS_FILE)
+      File.symlink("#{@build_dir}/#{COMPILE_COMMANDS_FILE}", COMPILE_COMMANDS_FILE)
     rescue NotImplementedError => msg
       puts "Unable to create symlink to compile_commands.json (#{msg})"
     end
@@ -135,8 +138,9 @@ def main()
       The 'build' action will be performed by default if no actions are given
     EOF
 
-    opts.on('--build-type [BUILD_TYPE]', POSSIBLE_BUILD_TYPES,
-            "Specify the CMake build type [#{POSSIBLE_BUILD_TYPES.join('|')}]") do |build_type|
+    opts.on('-b [BUILD_TYPE]', '--build-type [BUILD_TYPE]', POSSIBLE_BUILD_TYPES,
+            "Specify the CMake build type [#{POSSIBLE_BUILD_TYPES.join('|')}]. "\
+            "Also attempts to symlink #{COMPILE_COMMANDS_FILE} to the current directory") do |build_type|
       options[:build_type] = build_type
     end
 
@@ -157,7 +161,7 @@ def main()
       options[:notests] = v
     end
 
-    opts.on('--toolchain [TOOLCHAIN]', POSSIBLE_TOOLCHAINS,
+    opts.on('-t [TOOLCHAIN]', '--toolchain [TOOLCHAIN]', POSSIBLE_TOOLCHAINS,
             "Specify the toolchain [#{POSSIBLE_TOOLCHAINS.join('|')}]") do |toolchain|
       options[:toolchain] = toolchain
     end
