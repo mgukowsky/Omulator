@@ -7,16 +7,9 @@ require 'pathname'
 require 'rbconfig'
 
 COMPILE_COMMANDS_FILE = 'compile_commands.json'
-
-OUTPUT_DIR = 'build'
-
-POSSIBLE_ACTIONS = %w[analyze build rebuild clean cleanall test]
 POSSIBLE_BUILD_TYPES = %w[Debug Release RelWithDebInfo MinSizeRel]
-POSSIBLE_TOOLCHAINS = %w[msvc gcc clang clang-cl clang-cl-wsl msvc-wsl]
 
 class OmulatorBuilder
-  attr_accessor :verbose
-
   def initialize(**kwargs)
     @build_type = kwargs[:build_type] || POSSIBLE_BUILD_TYPES.first
     @notests    = kwargs[:notests]    || false
@@ -54,6 +47,31 @@ class OmulatorBuilder
     end
   end
 
+  # Have the generator perform a clean
+  def clean
+    build addl_cmake_bld_args: '--target clean'
+  end
+
+  # Delete _ALL_ build products (i.e. CMake cache in addition to build products)
+  def cleanall
+    FileUtils.rm_r(OUTPUT_DIR, force: true, verbose: true)
+  end
+
+  # Same as build, except have the generator perform a clean first
+  def rebuild
+    build addl_cmake_bld_args: '--clean-first'
+  end
+
+  def test
+    Dir.chdir @build_dir
+    spawn_cmd "ctest #{'-V' if verbose?} -j --schedule-random --repeat-until-fail 3"
+    Dir.chdir @proj_dir
+  end
+
+  private
+
+  OUTPUT_DIR = 'build'
+
   def default_toolchain
     os = RbConfig::CONFIG['host_os']
     case os
@@ -66,25 +84,19 @@ class OmulatorBuilder
     end
   end
 
-  # Same as build, except have the generator perform a clean first
-  def rebuild
-    build addl_cmake_bld_args: '--clean-first'
-  end
+  def spawn_cmd(cmd)
+    # spawn a subprocess with stdout and stderr merged, and block till it's done
+    puts "->'#{cmd}'"
+    Open3.popen2e cmd do |stdin, stdout_err, wait_thr|
+      while line = stdout_err.gets
+        puts line
+      end
 
-  # Have the generator perform a clean
-  def clean
-    build addl_cmake_bld_args: '--target clean'
-  end
-
-  # Delete _ALL_ build products (i.e. CMake cache in addition to build products)
-  def cleanall
-    FileUtils.rm_r(OUTPUT_DIR, force: true, verbose: true)
-  end
-
-  def test
-    Dir.chdir @build_dir
-    spawn_cmd "ctest #{'-V' if verbose?} -j --schedule-random --repeat-until-fail 3"
-    Dir.chdir @proj_dir
+      unless wait_thr.value.success?
+        puts "Build command failed!"
+        abort
+      end
+    end
   end
 
   def toolchain_args
@@ -106,24 +118,14 @@ class OmulatorBuilder
   def verbose?
     !!@verbose
   end
-
-  private
-
-  def spawn_cmd(cmd)
-    # spawn a subprocess with stdout and stderr merged, and block till it's done
-    puts "->'#{cmd}'"
-    Open3.popen2e cmd do |stdin, stdout_err, wait_thr|
-      while line = stdout_err.gets
-        puts line
-      end
-
-      unless wait_thr.value.success?
-        puts "Build command failed!"
-        abort
-      end
-    end
-  end
 end
+
+# Determine which methods are specific to OmulatorBuilder by diffing its public methods
+# with those of its parent
+POSSIBLE_ACTIONS =
+  (OmulatorBuilder.public_instance_methods - OmulatorBuilder.superclass.public_instance_methods)
+  .map!(&:to_s)
+POSSIBLE_TOOLCHAINS = %w[msvc gcc clang clang-cl clang-cl-wsl msvc-wsl]
 
 def main()
   pn = Pathname.new($0)
@@ -136,11 +138,11 @@ def main()
     opts.banner = <<~EOF
       This script is a wrapper around the CMake build process
       Usage: build.rb [options] [actions]
-      Possible actions: #{POSSIBLE_ACTIONS}
+      Possible actions: [#{POSSIBLE_ACTIONS.sort.join('|')}]
       The 'build' action will be performed by default if no actions are given
     EOF
 
-    opts.on('-b [BUILD_TYPE]', '--build-type [BUILD_TYPE]', POSSIBLE_BUILD_TYPES,
+    opts.on('-b <BUILD_TYPE>', '--build-type <BUILD_TYPE>', POSSIBLE_BUILD_TYPES,
             "Specify the CMake build type [#{POSSIBLE_BUILD_TYPES.join('|')}]. "\
             "Also attempts to copy #{COMPILE_COMMANDS_FILE} to the current directory") do |build_type|
       options[:build_type] = build_type
@@ -163,7 +165,7 @@ def main()
       options[:notests] = v
     end
 
-    opts.on('-t [TOOLCHAIN]', '--toolchain [TOOLCHAIN]', POSSIBLE_TOOLCHAINS,
+    opts.on('-t <TOOLCHAIN>', '--toolchain <TOOLCHAIN>', POSSIBLE_TOOLCHAINS,
             "Specify the toolchain [#{POSSIBLE_TOOLCHAINS.join('|')}]") do |toolchain|
       options[:toolchain] = toolchain
     end
