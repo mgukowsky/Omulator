@@ -134,7 +134,6 @@ target_include_directories(
     $<INSTALL_INTERFACE:third_party/spdlog/include>
 )
 
-#TODO: Create a FileManifest.cmake that contains all of these files
 # Select which platform folder to use
 # N.B. "sdl" assumes the compiler is gcc or clang, NOT msvc...
 if(MSVC)
@@ -142,7 +141,6 @@ if(MSVC)
 else()
   set(PLATFORM_DIR "platform/sdl")
 
-  #TODO: consolidate this with the other SYSTEM target_include_directories call
   # We include third-party headers as system headers so that
   # they don't trigger warnings
   target_include_directories(
