@@ -9,3 +9,11 @@ set(
     ${PLATFORM_DIR}/PrimitiveIO.cpp
     $<$<CXX_COMPILER_ID:MSVC>:${PLATFORM_DIR}/winmain.cpp>
 )
+
+if(MSVC)
+  list(
+    APPEND
+    FILE_MANIFEST
+      ${PLATFORM_DIR}/winmain.cpp
+  )
+endif()

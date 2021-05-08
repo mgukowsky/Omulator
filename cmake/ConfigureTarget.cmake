@@ -145,6 +145,8 @@ function(config_for_msvc target_name)
       # Stop clang-cl from complaining about Windows code
       $<$<CXX_COMPILER_ID:Clang>:-W3 -Wno-c++98-compat -Wno-c++98-compat-pedantic>
 
+      $<$<CXX_COMPILER_ID:Clang>:-flto=thin>
+
       # Make a PDB, don't inline and don't optimize, use buffer overflow canaries, and add
       # security and runtime checks
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:/Zi /Ob0 /Od /GS /sdl /RTC1>
@@ -187,10 +189,13 @@ function(config_for_msvc target_name)
       # seems to play better with GoogleTest in debug builds
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:/DEBUG:FULL>
 
-      # LTCG: link time code generation; lld-link seems to not understand neither /LTCG or -flto ¯\_(ツ)_/¯
+      # LTCG: link time code generation
       # OPT:REF: remove unreferenced functions and data
       # OPT:ICF: merge identical functions and data
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:$<$<CXX_COMPILER_ID:MSVC>:/LTCG> /OPT:REF /OPT:ICF>
+
+      # lld-link seems to not understand /LTCG nor -flto ¯\_(ツ)_/¯
+      # especially weird, since clang-cl can accept -flto=thin (although not /GL)...
   )
 
   if(CMAKE_BUILD_TYPE MATCHES Release AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
