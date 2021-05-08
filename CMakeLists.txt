@@ -1,6 +1,6 @@
 cmake_minimum_required(
   VERSION
-    3.16
+    3.19
 )
 
 # CMake policy settings
@@ -20,10 +20,6 @@ list(
 )
 
 include(ConfigureTarget)
-
-# TODO: move these includes to the CMake configure file
-include(CheckIPOSupported)
-include(CheckPIESupported)
 
 # Set the default build type. From https://blog.kitware.com/cmake-and-the-default-build-type
 if(NOT CMAKE_BUILD_TYPE)
@@ -111,7 +107,6 @@ endif()
 
 configure_target(${PROJECT_NAME})
 
-# TODO: these should be part of the configure target function
 # If MSVC, specify we don't want to display a console window
 if(CMAKE_BUILD_TYPE MATCHES Release AND MSVC)
   set_target_properties(
@@ -120,30 +115,6 @@ if(CMAKE_BUILD_TYPE MATCHES Release AND MSVC)
       WIN32_EXECUTABLE
         ON
   )
-endif()
-
-# Best practice to check for PIE before enabling it
-check_pie_supported()
-if(CMAKE_CXX_LINK_PIE_SUPPORTED)
-  set_target_properties(
-    ${PROJECT_NAME}
-      PROPERTIES
-        POSITION_INDEPENDENT_CODE
-          TRUE
-  )
-endif()
-
-# Use IPO if Release and available
-if(CMAKE_BUILD_TYPE MATCHES Release)
-  check_ipo_supported(RESULT is_ipo_supported)
-  if(is_ipo_supported)
-    set_target_properties(
-      ${PROJECT_NAME}
-        PROPERTIES
-          INTERPROCEDURAL_OPTIMIZATION
-            TRUE
-    )
-  endif()
 endif()
 
 target_include_directories(
@@ -183,17 +154,11 @@ else()
   )
 endif()
 
+include(FileManifest)
 target_sources(
   ${PROJECT_NAME}
   PRIVATE
-    src/Latch.cpp
-    src/Logger.cpp
-    src/main.cpp
-    src/scheduler/Worker.cpp
-    src/scheduler/WorkerPool.cpp
-    ${PLATFORM_DIR}/CPUIdentifier.cpp
-    ${PLATFORM_DIR}/PrimitiveIO.cpp
-    $<$<CXX_COMPILER_ID:MSVC>:${PLATFORM_DIR}/winmain.cpp>
+    ${FILE_MANIFEST}
 )
 
 # Tests

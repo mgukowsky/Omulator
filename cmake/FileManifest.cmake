@@ -1,0 +1,11 @@
+set(
+  FILE_MANIFEST
+    src/Latch.cpp
+    src/Logger.cpp
+    src/main.cpp
+    src/scheduler/Worker.cpp
+    src/scheduler/WorkerPool.cpp
+    ${PLATFORM_DIR}/CPUIdentifier.cpp
+    ${PLATFORM_DIR}/PrimitiveIO.cpp
+    $<$<CXX_COMPILER_ID:MSVC>:${PLATFORM_DIR}/winmain.cpp>
+)

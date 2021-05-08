@@ -1,4 +1,9 @@
+# Project-specific CMake modules
 include(ToolchainDefines)
+
+# Standard CMake modules
+include(CheckIPOSupported)
+include(CheckPIESupported)
 
 function(configure_target target_name)
   define_target_arch(${target_name})
@@ -31,7 +36,31 @@ function(configure_target target_name)
       # _REENTRANT signals parts of the stdlib to use threadsafe functions
       $<$<BOOL:UNIX>:_REENTRANT>
   )
-  
+
+  # Best practice to check for PIE before enabling it
+  check_pie_supported()
+  if(CMAKE_CXX_LINK_PIE_SUPPORTED)
+    set_target_properties(
+      ${target_name}
+        PROPERTIES
+          POSITION_INDEPENDENT_CODE
+            TRUE
+    )
+  endif()
+
+  # Use IPO if Release and available
+  if(CMAKE_BUILD_TYPE MATCHES Release)
+    check_ipo_supported(RESULT is_ipo_supported)
+    if(is_ipo_supported)
+      set_target_properties(
+        ${target_name}
+          PROPERTIES
+            INTERPROCEDURAL_OPTIMIZATION
+              TRUE
+      )
+    endif()
+  endif()
+
   if(MSVC)
     config_for_msvc(${target_name})
   elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
@@ -116,11 +145,11 @@ function(config_for_msvc target_name)
       # Stop clang-cl from complaining about Windows code
       $<$<CXX_COMPILER_ID:Clang>:-W3 -Wno-c++98-compat -Wno-c++98-compat-pedantic>
 
-      # Make a PDB, don't inline and don't optimize, use buffer overflow canaries, and add 
+      # Make a PDB, don't inline and don't optimize, use buffer overflow canaries, and add
       # security and runtime checks
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:/Zi /Ob0 /Od /GS /sdl /RTC1>
 
-      # Maximum optimization, optimize globals, no buffer overflow canaries, and 
+      # Maximum optimization, optimize globals, no buffer overflow canaries, and
       # function level linking
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:/O2 /Ob2 /Gw /GS- /Gy>
   )
@@ -265,6 +294,10 @@ function(config_for_clang target_name)
       # Clang sanitizers (ASAN and UBSAN)
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},RelWithDebInfo>:-fsanitize=address -fsanitize=undefined>
 
+      # check_ipo_supported seems to hit a false negative with
+      # clang/lld, so we need to manually add thin lto
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:-flto=thin>
+
       # Additional sanitizers which are incompatible with ASAN, but should be added to a
       # separate build...
       # $<$<STREQUAL:${CMAKE_BUILD_TYPE},RelWithDebInfo>: -fsanitize=memory>
@@ -280,5 +313,9 @@ function(config_for_clang target_name)
       # Use the LLVM linker if sanitizers aren't needed
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:-fuse-ld=lld>
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:-fuse-ld=lld>
+
+      # check_ipo_supported seems to hit a false negative with
+      # clang/lld, so we need to manually add thin lto
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:-flto=thin>
   )
 endfunction()
