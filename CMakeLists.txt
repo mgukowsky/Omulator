@@ -152,11 +152,11 @@ else()
   )
 endif()
 
-include(FileManifest)
+include(SourceFileManifest)
 target_sources(
   ${PROJECT_NAME}
   PRIVATE
-    ${FILE_MANIFEST}
+  ${OML_SOURCE_FILE_MANIFEST}
 )
 
 # Tests

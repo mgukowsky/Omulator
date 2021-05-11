@@ -1,5 +1,5 @@
 set(
-  FILE_MANIFEST
+  OML_SOURCE_FILE_MANIFEST
     src/Latch.cpp
     src/Logger.cpp
     src/main.cpp
@@ -13,7 +13,7 @@ set(
 if(MSVC)
   list(
     APPEND
-    FILE_MANIFEST
+    OML_SOURCE_FILE_MANIFEST
       ${PLATFORM_DIR}/winmain.cpp
   )
 endif()
