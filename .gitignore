@@ -277,3 +277,6 @@ tags
 
 # ALE files
 .clangd/
+.cache/
+.ccls-cache/
+.exrc
