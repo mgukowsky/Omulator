@@ -9,20 +9,20 @@
  *
  * Based on https://github.com/Manu343726/ctti/blob/master/include/ctti/detail/hash.hpp
  */
-namespace omulator::util {
+namespace omulator::di {
 
 namespace detail {
-  constexpr std::uint32_t FNV_BASIS_32 = 0x811c9dc5ULL;
-  constexpr std::uint32_t FNV_PRIME_32 = 0x01000193ULL;
-  constexpr std::uint64_t FNV_BASIS_64 = 0xcbf29ce484222325ULL;
-  constexpr std::uint64_t FNV_PRIME_64 = 0x00000100000001B3ULL;
+  constinit const std::uint32_t FNV_BASIS_32 = 0x811c9dc5ULL;
+  constinit const std::uint32_t FNV_PRIME_32 = 0x01000193ULL;
+  constinit const std::uint64_t FNV_BASIS_64 = 0xcbf29ce484222325ULL;
+  constinit const std::uint64_t FNV_PRIME_64 = 0x00000100000001B3ULL;
 
   template<typename Hash_t, Hash_t fnv_basis, Hash_t fnv_prime>
-  constexpr Hash_t fnv1a_hash(const std::string_view sv) {
+  consteval Hash_t fnv1a_hash(const std::string_view sv) {
     Hash_t hash = fnv_basis;
 
     for(const auto c : sv) {
-      hash = (hash ^ c) * fnv_prime;
+      hash = (hash ^ static_cast<Hash_t>(c)) * fnv_prime;
     }
     return hash;
   }
@@ -33,7 +33,7 @@ namespace detail {
    * the type argument.
    */
   template<typename T>
-  constexpr std::string_view uid_helper() {
+  consteval std::string_view uid_helper() {
 #if defined(OML_COMPILER_MSVC) || defined(OML_COMPILER_CLANG_CL)
     return __FUNCSIG__;
 #elif defined(OML_COMPILER_GCC) || defined(OML_COMPILER_CLANG)
@@ -46,17 +46,17 @@ namespace detail {
 
 // N.B. that both the 32 and 64 bit versions will decay the type
 template<typename T>
-constexpr inline auto TypeHash32
-  = detail::fnv1a_hash<std::uint32_t, detail::FNV_BASIS_32, detail::FNV_PRIME_32>(
+constinit const inline auto TypeHash32 =
+  detail::fnv1a_hash<std::uint32_t, detail::FNV_BASIS_32, detail::FNV_PRIME_32>(
     detail::uid_helper<std::decay_t<T>>());
 
 template<typename T>
-constexpr inline auto TypeHash64
-  = detail::fnv1a_hash<std::uint64_t, detail::FNV_BASIS_64, detail::FNV_PRIME_64>(
+constinit const inline auto TypeHash64 =
+  detail::fnv1a_hash<std::uint64_t, detail::FNV_BASIS_64, detail::FNV_PRIME_64>(
     detail::uid_helper<std::decay_t<T>>());
 
 // Use the 64 bit type hash by default
 template<typename T>
-constexpr inline auto TypeHash = TypeHash64<T>;
+constinit const inline auto TypeHash = TypeHash64<T>;
 
-} /* namespace omulator::util */
+} /* namespace omulator::di */

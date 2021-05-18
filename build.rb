@@ -62,9 +62,16 @@ class OmulatorBuilder
     build addl_cmake_bld_args: '--clean-first'
   end
 
+  # Rerun any tests that previously failed
+  def retest
+    Dir.chdir @build_dir
+    spawn_cmd "ctest #{'-V' if verbose?} -j --rerun-failed --output-on-failure"
+    Dir.chdir @proj_dir
+  end
+
   def test
     Dir.chdir @build_dir
-    spawn_cmd "ctest #{'-V' if verbose?} -j --schedule-random --repeat-until-fail 3"
+    spawn_cmd "ctest #{'-V' if verbose?} -j --output-on-failure --schedule-random --repeat-until-fail 3"
     Dir.chdir @proj_dir
   end
 
