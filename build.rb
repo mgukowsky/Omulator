@@ -22,6 +22,8 @@ class OmulatorBuilder
 
   # Perform static analysis. For best results, don't build tests!
   def analyze
+    # First, update build if necessary
+    build
     Dir.chdir @build_dir
     spawn_cmd "run-clang-tidy -p '#{@proj_dir}/#{@build_dir}' -header-filter='\.hpp'"
     Dir.chdir @proj_dir
@@ -70,6 +72,8 @@ class OmulatorBuilder
   end
 
   def test
+    # First, update build if necessary
+    build
     Dir.chdir @build_dir
     spawn_cmd "ctest #{'-V' if verbose?} -j --output-on-failure --schedule-random --repeat-until-fail 3"
     Dir.chdir @proj_dir
