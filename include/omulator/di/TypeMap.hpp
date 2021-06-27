@@ -32,7 +32,7 @@ public:
 
 private:
   std::unique_ptr<T> ptr_;
-  T &t_;
+  T &                t_;
 };
 
 class TypeMap {
@@ -83,12 +83,7 @@ private:
    * issues which could arise if we stored the value directly in the map. Given this, the
    * unique_ptr here is NOT redundant with the one in TypeContainer; if we just used a raw
    * pointer as the value, then the destructor in TypeContainer would never be triggered.
-   *
-   * Also note that TypeHash is a templated inline variable, hence the need for decltype (and the
-   * remove_const_t) here.
    */
-  std::unordered_map<std::remove_const_t<decltype(TypeHash<void>)>,
-                     std::unique_ptr<TypeContainerBase>>
-    map_;
+  std::unordered_map<Hash_t, std::unique_ptr<TypeContainerBase>> map_;
 };
 } /* namespace omulator::di */

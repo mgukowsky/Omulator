@@ -17,12 +17,12 @@ namespace detail {
   constinit const std::uint64_t FNV_BASIS_64 = 0xcbf29ce484222325ULL;
   constinit const std::uint64_t FNV_PRIME_64 = 0x00000100000001B3ULL;
 
-  template<typename Hash_t, Hash_t fnv_basis, Hash_t fnv_prime>
-  consteval Hash_t fnv1a_hash(const std::string_view sv) {
-    Hash_t hash = fnv_basis;
+  template<typename HashSize_t, HashSize_t fnv_basis, HashSize_t fnv_prime>
+  consteval HashSize_t fnv1a_hash(const std::string_view sv) {
+    HashSize_t hash = fnv_basis;
 
     for(const auto c : sv) {
-      hash = (hash ^ static_cast<Hash_t>(c)) * fnv_prime;
+      hash = (hash ^ static_cast<HashSize_t>(c)) * fnv_prime;
     }
     return hash;
   }
@@ -58,5 +58,11 @@ constinit const inline auto TypeHash64 =
 // Use the 64 bit type hash by default
 template<typename T>
 constinit const inline auto TypeHash = TypeHash64<T>;
+
+/**
+ * Note that TypeHash is a templated inline variable, hence the need for decltype (and the
+ * remove_const_t) here.
+ */
+using Hash_t = std::remove_const_t<decltype(TypeHash<void>)>;
 
 } /* namespace omulator::di */

@@ -4,10 +4,10 @@ Language:        Cpp
 BasedOnStyle:  Google
 AccessModifierOffset: -2
 AlignAfterOpenBracket: Align
-AlignConsecutiveAssignments: AcrossEmptyLinesAndComments
-AlignConsecutiveBitFields: AcrossEmptyLinesAndComments
-AlignConsecutiveDeclarations: AcrossEmptyLinesAndComments
-AlignConsecutiveMacros: AcrossEmptyLinesAndComments
+AlignConsecutiveAssignments: Consecutive
+AlignConsecutiveBitFields: Consecutive
+AlignConsecutiveDeclarations: Consecutive
+AlignConsecutiveMacros: Consecutive
 AlignEscapedNewlines: Left
 AlignOperands: AlignAfterOperator
 AlignTrailingComments: true
