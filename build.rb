@@ -67,7 +67,7 @@ class OmulatorBuilder
   # Rerun any tests that previously failed
   def retest
     Dir.chdir @build_dir
-    spawn_cmd "ctest #{'-V' if verbose?} -j --rerun-failed --output-on-failure"
+    spawn_cmd "ctest #{'-VV' if verbose?} -j --rerun-failed --output-on-failure"
     Dir.chdir @proj_dir
   end
 
@@ -75,7 +75,7 @@ class OmulatorBuilder
     # First, update build if necessary
     build
     Dir.chdir @build_dir
-    spawn_cmd "ctest #{'-V' if verbose?} -j --output-on-failure --schedule-random --repeat-until-fail 3"
+    spawn_cmd "ctest #{'-VV' if verbose?} -j --output-on-failure --schedule-random --repeat-until-fail 3"
     Dir.chdir @proj_dir
   end
 

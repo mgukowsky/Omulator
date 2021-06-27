@@ -3,14 +3,29 @@
 #include "omulator/di/TypeHash.hpp"
 #include "omulator/di/TypeMap.hpp"
 
+#include <algorithm>
 #include <any>
 #include <concepts>
+#include <functional>
 #include <map>
+#include <utility>
 
 namespace omulator::di {
 
 class Injector {
 public:
+  using RecipeMap_t = std::map<Hash_t, std::function<std::any(Injector &)>>;
+
+  /**
+   * Add recipes which should be called for specific types instead as an alternative
+   * to the default injector behavior, which is to invoke the type's constructor with
+   * the lowest arity.
+   *
+   * N.B. since this function calls std::map#merge under the hood, newRecipes will be INVALIDATED
+   * after this function is invoked!;
+   */
+  void addRecipes(RecipeMap_t &newRecipes);
+
   /**
    * Retrieve an instance of type T.
    * If type T has not yet been instantiated, then an new instance is created with the proper
@@ -30,7 +45,15 @@ public:
 private:
   template<typename T>
   void inject_() {
-    if constexpr(std::default_initializable<T>) {
+    if(auto it = std::find_if(recipeMap_.begin(),
+                              recipeMap_.end(),
+                              [this](const auto &kv) { return kv.first == TypeHash<T>; });
+       it != recipeMap_.end())
+    {
+      T val = std::any_cast<T>(it->second(*this));
+      typeMap_.emplace<T>(std::move(val));
+    }
+    else if(std::default_initializable<T>) {
       typeMap_.emplace<T>();
     }
     // if constexpr(<USE A CONCEPT TO FIGURE OUT IF THERE IS A RECIPE>) {
@@ -65,9 +88,8 @@ private:
   // typeMap_.emplace<T>((get<Deps_ts>())...);
   // }
 
-  // using InitializerFunc_t = std::any (*)(Injector &);
-  // std::map<Hash_t, InitializerFunc_t>,
-  TypeMap typeMap_;
+  RecipeMap_t recipeMap_;
+  TypeMap     typeMap_;
 };
 
 }  // namespace omulator::di

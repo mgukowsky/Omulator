@@ -2,7 +2,7 @@
 # TESTNAME must have a corresponding ${TESTNAME}_test.cpp, in addition to any other
 # source files.
 # From https://cliutils.gitlab.io/modern-cmake/chapters/testing/googletest.html
-macro(add_unit_test TESTNAME)
+function(add_unit_test TESTNAME)
   add_executable(${TESTNAME})
 
   target_include_directories(
@@ -31,7 +31,12 @@ macro(add_unit_test TESTNAME)
 
   add_test(NAME ${TESTNAME} COMMAND ${TESTNAME})
   set_target_properties(${TESTNAME} PROPERTIES FOLDER tests)
-endmacro()
+endfunction()
+
+# Same as add_unit_test, except automatically adds src/SRCDIR/TESTNAME.cpp as a target source
+function(add_unit_test_with_source TESTNAME SRCDIR)
+  add_unit_test(${TESTNAME} ${PROJECT_SOURCE_DIR}/src/${SRCDIR}/${TESTNAME}.cpp)
+endfunction()
 
 add_unit_test(smoke)
 
@@ -42,7 +47,7 @@ add_unit_test(Latch ${PROJECT_SOURCE_DIR}/src/Latch.cpp)
 add_unit_test(Spinlock)
 add_unit_test(TypeHash)
 add_unit_test(TypeMap)
-add_unit_test(Injector)
+add_unit_test_with_source(Injector di)
 
 add_unit_test(Worker
   ${PROJECT_SOURCE_DIR}/src/scheduler/Worker.cpp
