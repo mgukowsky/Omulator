@@ -10,9 +10,11 @@
 #include <map>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace omulator::di {
 
@@ -29,6 +31,7 @@ public:
   using InjType_t = std::remove_pointer_t<std::decay_t<T>>;
 
   Injector();
+  ~Injector();
 
   /**
    * Create and add a recipe for T which will create an instance of T by calling T(Ts...). Will
@@ -110,22 +113,28 @@ public:
   template<typename Raw_t, typename T = InjType_t<Raw_t>>
   T &get() {
     if(!typeMap_.has_key<T>()) {
+      const auto thash = TypeHash<T>;
       if(isInCycleCheck_) {
-        if(TypeHash<T> == cycleCheckTypeHash_) {
+        if(typeHashStack_.contains(thash)) {
           // TODO: print the type
           throw std::runtime_error("Dependency cycle detected");
         }
+        typeHashStack_.insert(thash);
         inject_<T>();
       }
       else {
         // Lock the mutex since we're at the top level of a dependency injection
-        // TODO: we really don't need both mtx_ and isInCycleCheck_...
         std::scoped_lock lck(mtx_);
-        isInCycleCheck_     = true;
-        cycleCheckTypeHash_ = TypeHash<T>;
+        isInCycleCheck_ = true;
+
+        // 2 line DRY violation here, but less ugly alternatives.
+        typeHashStack_.insert(thash);
         inject_<T>();
         isInCycleCheck_ = false;
       }
+
+      typeHashStack_.erase(thash);
+      invocationList_.push_back(thash);
     }
     // TODO: there should be no harm in executing this code in parallel without a lock, since we
     // don't make use of any functions that invalidate typeMap_'s iterators, however it might not
@@ -192,12 +201,22 @@ private:
   RecipeMap_t recipeMap_;
   TypeMap     typeMap_;
 
-  // inject_ can lead to recursive inject_ calls, so we use these variables to check if a dependency
-  // cycle is present. N.B. the use of these variables implies that calls to inject_ need to be
-  // protected by a mutex.
-  bool       isInCycleCheck_;
-  Hash_t     cycleCheckTypeHash_;
+  // Tracks the order in which type map instances are instantiated; used to ensure that dependencies
+  // are destroyed in the correct order, i.e. we destroy the dependencies in the reverse order in
+  // which they are created to ensure we don't destroy a dependency before its dependent(s).
+  std::vector<Hash_t> invocationList_;
+
+  // Tracks the types that are currently being injected; used to detect cycles. Though we use this
+  // as a stack, we choose a set since we'll be searching it frequently.
+  std::set<Hash_t> typeHashStack_;
+
+  // Ensure that mutations to typeMap_ and recipeMap_ are atomic.
   std::mutex mtx_;
+
+  // Used to decide whether to lock mtx_ when calling get(); i.e. since get() may call get()
+  // recursively for dependencies, we should only lock the mutex when calling get_ with the top
+  // level type of the dependency chain.
+  bool isInCycleCheck_;
 };
 
 }  // namespace omulator::di

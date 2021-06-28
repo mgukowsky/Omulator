@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <vector>
+
 constexpr int MAGIC = 42;
 struct Klass {
   int               x;
@@ -33,12 +35,25 @@ public:
   int               getnum() override { return MAGIC; }
 };
 
+std::vector<int> v;
+int              na    = 0;
+int              nb    = 0;
+int              nc    = 0;
+int              nd    = 0;
+bool             ready = false;
+
 class Injector_test : public ::testing::Test {
 protected:
   void SetUp() override {
     Klass::numCalls = 0;
     Base::numCalls  = 0;
     Impl::numCalls  = 0;
+    v.clear();
+    na    = 0;
+    nb    = 0;
+    nc    = 0;
+    nd    = 0;
+    ready = false;
   }
 };
 
@@ -197,4 +212,82 @@ TEST_F(Injector_test, ignoreQualifiers) {
   [[maybe_unused]] auto &k4 = injector.get<Klass>();
 
   EXPECT_EQ(1, Klass::numCalls) << "Injector should properly ignore type qualifiers";
+}
+
+TEST_F(Injector_test, orderOfDestruction) {
+  class C;
+  class B;
+  class A {
+  public:
+    A() { ++na; }
+    ~A() {
+      if(ready)
+        v.push_back(4);
+    }
+  };
+  class B {
+  public:
+    B(A &a) : a_(a) { ++nb; }
+    ~B() {
+      if(ready)
+        v.push_back(3);
+    }
+
+  private:
+    A &a_;
+  };
+  class C {
+  public:
+    C(B &b) : b_(b) { ++nc; }
+    ~C() {
+      if(ready)
+        v.push_back(1);
+    }
+
+  private:
+    B &b_;
+  };
+  class D {
+  public:
+    D() { ++nd; }
+    ~D() {
+      if(ready)
+        v.push_back(2);
+    }
+  };
+
+  {
+    omulator::di::Injector injector;
+
+    injector.addCtorRecipe<B, A>();
+    injector.addCtorRecipe<C, B>();
+
+    [[maybe_unused]] auto &b = injector.get<B>();
+    [[maybe_unused]] auto &d = injector.get<D>();
+    [[maybe_unused]] auto &c = injector.get<C>();
+
+    // Prevent destructors for moved-from instances from mutating v before this point
+    ready = true;
+  }
+
+  EXPECT_EQ(4, v.size())
+    << "An injector should only invoke the destructor for each contained type once.";
+
+  EXPECT_EQ(1, na)
+    << "An injector should only invoke the constructor for each contained type once.";
+  EXPECT_EQ(1, nb)
+    << "An injector should only invoke the constructor for each contained type once.";
+  EXPECT_EQ(1, nc)
+    << "An injector should only invoke the constructor for each contained type once.";
+  EXPECT_EQ(1, nd)
+    << "An injector should only invoke the constructor for each contained type once.";
+
+  EXPECT_EQ(1, v[0]) << "An injector should destroy the instances it contains in the reverse order "
+                        "in which they were created.";
+  EXPECT_EQ(2, v[1]) << "An injector should destroy the instances it contains in the reverse order "
+                        "in which they were created.";
+  EXPECT_EQ(3, v[2]) << "An injector should destroy the instances it contains in the reverse order "
+                        "in which they were created.";
+  EXPECT_EQ(4, v[3]) << "An injector should destroy the instances it contains in the reverse order "
+                        "in which they were created.";
 }

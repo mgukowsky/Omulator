@@ -97,6 +97,8 @@ public:
     }
   }
 
+  void erase(const Hash_t hsh) { map_.erase(hsh); }
+
   /**
    * Clients should handle the possibility that at() can throw std::out_of_range!
    */
