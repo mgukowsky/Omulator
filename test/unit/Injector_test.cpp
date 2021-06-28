@@ -121,7 +121,7 @@ TEST_F(Injector_test, missingInterfaceImplementation) {
        "implementation";
 }
 
-TEST_F(Injector_test, extrapolatedCtorArgs) {
+TEST_F(Injector_test, addCtorRecipe) {
   omulator::di::Injector injector;
 
   injector.addCtorRecipe<Komposite, Klass>();

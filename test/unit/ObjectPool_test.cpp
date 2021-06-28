@@ -86,7 +86,7 @@ TEST(ObjectPool_test, stress) {
   }
 }
 
-TEST(ObjectPool_test, DISABLED_returnForeignMemToPool) {
+TEST(ObjectPool_test, returnForeignMemToPool) {
 #ifndef NDEBUG
   ASSERT_DEATH(
     {

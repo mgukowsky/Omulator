@@ -19,9 +19,25 @@ public:
   using Recipe_t    = std::function<std::any(Injector &)>;
   using RecipeMap_t = std::map<Hash_t, Recipe_t>;
 
+  /**
+   * Ensure we strip off all pointers/qualifiers/etc. from any types used with the Injector
+   * interface. N.B. this will not fully decay pointers to pointers.
+   */
+  template<typename T>
+  using InjType_t = std::remove_pointer_t<std::decay_t<T>>;
+
+  /**
+   * Create and add a recipe for T which will create an instance of T by calling T(Ts...). Will
+   * only accept Ts if T has a constructor that accepts references of all of the types in Ts in
+   * order. Types with other constructor requirements should create a custom recipe with
+   * addRecipes().
+   */
   template<typename T, typename... Ts>
   void addCtorRecipe() {
-    auto recipe = [](Injector &injector) { return T(injector.get<Ts>()...); };
+    static_assert(std::constructible_from<T, std::add_lvalue_reference_t<InjType_t<Ts>>...>,
+                  "Injector#addCtorRecipe<T, ...Ts> will only accept Ts if T has a constructor "
+                  "that accepts the arguments (Ts&...)");
+    auto recipe = [](Injector &injector) { return T(injector.get<InjType_t<Ts>>()...); };
     addRecipes({{TypeHash<T>, recipe}});
   }
 
@@ -47,8 +63,8 @@ public:
    */
   template<typename RawInterface,
            typename RawImplementation,
-           typename Interface      = std::remove_pointer_t<std::decay_t<RawInterface>>,
-           typename Implementation = std::remove_pointer_t<std::decay_t<RawImplementation>>>
+           typename Interface      = InjType_t<RawInterface>,
+           typename Implementation = InjType_t<RawImplementation>>
   requires std::derived_from<Implementation, Interface>
   void bindImpl() {
     auto recipe = [](Injector &injector) {
@@ -69,7 +85,7 @@ public:
    * If type T has not yet been instantiated, then an new instance is created with the proper
    * dependencies injected. Otherwise, the instance of type T is returned.
    */
-  template<typename Raw_t, typename T = std::remove_pointer_t<std::decay_t<Raw_t>>>
+  template<typename Raw_t, typename T = InjType_t<Raw_t>>
   T &get() {
     if(!typeMap_.has_key<T>()) {
       inject_<T>();
