@@ -179,12 +179,23 @@ TEST_F(Injector_test, cycleCheck) {
     CycleA &a_;
   };
 
+  class CycleC {
+  public:
+    CycleC(CycleB &b) : b_(b) { }
+
+  private:
+    CycleB &b_;
+  };
+
   injector.addCtorRecipe<CycleA, CycleB>();
   injector.addCtorRecipe<CycleB, CycleA>();
+  injector.addCtorRecipe<CycleC, CycleB>();
 
   EXPECT_THROW(injector.get<CycleA>(), std::runtime_error)
     << "Injector#get should throw when a dependency cycle is detected";
   EXPECT_THROW(injector.get<CycleB>(), std::runtime_error)
+    << "Injector#get should throw when a dependency cycle is detected";
+  EXPECT_THROW(injector.get<CycleC>(), std::runtime_error)
     << "Injector#get should throw when a dependency cycle is detected";
 }
 
