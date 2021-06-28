@@ -13,6 +13,7 @@ class OmulatorBuilder
   def initialize(**kwargs)
     @build_type = kwargs[:build_type] || POSSIBLE_BUILD_TYPES.first
     @notests    = kwargs[:notests]    || false
+    @testnames  = kwargs[:testnames]  || nil
     @toolchain  = kwargs[:toolchain]  || default_toolchain
     @verbose    = kwargs[:verbose]    || false
 
@@ -75,7 +76,12 @@ class OmulatorBuilder
     # First, update build if necessary
     build
     Dir.chdir @build_dir
-    spawn_cmd "ctest #{'-VV' if verbose?} -j --output-on-failure --schedule-random --repeat-until-fail 3"
+    if @testnames != nil
+      testnamestring = "-R '#{@testnames.join('|')}'"
+    else
+      testnamestring = nil
+    end
+    spawn_cmd "ctest #{'-VV' if verbose?} #{testnamestring if @testnames} -j --output-on-failure --schedule-random --repeat-until-fail 3"
     Dir.chdir @proj_dir
   end
 
@@ -170,6 +176,11 @@ def main()
     opts.on('-h', '--help', 'Prints this help') do
       puts opts
       exit
+    end
+
+    opts.on('--testnames <TESTNAME1;TESTNAME2;etc...>', 'Specify the name(s) of a test to run, separated by semicolons') do |testnames|
+      options[:testnames] = options[:testnames] || []
+      options[:testnames].concat(testnames.split(';').map(&:strip))
     end
 
     opts.on('--notests', 'Do not build tests') do |v|

@@ -1,3 +1,5 @@
+include(GoogleTest)
+
 # Use to add tests
 # TESTNAME must have a corresponding ${TESTNAME}_test.cpp, in addition to any other
 # source files.
@@ -29,8 +31,7 @@ function(add_unit_test TESTNAME)
     gtest_main
   )
 
-  add_test(NAME ${TESTNAME} COMMAND ${TESTNAME})
-  set_target_properties(${TESTNAME} PROPERTIES FOLDER tests)
+  gtest_discover_tests(${TESTNAME})
 endfunction()
 
 # Same as add_unit_test, except automatically adds src/SRCDIR/TESTNAME.cpp as a target source

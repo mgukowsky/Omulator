@@ -104,3 +104,11 @@ TEST_F(Injector_test, interfaceAndImplementation) {
   EXPECT_EQ(MAGIC, base.getnum())
     << "An interface bound to an implementation should reference the correct implementation";
 }
+
+TEST_F(Injector_test, missingInterfaceImplementation) {
+  omulator::di::Injector injector;
+
+  EXPECT_THROW(injector.get<Base>(), std::runtime_error)
+    << "An injector should throw an error when an interface does not have an associated "
+       "implementation";
+}

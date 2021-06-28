@@ -8,6 +8,7 @@
 #include <concepts>
 #include <functional>
 #include <map>
+#include <stdexcept>
 #include <type_traits>
 #include <utility>
 
@@ -46,11 +47,9 @@ public:
     auto recipe = [](Injector &injector) {
       Implementation &impl = injector.get<Implementation>();
 
-      // N.B. passing an Implementation& to emplace<Interface> will trigger a specialized
-      // TypeContainer constructor.
       injector.typeMap_.emplace_impl<Interface, Implementation>(impl);
 
-      // Return an empty std::any to prevent TypeMap#emplace from instantiating an
+      // Return an empty std::any to as a hint to TypeMap#emplace to not instantiate an
       // instance of interface T.
       return std::any();
     };
@@ -79,10 +78,11 @@ private:
     });
     /**
      * We need to wrap everything in an if constexpr block to keep compilers happy by preventing
-     * them from generating code which would otherwise create an abstract class.
+     * them from generating code which would otherwise instantiate an abstract class.
      */
     if constexpr(std::is_abstract_v<T>) {
       if(recipeIt == recipeMap_.end()) {
+        // TODO: Print out the type name in the error message (TypeString<T>?)
         throw std::runtime_error("No implementation available for abstract class; be sure to call "
                                  "Injector#bindImpl<T, Impl> before calling Injector#get<T>");
       }
@@ -100,24 +100,6 @@ private:
       else if(std::default_initializable<T>) {
         typeMap_.emplace<T>();
       }
-      // if constexpr(<USE A CONCEPT TO FIGURE OUT IF THERE IS A RECIPE>) {
-      // }
-      /**
-       * i.e. the type has no dependencies, and we have no recipe for it.
-       */
-      // else if constexpr(requires std::default_initializable<T>) {
-      // typeMap_.emplace<T>();
-      //}
-      /**
-       * Otherwise, attempt to resolve each of the dependencies we find in T's constructor,
-       * throwing an error if we find one we can't resolve. We attempt to guess the dependencies
-       * by finding the constructor with the lowest arity. N.B. the <TODO: what's the name?>
-       * mechanism will blow up if T has two constructors with the same arity which are also T's
-       * constructors with the lowest arity.
-       */
-      // else {
-      //  inject_deps_<T>(__CTOR_MAGIC_TUPLE__);
-      // }
     }
   }
 
