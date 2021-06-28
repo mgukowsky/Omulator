@@ -270,6 +270,10 @@ function(config_for_clang target_name)
   target_compile_options(
     ${target_name}
     PUBLIC
+      # Turn these warnings off to make tests compile
+      -Wno-unused-private-field
+      -Wno-unused-lambda-capture
+
       # -fno-omit-frame-pointer is needed to help the sanitizers
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},RelWithDebInfo>:-g -O1 -fno-omit-frame-pointer>
 
