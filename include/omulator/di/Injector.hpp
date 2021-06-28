@@ -8,6 +8,7 @@
 #include <concepts>
 #include <functional>
 #include <map>
+#include <mutex>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
@@ -90,20 +91,26 @@ public:
   template<typename Raw_t, typename T = InjType_t<Raw_t>>
   T &get() {
     if(!typeMap_.has_key<T>()) {
-      if(isInCycleCheck) {
-        if(TypeHash<T> == cycleCheckTypeHash) {
+      if(isInCycleCheck_) {
+        if(TypeHash<T> == cycleCheckTypeHash_) {
           // TODO: print the type
           throw std::runtime_error("Dependency cycle detected");
         }
         inject_<T>();
       }
       else {
-        isInCycleCheck     = true;
-        cycleCheckTypeHash = TypeHash<T>;
+        // Lock the mutex since we're at the top level of a dependency injection
+        // TODO: we really don't need both mtx_ and isInCycleCheck_...
+        std::scoped_lock lck(mtx_);
+        isInCycleCheck_     = true;
+        cycleCheckTypeHash_ = TypeHash<T>;
         inject_<T>();
-        isInCycleCheck = false;
+        isInCycleCheck_ = false;
       }
     }
+    // TODO: there should be no harm in executing this code in parallel without a lock, since we
+    // don't make use of any functions that invalidate typeMap_'s iterators, however it might not
+    // hurt to make some part of typeMap_ atomic...
     return typeMap_.ref<T>();
   }
 
@@ -155,8 +162,9 @@ private:
   // inject_ can lead to recursive inject_ calls, so we use these variables to check if a dependency
   // cycle is present. N.B. the use of these variables implies that calls to inject_ need to be
   // protected by a mutex.
-  bool   isInCycleCheck;
-  Hash_t cycleCheckTypeHash;
+  bool       isInCycleCheck_;
+  Hash_t     cycleCheckTypeHash_;
+  std::mutex mtx_;
 };
 
 }  // namespace omulator::di
