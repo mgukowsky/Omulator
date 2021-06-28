@@ -9,12 +9,32 @@ struct Klass {
   Klass() : x(MAGIC) { ++numCalls; }
 };
 
-class InjectorTest : public ::testing::Test {
-protected:
-  void SetUp() override { Klass::numCalls = 0; }
+class Base {
+public:
+  Base() { ++numCalls; }
+  virtual ~Base()            = default;
+  inline static int numCalls = 0;
+  virtual int       getnum() = 0;
 };
 
-TEST_F(InjectorTest, defaultConstructibleTypes) {
+class Impl : public Base {
+public:
+  Impl() { ++numCalls; }
+  ~Impl() override           = default;
+  inline static int numCalls = 0;
+  int               getnum() override { return MAGIC; }
+};
+
+class Injector_test : public ::testing::Test {
+protected:
+  void SetUp() override {
+    Klass::numCalls = 0;
+    Base::numCalls  = 0;
+    Impl::numCalls  = 0;
+  }
+};
+
+TEST_F(Injector_test, defaultConstructibleTypes) {
   omulator::di::Injector injector;
 
   auto &i1 = injector.get<int>();
@@ -37,7 +57,7 @@ TEST_F(InjectorTest, defaultConstructibleTypes) {
        "constructible type";
 }
 
-TEST_F(InjectorTest, recipeInvocation) {
+TEST_F(Injector_test, recipeInvocation) {
   omulator::di::Injector injector;
   constexpr int          DMAGIC = MAGIC * 2;
 
@@ -59,4 +79,28 @@ TEST_F(InjectorTest, recipeInvocation) {
     << "The injector should only create one instance of a type with a recipe";
 
   EXPECT_EQ(&k1, &k2) << "The injector should only return one instance of a type with a recipe";
+}
+
+TEST_F(Injector_test, interfaceAndImplementation) {
+  omulator::di::Injector injector;
+
+  // Since Base is an abstract class, this will refuse to compile if Injector attempts to
+  // incorrectly instantiate Base instead of Impl.
+  injector.bindImpl<Base, Impl>();
+
+  Base &base = injector.get<Base>();
+  Impl &impl = injector.get<Impl>();
+
+  EXPECT_EQ(&base, &impl)
+    << "When an injector binds an interface to an implementation, Injector#get<T> should return "
+       "the same instance when T is either the interface or the implementation";
+
+  EXPECT_EQ(1, Base::numCalls)
+    << "An interface bound to an implementation should only invoke its constructor once";
+
+  EXPECT_EQ(1, Impl::numCalls)
+    << "An implementation bound to an interface should only invoke its constructor once";
+
+  EXPECT_EQ(MAGIC, base.getnum())
+    << "An interface bound to an implementation should reference the correct implementation";
 }

@@ -2,6 +2,7 @@
 
 #include "omulator/di/TypeHash.hpp"
 
+#include <concepts>
 #include <memory>
 #include <string_view>
 #include <type_traits>
@@ -17,22 +18,40 @@ public:
 template<typename T>
 class TypeContainer : public TypeContainerBase {
 public:
-  template<typename... Args>
-  TypeContainer(Args &&...args)
-    : ptr_(std::make_unique<T>(std::forward<Args>(args)...)), t_(*ptr_) { }
+  TypeContainer() : ptr_(nullptr), hasOwnership_(false) { }
 
-  ~TypeContainer() override = default;
+  ~TypeContainer() override { release_(); }
 
   TypeContainer(TypeContainer &) = delete;
   TypeContainer &operator=(TypeContainer &) = delete;
   TypeContainer(TypeContainer &&)           = delete;
   TypeContainer &operator=(TypeContainer &&) = delete;
 
-  inline T &ref() const noexcept { return t_; }
+  inline T &ref() const noexcept { return *ptr_; }
+
+  template<typename... Args>
+  void createInstance(Args &&...args) {
+    ptr_          = new T(std::forward<Args>(args)...);
+    hasOwnership_ = true;
+  }
+
+  void setref(T *pT) noexcept {
+    release_();
+    ptr_          = pT;
+    hasOwnership_ = false;
+  }
 
 private:
-  std::unique_ptr<T> ptr_;
-  T &                t_;
+  void release_() {
+    if(hasOwnership_ && ptr_ != nullptr) {
+      delete ptr_;
+    }
+  }
+
+  // Use a raw pointer since we're need to manage lifetimes differently based on whether or not we
+  // have ownership
+  T *  ptr_;
+  bool hasOwnership_;
 };
 
 class TypeMap {
@@ -55,8 +74,25 @@ public:
       return true;
     }
     else {
-      map_.try_emplace(TypeHash<T>,
-                       std::make_unique<TypeContainer<T>>(std::forward<Args>(args)...));
+      map_.emplace(TypeHash<T>, std::make_unique<TypeContainer<T>>());
+      auto pContainerBase = map_.at(TypeHash<T>).get();
+      reinterpret_cast<TypeContainer<T> *>(pContainerBase)
+        ->createInstance(std::forward<Args>(args)...);
+      return false;
+    }
+  }
+
+  template<typename Interface, typename Impl>
+  requires std::derived_from<Impl, Interface>
+  bool emplace_impl(Impl &impl) {
+    if(has_key<Interface>()) {
+      return true;
+    }
+    else {
+      map_.emplace(TypeHash<Interface>, std::make_unique<TypeContainer<Interface>>());
+      auto pContainerBase = map_.at(TypeHash<Interface>).get();
+      reinterpret_cast<TypeContainer<Interface> *>(pContainerBase)->setref(&impl);
+
       return false;
     }
   }
