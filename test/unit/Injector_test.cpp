@@ -9,6 +9,14 @@ struct Klass {
   Klass() : x(MAGIC) { ++numCalls; }
 };
 
+class Komposite {
+public:
+  Komposite(Klass &k) : klass_(k) { }
+
+private:
+  Klass &klass_;
+};
+
 class Base {
 public:
   Base() { ++numCalls; }
@@ -111,4 +119,19 @@ TEST_F(Injector_test, missingInterfaceImplementation) {
   EXPECT_THROW(injector.get<Base>(), std::runtime_error)
     << "An injector should throw an error when an interface does not have an associated "
        "implementation";
+}
+
+TEST_F(Injector_test, extrapolatedCtorArgs) {
+  omulator::di::Injector injector;
+
+  injector.addCtorRecipe<Komposite, Klass>();
+
+  Komposite &             komposite1 = injector.get<Komposite>();
+  [[maybe_unused]] Klass &klass      = injector.get<Klass>();
+  Komposite &             komposite2 = injector.get<Komposite>();
+
+  EXPECT_EQ(1, Klass::numCalls)
+    << "Injector#addCtorRecipe should add a recipe to correctly instantiate a given type";
+  EXPECT_EQ(&komposite1, &komposite2)
+    << "An injector should not invoke a constructor added with addCtorRecipe more than once";
 }

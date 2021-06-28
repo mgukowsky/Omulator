@@ -16,7 +16,14 @@ namespace omulator::di {
 
 class Injector {
 public:
-  using RecipeMap_t = std::map<Hash_t, std::function<std::any(Injector &)>>;
+  using Recipe_t    = std::function<std::any(Injector &)>;
+  using RecipeMap_t = std::map<Hash_t, Recipe_t>;
+
+  template<typename T, typename... Ts>
+  void addCtorRecipe() {
+    auto recipe = [](Injector &injector) { return T(injector.get<Ts>()...); };
+    addRecipes({{TypeHash<T>, recipe}});
+  }
 
   /**
    * Add recipes which should be called for specific types instead as an alternative
@@ -81,6 +88,7 @@ private:
      * them from generating code which would otherwise instantiate an abstract class.
      */
     if constexpr(std::is_abstract_v<T>) {
+      // An interface can ONLY have a recipe, hence this being the only check in this block.
       if(recipeIt == recipeMap_.end()) {
         // TODO: Print out the type name in the error message (TypeString<T>?)
         throw std::runtime_error("No implementation available for abstract class; be sure to call "
@@ -97,23 +105,19 @@ private:
           typeMap_.emplace<T>(std::any_cast<T>(anyValue));
         }
       }
-      else if(std::default_initializable<T>) {
+      // Once again, we need if constexpr here to prevent the compiler from
+      // generating code that calls emplace<T> with no arguments for types that aren't default
+      // constructible.
+      else if constexpr(std::default_initializable<T>) {
         typeMap_.emplace<T>();
+      }
+      else {
+        throw std::runtime_error(
+          "Could not create instance of type because it was not default initializable and there "
+          "was no recipe available. Perhaps use Injector#addCtorRecipe");
       }
     }
   }
-
-  /**
-   * Wires up all dependencies for type T, then creates an instance of type T.
-   */
-  // template<typename T, typename... Deps_ts>
-  // void inject_deps_([[maybe_unused]] const std::tuple<Deps_ts...> &) {
-  /**
-   * N.B. the pack expansion here allows us to dig down into the dependency
-   * "tree", and eventually pass the args to emplace<T>().
-   */
-  // typeMap_.emplace<T>((get<Deps_ts>())...);
-  // }
 
   RecipeMap_t recipeMap_;
   TypeMap     typeMap_;
