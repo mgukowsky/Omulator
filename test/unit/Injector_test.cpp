@@ -135,3 +135,40 @@ TEST_F(Injector_test, addCtorRecipe) {
   EXPECT_EQ(&komposite1, &komposite2)
     << "An injector should not invoke a constructor added with addCtorRecipe more than once";
 }
+
+TEST_F(Injector_test, noRecipeForTypeWithNoDefaultConstructor) {
+  omulator::di::Injector injector;
+
+  EXPECT_THROW(injector.get<Komposite>(), std::runtime_error)
+    << "An injector should throw when Injector#get is called with a type which is not default "
+       "constructible, is not an interface, and does not have a recipe";
+}
+
+TEST_F(Injector_test, cycleCheck) {
+  omulator::di::Injector injector;
+
+  class CycleB;
+  class CycleA {
+  public:
+    CycleA(CycleB &b) : b_(b) { }
+
+  private:
+    CycleB &b_;
+  };
+
+  class CycleB {
+  public:
+    CycleB(CycleA &a) : a_(a) { }
+
+  private:
+    CycleA &a_;
+  };
+
+  injector.addCtorRecipe<CycleA, CycleB>();
+  injector.addCtorRecipe<CycleB, CycleA>();
+
+  EXPECT_THROW(injector.get<CycleA>(), std::runtime_error)
+    << "Injector#get should throw when a dependency cycle is detected";
+  EXPECT_THROW(injector.get<CycleB>(), std::runtime_error)
+    << "Injector#get should throw when a dependency cycle is detected";
+}

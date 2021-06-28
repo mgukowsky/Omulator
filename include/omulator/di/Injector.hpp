@@ -26,6 +26,8 @@ public:
   template<typename T>
   using InjType_t = std::remove_pointer_t<std::decay_t<T>>;
 
+  Injector();
+
   /**
    * Create and add a recipe for T which will create an instance of T by calling T(Ts...). Will
    * only accept Ts if T has a constructor that accepts references of all of the types in Ts in
@@ -88,7 +90,19 @@ public:
   template<typename Raw_t, typename T = InjType_t<Raw_t>>
   T &get() {
     if(!typeMap_.has_key<T>()) {
-      inject_<T>();
+      if(isInCycleCheck) {
+        if(TypeHash<T> == cycleCheckTypeHash) {
+          // TODO: print the type
+          throw std::runtime_error("Dependency cycle detected");
+        }
+        inject_<T>();
+      }
+      else {
+        isInCycleCheck     = true;
+        cycleCheckTypeHash = TypeHash<T>;
+        inject_<T>();
+        isInCycleCheck = false;
+      }
     }
     return typeMap_.ref<T>();
   }
@@ -137,6 +151,12 @@ private:
 
   RecipeMap_t recipeMap_;
   TypeMap     typeMap_;
+
+  // inject_ can lead to recursive inject_ calls, so we use these variables to check if a dependency
+  // cycle is present. N.B. the use of these variables implies that calls to inject_ need to be
+  // protected by a mutex.
+  bool   isInCycleCheck;
+  Hash_t cycleCheckTypeHash;
 };
 
 }  // namespace omulator::di
