@@ -9,6 +9,7 @@
 #include <functional>
 #include <map>
 #include <mutex>
+#include <optional>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
@@ -84,6 +85,24 @@ public:
   }
 
   /**
+   * Same as Injector#get, except it returns a fresh instance rather than placing one in the type
+   * map, and rejects abstract classes.
+   *
+   * TODO: Add an option to cache the dependencies for T to allow for a fast allocation path that
+   * can bypass locks and map lookups.
+   */
+  template<typename T>
+  T creat() {
+    auto optionalVal = inject_<T>(true);
+    if(!optionalVal.has_value()) {
+      // TODO: print the type name
+      throw std::runtime_error("Failed to creat value");
+    }
+
+    return optionalVal.value();
+  }
+
+  /**
    * Retrieve an instance of type T.
    * If type T has not yet been instantiated, then an new instance is created with the proper
    * dependencies injected. Otherwise, the instance of type T is returned.
@@ -115,8 +134,9 @@ public:
   }
 
 private:
-  template<typename T>
-  void inject_() {
+  template<typename T, typename Opt_t = std::conditional_t<std::is_abstract_v<T>, int, T>>
+  std::optional<Opt_t> inject_(const bool forwardValue = false) {
+    std::optional<Opt_t> retval;
     auto recipeIt = std::find_if(recipeMap_.begin(), recipeMap_.end(), [this](const auto &kv) {
       return kv.first == TypeHash<T>;
     });
@@ -139,14 +159,25 @@ private:
         // interface that has an associated implementation).
         std::any anyValue = recipeIt->second(*this);
         if(anyValue.has_value()) {
-          typeMap_.emplace<T>(std::any_cast<T>(anyValue));
+          T val = std::any_cast<T>(anyValue);
+          if(forwardValue) {
+            return val;
+          }
+          else {
+            typeMap_.emplace<T>(val);
+          }
         }
       }
       // Once again, we need if constexpr here to prevent the compiler from
       // generating code that calls emplace<T> with no arguments for types that aren't default
       // constructible.
       else if constexpr(std::default_initializable<T>) {
-        typeMap_.emplace<T>();
+        if(forwardValue) {
+          retval = T();
+        }
+        else {
+          typeMap_.emplace<T>();
+        }
       }
       else {
         throw std::runtime_error(
@@ -154,6 +185,8 @@ private:
           "was no recipe available. Perhaps use Injector#addCtorRecipe");
       }
     }
+
+    return retval;
   }
 
   RecipeMap_t recipeMap_;

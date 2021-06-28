@@ -172,3 +172,29 @@ TEST_F(Injector_test, cycleCheck) {
   EXPECT_THROW(injector.get<CycleB>(), std::runtime_error)
     << "Injector#get should throw when a dependency cycle is detected";
 }
+
+TEST_F(Injector_test, creat) {
+  omulator::di::Injector injector;
+
+  [[maybe_unused]] Klass  k0 = injector.creat<Klass>();
+  [[maybe_unused]] Klass &k1 = injector.get<Klass>();
+
+  EXPECT_EQ(2, Klass::numCalls) << "Injector#creat should return a fresh instance of a given type "
+                                   "and not cache it in the injector's type map";
+
+  [[maybe_unused]] Klass k2 = injector.creat<Klass>();
+
+  EXPECT_EQ(3, Klass::numCalls)
+    << "Injector#creat should return a fresh instance of a given type each time it is called";
+}
+
+TEST_F(Injector_test, ignoreQualifiers) {
+  omulator::di::Injector injector;
+
+  [[maybe_unused]] auto &k1 = injector.get<Klass *>();
+  [[maybe_unused]] auto &k2 = injector.get<Klass &>();
+  [[maybe_unused]] auto &k3 = injector.get<const Klass>();
+  [[maybe_unused]] auto &k4 = injector.get<Klass>();
+
+  EXPECT_EQ(1, Klass::numCalls) << "Injector should properly ignore type qualifiers";
+}
