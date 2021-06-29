@@ -20,8 +20,6 @@ TEST(TypeString_test, getTypeStrings) {
     << "TypeString<T> correctly generates a string with the name of T";
   EXPECT_STREQ("const int", std::string(TypeString<const int * const>).c_str())
     << "TypeString<T> correctly generates a string with the name of T";
-  EXPECT_STREQ("void()", std::string(TypeString<void (*)()>).c_str())
-    << "TypeString<T> correctly generates a string with the name of T";
   EXPECT_STREQ("Klass", std::string(TypeString<Klass>).c_str())
     << "TypeString<T> correctly generates a string with the name of T";
   EXPECT_STREQ("std::vector<const Klass>",

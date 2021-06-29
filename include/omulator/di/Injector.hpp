@@ -2,6 +2,7 @@
 
 #include "omulator/di/TypeHash.hpp"
 #include "omulator/di/TypeMap.hpp"
+#include "omulator/util/TypeString.hpp"
 
 #include <algorithm>
 #include <any>
@@ -12,11 +13,13 @@
 #include <optional>
 #include <set>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
 namespace omulator::di {
+using util::TypeString;
 
 class Injector {
 public:
@@ -98,8 +101,9 @@ public:
   T creat() {
     auto optionalVal = inject_<T>(true);
     if(!optionalVal.has_value()) {
-      // TODO: print the type name
-      throw std::runtime_error("Failed to creat value");
+      std::string s("Failed to create value of type ");
+      s += util::TypeString<T>;
+      throw std::runtime_error(s);
     }
 
     return optionalVal.value();
@@ -116,8 +120,9 @@ public:
       const auto thash = TypeHash<T>;
       if(isInCycleCheck_) {
         if(typeHashStack_.contains(thash)) {
-          // TODO: print the type
-          throw std::runtime_error("Dependency cycle detected");
+          std::string s("Dependency cycle detected for type ");
+          s += TypeString<T>;
+          throw std::runtime_error(s);
         }
         typeHashStack_.insert(thash);
         inject_<T>();
@@ -143,6 +148,12 @@ public:
   }
 
 private:
+  /**
+   * Perform the actual injection.
+   * N.B. that Opt_t is necessary to prevent std::optional from receiving an abstract interface as a
+   * type argument, as this would lead to compiler errors in generating code to store the abstract
+   * interface in the std::optional instance.
+   */
   template<typename T, typename Opt_t = std::conditional_t<std::is_abstract_v<T>, int, T>>
   std::optional<Opt_t> inject_(const bool forwardValue = false) {
     std::optional<Opt_t> retval;
@@ -157,8 +168,10 @@ private:
       // An interface can ONLY have a recipe, hence this being the only check in this block.
       if(recipeIt == recipeMap_.end()) {
         // TODO: Print out the type name in the error message (TypeString<T>?)
-        throw std::runtime_error("No implementation available for abstract class; be sure to call "
-                                 "Injector#bindImpl<T, Impl> before calling Injector#get<T>");
+        std::string s("No implementation available for abstract class ");
+        s += TypeString<T>;
+        s += "; be sure to call Injector#bindImpl<T, Impl> before calling Injector#get<T>";
+        throw std::runtime_error(s);
       }
       recipeMap_.at(TypeHash<T>)(*this);
     }
