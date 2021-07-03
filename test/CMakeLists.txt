@@ -16,10 +16,20 @@ function(add_unit_test TESTNAME)
       $<INSTALL_INTERFACE:test/include>
   )
 
+  # Some tests need access to spdlog, since it's header only
+  target_include_directories(
+    ${TESTNAME}
+    SYSTEM
+    PUBLIC
+      $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/spdlog/include>
+      $<INSTALL_INTERFACE:third_party/spdlog/include>
+  )
+
   target_sources(
     ${TESTNAME}
     PRIVATE
       unit/${TESTNAME}_test.cpp
+      ${PROJECT_SOURCE_DIR}/src/Logger.cpp
       ${ARGN}
   )
 
@@ -36,7 +46,7 @@ endfunction()
 
 # Same as add_unit_test, except automatically adds src/SRCDIR/TESTNAME.cpp as a target source
 function(add_unit_test_with_source TESTNAME SRCDIR)
-  add_unit_test(${TESTNAME} ${PROJECT_SOURCE_DIR}/src/${SRCDIR}/${TESTNAME}.cpp)
+  add_unit_test(${TESTNAME} ${PROJECT_SOURCE_DIR}/src/${SRCDIR}/${TESTNAME}.cpp ${ARGN})
 endfunction()
 
 add_unit_test(smoke)

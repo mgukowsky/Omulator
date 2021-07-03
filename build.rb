@@ -13,12 +13,15 @@ class OmulatorBuilder
   def initialize(**kwargs)
     @build_type = kwargs[:build_type] || POSSIBLE_BUILD_TYPES.first
     @notests    = kwargs[:notests]    || false
+    @jobflag    = '-j'
     @testnames  = kwargs[:testnames]  || nil
     @toolchain  = kwargs[:toolchain]  || default_toolchain
     @verbose    = kwargs[:verbose]    || false
 
     @build_dir  = File.join OUTPUT_DIR, @toolchain, @build_type
     @proj_dir = __dir__
+
+    @jobflag += '1' if kwargs[:serialbuild]
   end
 
   # Perform static analysis. For best results, don't build tests!
@@ -36,7 +39,7 @@ class OmulatorBuilder
       "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON "\
       "-DOMULATOR_BUILD_TESTS=#{@notests ? 'OFF' : 'ON'} "\
       "#{toolchain_args} #{kwargs[:addl_cmake_args]}"\
-      "&& cmake --build #{@build_dir} -j #{kwargs[:addl_cmake_bld_args]} "\
+      "&& cmake --build #{@build_dir} #{@jobflag} #{kwargs[:addl_cmake_bld_args]} "\
       "#{'-v' if verbose?} -- #{kwargs[:addl_generator_args]}"
     # CMake screws up the permissions for executables with the msvc-wsl toolchain
     spawn_cmd "find #{@build_dir} -iname *.exe | xargs chmod 755" if @toolchain == "msvc-wsl"
@@ -60,6 +63,13 @@ class OmulatorBuilder
     FileUtils.rm_r(OUTPUT_DIR, force: true, verbose: true)
   end
 
+  def exec
+    oml = "#{@build_dir}/Omulator"
+    oml += ".exe" if (@toolchain == ("msvc" || "clang-cl"))
+    build
+    spawn_cmd "#{oml}"
+  end
+
   # Same as build, except have the generator perform a clean first
   def rebuild
     build addl_cmake_bld_args: '--clean-first'
@@ -68,7 +78,7 @@ class OmulatorBuilder
   # Rerun any tests that previously failed
   def retest
     Dir.chdir @build_dir
-    spawn_cmd "ctest #{'-VV' if verbose?} -j --rerun-failed --output-on-failure"
+    spawn_cmd "ctest #{'-VV' if verbose?} #{@jobflag} --rerun-failed --output-on-failure"
     Dir.chdir @proj_dir
   end
 
@@ -81,7 +91,7 @@ class OmulatorBuilder
     else
       testnamestring = nil
     end
-    spawn_cmd "ctest #{'-VV' if verbose?} #{testnamestring if @testnames} -j --output-on-failure --schedule-random --repeat-until-fail 3"
+    spawn_cmd "ctest #{'-VV' if verbose?} #{testnamestring if @testnames} #{@jobflag} --output-on-failure --schedule-random --repeat-until-fail 3"
     Dir.chdir @proj_dir
   end
 
@@ -185,6 +195,10 @@ def main()
 
     opts.on('--notests', 'Do not build tests') do |v|
       options[:notests] = v
+    end
+
+    opts.on('--serialbuild', 'Perform builds using a single core') do |v|
+      options[:serialbuild] = v
     end
 
     opts.on('-t <TOOLCHAIN>', '--toolchain <TOOLCHAIN>', POSSIBLE_TOOLCHAINS,

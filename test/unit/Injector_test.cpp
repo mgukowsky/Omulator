@@ -1,7 +1,11 @@
 #include "omulator/di/Injector.hpp"
 
+#include "omulator/Logger.hpp"
+
 #include <gtest/gtest.h>
 
+#include <array>
+#include <memory>
 #include <vector>
 
 constexpr int MAGIC = 42;
@@ -42,6 +46,9 @@ int              nc    = 0;
 int              nd    = 0;
 bool             ready = false;
 
+omulator::Logger                        logger;
+std::unique_ptr<omulator::di::Injector> pInjector;
+
 class Injector_test : public ::testing::Test {
 protected:
   void SetUp() override {
@@ -54,11 +61,12 @@ protected:
     nc    = 0;
     nd    = 0;
     ready = false;
+    pInjector.reset(new omulator::di::Injector(logger));
   }
 };
 
 TEST_F(Injector_test, defaultConstructibleTypes) {
-  omulator::di::Injector injector;
+  omulator::di::Injector &injector = *pInjector;
 
   auto &i1 = injector.get<int>();
   auto &i2 = injector.get<int>();
@@ -81,8 +89,8 @@ TEST_F(Injector_test, defaultConstructibleTypes) {
 }
 
 TEST_F(Injector_test, recipeInvocation) {
-  omulator::di::Injector injector;
-  constexpr int          DMAGIC = MAGIC * 2;
+  omulator::di::Injector &injector = *pInjector;
+  constexpr int           DMAGIC   = MAGIC * 2;
 
   omulator::di::Injector::RecipeMap_t recipes{
     {omulator::di::TypeHash<Klass>, []([[maybe_unused]] omulator::di::Injector &inj) {
@@ -104,8 +112,56 @@ TEST_F(Injector_test, recipeInvocation) {
   EXPECT_EQ(&k1, &k2) << "The injector should only return one instance of a type with a recipe";
 }
 
+TEST_F(Injector_test, recipeLifetime) {
+  omulator::di::Injector &injector          = *pInjector;
+  std::array<int, 3>      recipeInvocations = {0, 0, 0};
+
+  omulator::di::Injector::RecipeMap_t firstRecipe{
+    {omulator::di::TypeHash<Klass>, [&]([[maybe_unused]] omulator::di::Injector &inj) {
+       recipeInvocations[0] += 1;
+       Klass k;
+       k.x = 1;
+       return k;
+     }}};
+  injector.addRecipes(firstRecipe);
+
+  omulator::di::Injector::RecipeMap_t secondRecipe{
+    {omulator::di::TypeHash<Klass>, [&]([[maybe_unused]] omulator::di::Injector &inj) {
+       recipeInvocations[1] += 1;
+       Klass k;
+       k.x = 2;
+       return k;
+     }}};
+  injector.addRecipes(secondRecipe);
+
+  auto &k1 = injector.get<Klass>();
+
+  EXPECT_EQ(1, k1.x) << "An injector should ignore a recipe given for a given type if a recipe for "
+                        "that type has been previously submitted";
+
+  omulator::di::Injector::RecipeMap_t thirdRecipe{
+    {omulator::di::TypeHash<Klass>, [&]([[maybe_unused]] omulator::di::Injector &inj) {
+       recipeInvocations[2] += 1;
+       Klass k;
+       k.x = 3;
+       return k;
+     }}};
+  injector.addRecipes(thirdRecipe);
+
+  auto &k2 = injector.get<Klass>();
+  EXPECT_EQ(1, k2.x) << "An injector should ignore a recipe given for a given type if a recipe for "
+                        "that type has been previously submitted";
+
+  EXPECT_EQ(1, recipeInvocations[0]) << "An injector should ignore a recipe given for a given type "
+                                        "if a recipe for that type has been previously submitted";
+  EXPECT_EQ(0, recipeInvocations[1]) << "An injector should ignore a recipe given for a given type "
+                                        "if a recipe for that type has been previously submitted";
+  EXPECT_EQ(0, recipeInvocations[2]) << "An injector should ignore a recipe given for a given type "
+                                        "if a recipe for that type has been previously submitted";
+}
+
 TEST_F(Injector_test, interfaceAndImplementation) {
-  omulator::di::Injector injector;
+  omulator::di::Injector &injector = *pInjector;
 
   // Since Base is an abstract class, this will refuse to compile if Injector attempts to
   // incorrectly instantiate Base instead of Impl.
@@ -129,7 +185,7 @@ TEST_F(Injector_test, interfaceAndImplementation) {
 }
 
 TEST_F(Injector_test, missingInterfaceImplementation) {
-  omulator::di::Injector injector;
+  omulator::di::Injector &injector = *pInjector;
 
   EXPECT_THROW(injector.get<Base>(), std::runtime_error)
     << "An injector should throw an error when an interface does not have an associated "
@@ -137,7 +193,7 @@ TEST_F(Injector_test, missingInterfaceImplementation) {
 }
 
 TEST_F(Injector_test, addCtorRecipe) {
-  omulator::di::Injector injector;
+  omulator::di::Injector &injector = *pInjector;
 
   injector.addCtorRecipe<Komposite, Klass>();
 
@@ -152,7 +208,7 @@ TEST_F(Injector_test, addCtorRecipe) {
 }
 
 TEST_F(Injector_test, noRecipeForTypeWithNoDefaultConstructor) {
-  omulator::di::Injector injector;
+  omulator::di::Injector &injector = *pInjector;
 
   EXPECT_THROW(injector.get<Komposite>(), std::runtime_error)
     << "An injector should throw when Injector#get is called with a type which is not default "
@@ -160,7 +216,7 @@ TEST_F(Injector_test, noRecipeForTypeWithNoDefaultConstructor) {
 }
 
 TEST_F(Injector_test, cycleCheck) {
-  omulator::di::Injector injector;
+  omulator::di::Injector &injector = *pInjector;
 
   class CycleB;
   class CycleA {
@@ -200,7 +256,7 @@ TEST_F(Injector_test, cycleCheck) {
 }
 
 TEST_F(Injector_test, creat) {
-  omulator::di::Injector injector;
+  omulator::di::Injector &injector = *pInjector;
 
   [[maybe_unused]] Klass  k0 = injector.creat<Klass>();
   [[maybe_unused]] Klass &k1 = injector.get<Klass>();
@@ -215,7 +271,7 @@ TEST_F(Injector_test, creat) {
 }
 
 TEST_F(Injector_test, ignoreQualifiers) {
-  omulator::di::Injector injector;
+  omulator::di::Injector &injector = *pInjector;
 
   [[maybe_unused]] auto &k1 = injector.get<Klass *>();
   [[maybe_unused]] auto &k2 = injector.get<Klass &>();
@@ -268,7 +324,7 @@ TEST_F(Injector_test, orderOfDestruction) {
   };
 
   {
-    omulator::di::Injector injector;
+    omulator::di::Injector injector(logger);
 
     injector.addCtorRecipe<B, A>();
     injector.addCtorRecipe<C, B>();

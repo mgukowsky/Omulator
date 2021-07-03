@@ -33,7 +33,8 @@ public:
   };
 
   // N.B. that "%+" is spdlog's default format
-  Logger(const omulator::Logger::LogLevel initialLevel, const std::string &pattern = "%+");
+  Logger(const omulator::Logger::LogLevel initialLevel = LogLevel::WARN,
+         const std::string &              pattern      = "%+");
   ~Logger();
 
   Logger(const Logger &) = delete;
@@ -43,32 +44,32 @@ public:
 
   // TODO: OK for all Logging functions to be noexcept?
   template<typename... Args>
-  inline void critical(Args &&... args) const noexcept {
+  inline void critical(Args &&...args) const noexcept {
     spdlog::critical(std::forward<Args>(args)...);
   }
 
   template<typename... Args>
-  inline void error(Args &&... args) const noexcept {
+  inline void error(Args &&...args) const noexcept {
     spdlog::error(std::forward<Args>(args)...);
   }
 
   template<typename... Args>
-  inline void warn(Args &&... args) const noexcept {
+  inline void warn(Args &&...args) const noexcept {
     spdlog::warn(std::forward<Args>(args)...);
   }
 
   template<typename... Args>
-  inline void info(Args &&... args) const noexcept {
+  inline void info(Args &&...args) const noexcept {
     spdlog::info(std::forward<Args>(args)...);
   }
 
   template<typename... Args>
-  inline void debug(Args &&... args) const noexcept {
+  inline void debug(Args &&...args) const noexcept {
     spdlog::debug(std::forward<Args>(args)...);
   }
 
   template<typename... Args>
-  inline void trace(Args &&... args) const noexcept {
+  inline void trace(Args &&...args) const noexcept {
     spdlog::trace(std::forward<Args>(args)...);
   }
 

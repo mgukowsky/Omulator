@@ -56,6 +56,8 @@ private:
 
 class TypeMap {
 public:
+  bool contains(const Hash_t hsh) const noexcept { return map_.contains(hsh); }
+
   /**
    * Creates an instance of type T and places it in the map. args are passed
    * to T's constructor. If type T does not yet exist in the map, an instance of
