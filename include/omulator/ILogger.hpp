@@ -23,8 +23,8 @@ public:
 
   ILogger(const ILogger &) = delete;
   ILogger &operator=(const ILogger &) = delete;
-  ILogger(ILogger &&)                 = delete;
-  ILogger &operator=(ILogger &&) = delete;
+  ILogger(ILogger &&)                 = default;
+  ILogger &operator=(ILogger &&) = default;
 
   virtual void critical(const char * const) = 0;
   virtual void error(const char * const)    = 0;

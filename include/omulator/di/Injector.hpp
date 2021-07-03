@@ -6,12 +6,11 @@
 #include "omulator/util/TypeString.hpp"
 
 #include <algorithm>
-#include <any>
 #include <concepts>
 #include <functional>
 #include <map>
+#include <memory>
 #include <mutex>
-#include <optional>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -24,7 +23,8 @@ using util::TypeString;
 
 class Injector {
 public:
-  using Recipe_t    = std::function<std::any(Injector &)>;
+  using Container_t = std::unique_ptr<TypeContainerBase>;
+  using Recipe_t    = std::function<Container_t(Injector &)>;
   using RecipeMap_t = std::map<Hash_t, Recipe_t>;
 
   /**
@@ -48,7 +48,10 @@ public:
     static_assert(std::constructible_from<T, std::add_lvalue_reference_t<InjType_t<Ts>>...>,
                   "Injector#addCtorRecipe<T, ...Ts> will only accept Ts if T has a constructor "
                   "that accepts the arguments (Ts&...)");
-    auto recipe = [](Injector &injector) { return T(injector.get<InjType_t<Ts>>()...); };
+    auto recipe = [](Injector &injector) {
+      T *pT = new T(injector.get<InjType_t<Ts>>()...);
+      return injector.containerize(pT);
+    };
     addRecipes({{TypeHash<T>, recipe}});
   }
 
@@ -56,6 +59,9 @@ public:
    * Add recipes which should be called for specific types instead as an alternative
    * to the default injector behavior, which is to invoke the type's constructor with
    * the lowest arity.
+   *
+   * It is recommended that recipe callbacks make use of Injector#containerize in order to ensure
+   * the correct return type.
    *
    * N.B. since this function calls std::map#merge under the hood, newRecipes will be INVALIDATED
    * after this function is invoked!;
@@ -83,12 +89,20 @@ public:
 
       injector.typeMap_.emplace_impl<Interface, Implementation>(impl);
 
-      // Return an empty std::any to as a hint to TypeMap#emplace to not instantiate an
+      // Return an empty container as a hint to TypeMap#emplace to not instantiate an
       // instance of interface T.
-      return std::any();
+      return Container_t(nullptr);
     };
 
     addRecipes({{TypeHash<Interface>, recipe}});
+  }
+
+  template<typename T>
+  Container_t containerize(T *pT) {
+    std::unique_ptr<TypeContainer<T>> pCtr = std::make_unique<TypeContainer<T>>();
+    pCtr->reset(pT);
+    TypeContainerBase *pBaseCtr = pCtr.release();
+    return Container_t(pBaseCtr);
   }
 
   /**
@@ -99,15 +113,18 @@ public:
    * can bypass locks and map lookups.
    */
   template<typename T>
-  T creat() {
-    auto optionalVal = inject_<T>(true);
-    if(!optionalVal.has_value()) {
+  std::unique_ptr<T> creat() {
+    TypeContainer<T> ctr = inject_<T>(true);
+    if(!ctr.has_value()) {
       std::string s("Failed to create value of type ");
       s += util::TypeString<T>;
       throw std::runtime_error(s);
     }
 
-    return optionalVal.value();
+    T *ptr = ctr.release();
+
+    // N.B. the caller now owns the new instance
+    return std::unique_ptr<T>(ptr);
   }
 
   /**
@@ -148,16 +165,18 @@ public:
     return typeMap_.ref<T>();
   }
 
+  static void installDefaultRules(Injector &injector);
+
 private:
   /**
    * Perform the actual injection.
-   * N.B. that Opt_t is necessary to prevent std::optional from receiving an abstract interface as a
+   * N.B. that Opt_t is necessary to prevent TypeContainer from receiving an abstract interface as a
    * type argument, as this would lead to compiler errors in generating code to store the abstract
-   * interface in the std::optional instance.
+   * interface in the TypeContainer instance.
    */
   template<typename T, typename Opt_t = std::conditional_t<std::is_abstract_v<T>, int, T>>
-  std::optional<Opt_t> inject_(const bool forwardValue = false) {
-    std::optional<Opt_t> retval;
+  TypeContainer<Opt_t> inject_(const bool forwardValue = false) {
+    TypeContainer<Opt_t> retval;
     auto recipeIt = std::find_if(recipeMap_.begin(), recipeMap_.end(), [this](const auto &kv) {
       return kv.first == TypeHash<T>;
     });
@@ -168,7 +187,6 @@ private:
     if constexpr(std::is_abstract_v<T>) {
       // An interface can ONLY have a recipe, hence this being the only check in this block.
       if(recipeIt == recipeMap_.end()) {
-        // TODO: Print out the type name in the error message (TypeString<T>?)
         std::string s("No implementation available for abstract class ");
         s += TypeString<T>;
         s += "; be sure to call Injector#bindImpl<T, Impl> before calling Injector#get<T>";
@@ -178,16 +196,17 @@ private:
     }
     else {
       if(recipeIt != recipeMap_.end()) {
-        // The std::any returned by a recipe need not contain a value (e.g. in the case of an
+        // The container returned by a recipe need not contain a value (e.g. in the case of an
         // interface that has an associated implementation).
-        std::any anyValue = recipeIt->second(*this);
-        if(anyValue.has_value()) {
-          T val = std::any_cast<T>(anyValue);
+        Container_t anyValue = recipeIt->second(*this);
+        if(anyValue.get() != nullptr) {
+          TypeContainer<T> *pCtr = reinterpret_cast<TypeContainer<T> *>(anyValue.get());
+          T *               pVal = pCtr->release();
           if(forwardValue) {
-            return val;
+            retval.reset(pVal);
           }
           else {
-            typeMap_.emplace<T>(val);
+            typeMap_.emplace_ptr<T>(pVal);
           }
         }
       }
@@ -196,7 +215,7 @@ private:
       // constructible.
       else if constexpr(std::default_initializable<T>) {
         if(forwardValue) {
-          retval = T();
+          retval.createInstance();
         }
         else {
           typeMap_.emplace<T>();

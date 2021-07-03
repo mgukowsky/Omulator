@@ -16,14 +16,13 @@
 namespace omulator {
 
 struct SpdlogLogger::Impl_ {
+  Impl_() : logger(spdlog::stdout_color_mt("SpdlogLogger")) { }
+  ~Impl_() = default;
   std::shared_ptr<spdlog::logger> logger;
 };
 
 // TODO: use initializer list
-SpdlogLogger::SpdlogLogger(const ILogger::LogLevel initialLevel) {
-  impl_->logger = spdlog::stdout_color_mt("SpdlogLogger");
-  set_level(initialLevel);
-}
+SpdlogLogger::SpdlogLogger(const ILogger::LogLevel initialLevel) { set_level(initialLevel); }
 
 SpdlogLogger::~SpdlogLogger() { impl_->logger->flush(); }
 

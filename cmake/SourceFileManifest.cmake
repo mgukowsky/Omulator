@@ -2,6 +2,8 @@ set(
   OML_SOURCE_FILE_MANIFEST
     src/Latch.cpp
     src/main.cpp
+    src/di/Injector.cpp
+    src/di/injector_rules.cpp
     src/scheduler/Worker.cpp
     src/scheduler/WorkerPool.cpp
     src/SpdlogLogger.cpp

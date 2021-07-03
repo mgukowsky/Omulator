@@ -24,18 +24,40 @@ public:
 
   TypeContainer(TypeContainer &) = delete;
   TypeContainer &operator=(TypeContainer &) = delete;
-  TypeContainer(TypeContainer &&)           = delete;
-  TypeContainer &operator=(TypeContainer &&) = delete;
+  TypeContainer(TypeContainer &&)           = default;
+  TypeContainer &operator=(TypeContainer &&) = default;
 
   inline T &ref() const noexcept { return *ptr_; }
 
+  // Used for two-phase initialization when a container should own a new instance of T.
   template<typename... Args>
   void createInstance(Args &&...args) {
     ptr_          = new T(std::forward<Args>(args)...);
     hasOwnership_ = true;
   }
 
-  void setref(T *pT) noexcept {
+  // std::any-esque interface to see if the type points to an instance of T.
+  bool has_value() const noexcept { return ptr_ != nullptr; }
+
+  // Relinquishes ownership of the contained instance.
+  T *release() noexcept {
+    T *pReleased = ptr_;
+
+    // Prevents setref(nullptr) from deleting pReleased
+    ptr_ = nullptr;
+    setref(nullptr);
+
+    return pReleased;
+  }
+
+  void reset(T *pVal) {
+    setref(pVal);
+    hasOwnership_ = true;
+  }
+
+  // Used for two-phase initialization when a container should have a non-owning reference to an
+  // instance of T.
+  void setref(T *pT) {
     release_();
     ptr_          = pT;
     hasOwnership_ = false;
@@ -94,6 +116,22 @@ public:
       map_.emplace(TypeHash<Interface>, std::make_unique<TypeContainer<Interface>>());
       auto pContainerBase = map_.at(TypeHash<Interface>).get();
       reinterpret_cast<TypeContainer<Interface> *>(pContainerBase)->setref(&impl);
+
+      return false;
+    }
+  }
+
+  template<typename T>
+  bool emplace_ptr(T *pT) {
+    // N.B. we take ownership of pT in order to prevent a memory leak in the event that has_key<T>()
+    // returns true
+    std::unique_ptr<TypeContainer<T>> ctr = std::make_unique<TypeContainer<T>>();
+    ctr->reset(pT);
+    if(has_key<T>()) {
+      return true;
+    }
+    else {
+      map_.emplace(TypeHash<T>, std::move(ctr));
 
       return false;
     }

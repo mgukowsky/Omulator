@@ -6,8 +6,13 @@
 namespace omulator {
 class SpdlogLogger : public ILogger {
 public:
-  SpdlogLogger(const LogLevel initialLevel = LogLevel::WARN);
+  SpdlogLogger(const LogLevel initialLevel = LogLevel::INFO);
   ~SpdlogLogger();
+
+  SpdlogLogger(const SpdlogLogger &) = delete;
+  SpdlogLogger &operator=(const SpdlogLogger &) = delete;
+  SpdlogLogger(SpdlogLogger &&)                 = default;
+  SpdlogLogger &operator=(SpdlogLogger &&) = default;
 
   void critical(const char * const msg) override;
   void error(const char * const msg) override;

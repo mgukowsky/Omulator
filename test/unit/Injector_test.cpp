@@ -94,9 +94,9 @@ TEST_F(Injector_test, recipeInvocation) {
 
   omulator::di::Injector::RecipeMap_t recipes{
     {omulator::di::TypeHash<Klass>, []([[maybe_unused]] omulator::di::Injector &inj) {
-       Klass k;
-       k.x = DMAGIC;
-       return k;
+       Klass *k = new Klass;
+       k->x     = DMAGIC;
+       return inj.containerize(k);
      }}};
 
   injector.addRecipes(recipes);
@@ -119,18 +119,18 @@ TEST_F(Injector_test, recipeLifetime) {
   omulator::di::Injector::RecipeMap_t firstRecipe{
     {omulator::di::TypeHash<Klass>, [&]([[maybe_unused]] omulator::di::Injector &inj) {
        recipeInvocations[0] += 1;
-       Klass k;
-       k.x = 1;
-       return k;
+       Klass *k = new Klass;
+       k->x     = 1;
+       return inj.containerize(k);
      }}};
   injector.addRecipes(firstRecipe);
 
   omulator::di::Injector::RecipeMap_t secondRecipe{
     {omulator::di::TypeHash<Klass>, [&]([[maybe_unused]] omulator::di::Injector &inj) {
        recipeInvocations[1] += 1;
-       Klass k;
-       k.x = 2;
-       return k;
+       Klass *k = new Klass;
+       k->x     = 2;
+       return inj.containerize(k);
      }}};
   injector.addRecipes(secondRecipe);
 
@@ -142,9 +142,9 @@ TEST_F(Injector_test, recipeLifetime) {
   omulator::di::Injector::RecipeMap_t thirdRecipe{
     {omulator::di::TypeHash<Klass>, [&]([[maybe_unused]] omulator::di::Injector &inj) {
        recipeInvocations[2] += 1;
-       Klass k;
-       k.x = 3;
-       return k;
+       Klass *k = new Klass;
+       k->x     = 3;
+       return inj.containerize(k);
      }}};
   injector.addRecipes(thirdRecipe);
 
@@ -258,13 +258,13 @@ TEST_F(Injector_test, cycleCheck) {
 TEST_F(Injector_test, creat) {
   omulator::di::Injector &injector = *pInjector;
 
-  [[maybe_unused]] Klass  k0 = injector.creat<Klass>();
-  [[maybe_unused]] Klass &k1 = injector.get<Klass>();
+  [[maybe_unused]] std::unique_ptr<Klass> k0 = injector.creat<Klass>();
+  [[maybe_unused]] Klass &                k1 = injector.get<Klass>();
 
   EXPECT_EQ(2, Klass::numCalls) << "Injector#creat should return a fresh instance of a given type "
                                    "and not cache it in the injector's type map";
 
-  [[maybe_unused]] Klass k2 = injector.creat<Klass>();
+  [[maybe_unused]] std::unique_ptr<Klass> k2 = injector.creat<Klass>();
 
   EXPECT_EQ(3, Klass::numCalls)
     << "Injector#creat should return a fresh instance of a given type each time it is called";
