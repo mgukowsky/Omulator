@@ -1,7 +1,7 @@
 #include "omulator/main.hpp"
 
 #include "omulator/CPUIdentifier.hpp"
-#include "omulator/Logger.hpp"
+#include "omulator/SpdlogLogger.hpp"
 #include "omulator/util/exception_handler.hpp"
 
 int main([[maybe_unused]] const int argc, [[maybe_unused]] const char **argv) {
@@ -11,7 +11,7 @@ int main([[maybe_unused]] const int argc, [[maybe_unused]] const char **argv) {
     if(!omulator::CPUIdentifier::is_cpu_supported()) {
       throw std::runtime_error("CPU is not supported");
     }
-    omulator::Logger l(omulator::Logger::LogLevel::TRACE);
+    omulator::SpdlogLogger l(omulator::ILogger::LogLevel::TRACE);
     l.info("Hello, using spdlog!");
   }
 

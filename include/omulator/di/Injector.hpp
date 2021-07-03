@@ -1,6 +1,6 @@
 #pragma once
 
-#include "omulator/Logger.hpp"
+#include "omulator/ILogger.hpp"
 #include "omulator/di/TypeHash.hpp"
 #include "omulator/di/TypeMap.hpp"
 #include "omulator/util/TypeString.hpp"
@@ -34,7 +34,7 @@ public:
   template<typename T>
   using InjType_t = std::remove_pointer_t<std::decay_t<T>>;
 
-  Injector(Logger &logger);
+  Injector(ILogger &logger);
   ~Injector();
 
   /**
@@ -232,7 +232,7 @@ private:
   // level type of the dependency chain.
   bool isInCycleCheck_;
 
-  Logger &logger_;
+  ILogger &logger_;
 };
 
 }  // namespace omulator::di

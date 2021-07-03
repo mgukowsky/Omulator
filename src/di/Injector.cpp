@@ -1,11 +1,12 @@
 #include "omulator/di/Injector.hpp"
 
 #include <algorithm>
-#include <utility>
+#include <sstream>
+#include <string>
 
 namespace omulator::di {
 
-Injector::Injector(Logger &logger) : isInCycleCheck_(false), logger_(logger) { }
+Injector::Injector(ILogger &logger) : isInCycleCheck_(false), logger_(logger) { }
 
 Injector::~Injector() {
   // Delete the elements in the type map in the reverse order they were constructed
@@ -23,7 +24,9 @@ void Injector::addRecipes(RecipeMap_t &newRecipes) {
 void Injector::addRecipes(RecipeMap_t &&newRecipes) {
   for(const auto &[k, v] : newRecipes) {
     if(typeMap_.contains(k)) {
-      logger_.warn("Duplicate recipe detected for type hash {}", k);
+      std::stringstream ss;
+      ss << "Duplicate recipe detected for type hash " << k;
+      logger_.warn(ss.str().c_str());
     }
   }
   std::scoped_lock lck(mtx_);

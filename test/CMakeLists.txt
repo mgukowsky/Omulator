@@ -16,20 +16,10 @@ function(add_unit_test TESTNAME)
       $<INSTALL_INTERFACE:test/include>
   )
 
-  # Some tests need access to spdlog, since it's header only
-  target_include_directories(
-    ${TESTNAME}
-    SYSTEM
-    PUBLIC
-      $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/spdlog/include>
-      $<INSTALL_INTERFACE:third_party/spdlog/include>
-  )
-
   target_sources(
     ${TESTNAME}
     PRIVATE
       unit/${TESTNAME}_test.cpp
-      ${PROJECT_SOURCE_DIR}/src/Logger.cpp
       ${ARGN}
   )
 

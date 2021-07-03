@@ -1,10 +1,10 @@
 set(
   OML_SOURCE_FILE_MANIFEST
     src/Latch.cpp
-    src/Logger.cpp
     src/main.cpp
     src/scheduler/Worker.cpp
     src/scheduler/WorkerPool.cpp
+    src/SpdlogLogger.cpp
     ${PLATFORM_DIR}/CPUIdentifier.cpp
     ${PLATFORM_DIR}/PrimitiveIO.cpp
 )

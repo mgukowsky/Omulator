@@ -1,6 +1,6 @@
 #include "omulator/di/Injector.hpp"
 
-#include "omulator/Logger.hpp"
+#include "omulator/NullLogger.hpp"
 
 #include <gtest/gtest.h>
 
@@ -46,7 +46,7 @@ int              nc    = 0;
 int              nd    = 0;
 bool             ready = false;
 
-omulator::Logger                        logger;
+omulator::NullLogger                    logger;
 std::unique_ptr<omulator::di::Injector> pInjector;
 
 class Injector_test : public ::testing::Test {
