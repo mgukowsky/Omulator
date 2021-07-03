@@ -1,6 +1,5 @@
 #pragma once
 
-#include "omulator/ILogger.hpp"
 #include "omulator/di/TypeHash.hpp"
 #include "omulator/di/TypeMap.hpp"
 #include "omulator/util/TypeString.hpp"
@@ -34,7 +33,7 @@ public:
   template<typename T>
   using InjType_t = std::remove_pointer_t<std::decay_t<T>>;
 
-  Injector(ILogger &logger);
+  Injector();
   ~Injector();
 
   /**
@@ -250,8 +249,6 @@ private:
   // recursively for dependencies, we should only lock the mutex when calling get_ with the top
   // level type of the dependency chain.
   bool isInCycleCheck_;
-
-  ILogger &logger_;
 };
 
 }  // namespace omulator::di

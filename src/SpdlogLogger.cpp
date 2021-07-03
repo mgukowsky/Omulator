@@ -21,7 +21,6 @@ struct SpdlogLogger::Impl_ {
   std::shared_ptr<spdlog::logger> logger;
 };
 
-// TODO: use initializer list
 SpdlogLogger::SpdlogLogger(const ILogger::LogLevel initialLevel) { set_level(initialLevel); }
 
 SpdlogLogger::~SpdlogLogger() { impl_->logger->flush(); }

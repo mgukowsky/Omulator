@@ -1,6 +1,6 @@
 #include "omulator/di/Injector.hpp"
 
-#include "omulator/NullLogger.hpp"
+#include "mocks/PrimitiveIOMock.hpp"
 
 #include <gtest/gtest.h>
 
@@ -46,7 +46,6 @@ int              nc    = 0;
 int              nd    = 0;
 bool             ready = false;
 
-omulator::NullLogger                    logger;
 std::unique_ptr<omulator::di::Injector> pInjector;
 
 class Injector_test : public ::testing::Test {
@@ -61,7 +60,7 @@ protected:
     nc    = 0;
     nd    = 0;
     ready = false;
-    pInjector.reset(new omulator::di::Injector(logger));
+    pInjector.reset(new omulator::di::Injector);
   }
 };
 
@@ -324,7 +323,7 @@ TEST_F(Injector_test, orderOfDestruction) {
   };
 
   {
-    omulator::di::Injector injector(logger);
+    omulator::di::Injector injector;
 
     injector.addCtorRecipe<B, A>();
     injector.addCtorRecipe<C, B>();
