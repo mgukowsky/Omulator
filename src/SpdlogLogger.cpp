@@ -33,33 +33,32 @@ void SpdlogLogger::debug(const char * const msg) { impl_->logger->debug(msg); }
 void SpdlogLogger::trace(const char * const msg) { impl_->logger->trace(msg); }
 
 void SpdlogLogger::set_level(ILogger::LogLevel level) {
-  using enum ILogger::LogLevel;
   switch(level) {
-    case OFF:
+    case ILogger::LogLevel::OFF:
       impl_->logger->set_level(spdlog::level::off);
       break;
 
-    case CRITICAL:
+    case ILogger::LogLevel::CRITICAL:
       impl_->logger->set_level(spdlog::level::critical);
       break;
 
-    case ERR:
+    case ILogger::LogLevel::ERR:
       impl_->logger->set_level(spdlog::level::err);
       break;
 
-    case WARN:
+    case ILogger::LogLevel::WARN:
       impl_->logger->set_level(spdlog::level::warn);
       break;
 
-    case INFO:
+    case ILogger::LogLevel::INFO:
       impl_->logger->set_level(spdlog::level::info);
       break;
 
-    case DEBUG:
+    case ILogger::LogLevel::DEBUG:
       impl_->logger->set_level(spdlog::level::debug);
       break;
 
-    case TRACE:
+    case ILogger::LogLevel::TRACE:
       impl_->logger->set_level(spdlog::level::trace);
       break;
 

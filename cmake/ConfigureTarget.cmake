@@ -145,6 +145,8 @@ function(config_for_msvc target_name)
       # Stop clang-cl from complaining about Windows code
       $<$<CXX_COMPILER_ID:Clang>:-W3 -Wno-c++98-compat -Wno-c++98-compat-pedantic>
 
+      $<$<CXX_COMPILER_ID:Clang>:-Wno-unused-lambda-capture -Wno-unused-private-field>
+
       $<$<CXX_COMPILER_ID:Clang>:-flto=thin>
 
       # Make a PDB, don't inline and don't optimize, use buffer overflow canaries, and add

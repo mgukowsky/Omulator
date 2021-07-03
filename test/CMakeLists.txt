@@ -31,7 +31,11 @@ function(add_unit_test TESTNAME)
     gtest_main
   )
 
-  gtest_discover_tests(${TESTNAME})
+  gtest_discover_tests(
+    ${TESTNAME}
+    DISCOVERY_MODE
+      PRE_TEST
+  )
 endfunction()
 
 # Same as add_unit_test, except automatically adds src/SRCDIR/TESTNAME.cpp as a target source
