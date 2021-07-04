@@ -194,7 +194,7 @@ TEST_F(Injector_test, missingInterfaceImplementation) {
 TEST_F(Injector_test, addCtorRecipe) {
   omulator::di::Injector &injector = *pInjector;
 
-  injector.addCtorRecipe<Komposite, Klass>();
+  injector.addCtorRecipe<Komposite, Klass &>();
 
   Komposite &             komposite1 = injector.get<Komposite>();
   [[maybe_unused]] Klass &klass      = injector.get<Klass>();
@@ -204,6 +204,91 @@ TEST_F(Injector_test, addCtorRecipe) {
     << "Injector#addCtorRecipe should add a recipe to correctly instantiate a given type";
   EXPECT_EQ(&komposite1, &komposite2)
     << "An injector should not invoke a constructor added with addCtorRecipe more than once";
+
+  class A {
+  public:
+    A() { ++na; }
+  };
+  class B {
+  public:
+    B() { ++nb; }
+  };
+
+  class ValAValB {
+  public:
+    ValAValB(A a, B b) : a_(a), b_(b) { }
+
+  private:
+    A a_;
+    B b_;
+  };
+  injector.addCtorRecipe<ValAValB, A, B>();
+
+  class RefARefB {
+  public:
+    RefARefB(A &a, B &b) : a_(a), b_(b) { }
+
+  private:
+    A &a_;
+    B &b_;
+  };
+  injector.addCtorRecipe<RefARefB, A &, B &>();
+
+  class RefAValB {
+  public:
+    RefAValB(A &a, B b) : a_(a), b_(b) { }
+
+  private:
+    A &a_;
+    B  b_;
+  };
+  injector.addCtorRecipe<RefAValB, A &, B>();
+
+  [[maybe_unused]] ValAValB &vavb = injector.get<ValAValB>();
+  EXPECT_EQ(1, na) << "An injector should call creat() to resolve dependencies when addCtorRecipe "
+                      "receives those dependencies as value types.";
+  EXPECT_EQ(1, nb) << "An injector should call creat() to resolve dependencies when addCtorRecipe "
+                      "receives those dependencies as value types.";
+
+  [[maybe_unused]] ValAValB &vavb2 = injector.get<ValAValB>();
+  EXPECT_EQ(1, na) << "Constructor dispatching logic should not be used when get() is called for a "
+                      "type T that is already in the internal type map.";
+  EXPECT_EQ(1, nb) << "Constructor dispatching logic should not be used when get() is called for a "
+                      "type T that is already in the internal type map.";
+
+  [[maybe_unused]] ValAValB vavb3 = injector.creat<ValAValB>();
+  EXPECT_EQ(2, na) << "An injector should call creat() to resolve dependencies when addCtorRecipe "
+                      "receives those dependencies as value types.";
+  EXPECT_EQ(2, nb) << "An injector should call creat() to resolve dependencies when addCtorRecipe "
+                      "receives those dependencies as value types.";
+
+  // N.B. we increment here because, since A and B were previously value types resolved with
+  // creat(), they have not been added to the internal type map yet!
+  [[maybe_unused]] RefARefB &rarb = injector.get<RefARefB>();
+  EXPECT_EQ(3, na) << "An injector should call get() to resolve dependencies when addCtorRecipe "
+                      "receives those dependencies as reference types.";
+  EXPECT_EQ(3, nb) << "An injector should call get() to resolve dependencies when addCtorRecipe "
+                      "receives those dependencies as reference types.";
+
+  //...but we don't increment here since A and B are now being requested as reference types and are
+  // now in the map!
+  [[maybe_unused]] RefARefB rarb2 = injector.creat<RefARefB>();
+  EXPECT_EQ(3, na) << "An injector should call get() to resolve dependencies when addCtorRecipe "
+                      "receives those dependencies as reference types.";
+  EXPECT_EQ(3, nb) << "An injector should call get() to resolve dependencies when addCtorRecipe "
+                      "receives those dependencies as reference types.";
+
+  [[maybe_unused]] RefAValB &ravb = injector.get<RefAValB>();
+  EXPECT_EQ(3, na) << "An injector should correctly choose whether to call get() or creat() for a "
+                      "given dependency when dependencies are given with addCtorRecipe.";
+  EXPECT_EQ(4, nb) << "An injector should correctly choose whether to call get() or creat() for a "
+                      "given dependency when dependencies are given with addCtorRecipe.";
+
+  [[maybe_unused]] RefAValB ravb2 = injector.creat<RefAValB>();
+  EXPECT_EQ(3, na) << "An injector should correctly choose whether to call get() or creat() for a "
+                      "given dependency when dependencies are given with addCtorRecipe.";
+  EXPECT_EQ(5, nb) << "An injector should correctly choose whether to call get() or creat() for a "
+                      "given dependency when dependencies are given with addCtorRecipe.";
 }
 
 TEST_F(Injector_test, noRecipeForTypeWithNoDefaultConstructor) {
@@ -242,9 +327,9 @@ TEST_F(Injector_test, cycleCheck) {
     CycleB &b_;
   };
 
-  injector.addCtorRecipe<CycleA, CycleB>();
-  injector.addCtorRecipe<CycleB, CycleA>();
-  injector.addCtorRecipe<CycleC, CycleB>();
+  injector.addCtorRecipe<CycleA, CycleB &>();
+  injector.addCtorRecipe<CycleB, CycleA &>();
+  injector.addCtorRecipe<CycleC, CycleB &>();
 
   EXPECT_THROW(injector.get<CycleA>(), std::runtime_error)
     << "Injector#get should throw when a dependency cycle is detected";
@@ -257,13 +342,13 @@ TEST_F(Injector_test, cycleCheck) {
 TEST_F(Injector_test, creat) {
   omulator::di::Injector &injector = *pInjector;
 
-  [[maybe_unused]] std::unique_ptr<Klass> k0 = injector.creat<Klass>();
-  [[maybe_unused]] Klass &                k1 = injector.get<Klass>();
+  [[maybe_unused]] Klass  k0 = injector.creat<Klass>();
+  [[maybe_unused]] Klass &k1 = injector.get<Klass>();
 
   EXPECT_EQ(2, Klass::numCalls) << "Injector#creat should return a fresh instance of a given type "
                                    "and not cache it in the injector's type map";
 
-  [[maybe_unused]] std::unique_ptr<Klass> k2 = injector.creat<Klass>();
+  [[maybe_unused]] Klass k2 = injector.creat<Klass>();
 
   EXPECT_EQ(3, Klass::numCalls)
     << "Injector#creat should return a fresh instance of a given type each time it is called";
@@ -325,8 +410,8 @@ TEST_F(Injector_test, orderOfDestruction) {
   {
     omulator::di::Injector injector;
 
-    injector.addCtorRecipe<B, A>();
-    injector.addCtorRecipe<C, B>();
+    injector.addCtorRecipe<B, A &>();
+    injector.addCtorRecipe<C, B &>();
 
     [[maybe_unused]] auto &b = injector.get<B>();
     [[maybe_unused]] auto &d = injector.get<D>();

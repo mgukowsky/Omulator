@@ -27,6 +27,7 @@ public:
   TypeContainer(TypeContainer &&)           = default;
   TypeContainer &operator=(TypeContainer &&) = default;
 
+  inline T *ptr() const noexcept { return ptr_; }
   inline T &ref() const noexcept { return *ptr_; }
 
   // Used for two-phase initialization when a container should own a new instance of T.

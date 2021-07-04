@@ -20,6 +20,44 @@
 namespace omulator::di {
 using util::TypeString;
 
+/**
+ * A class responsible for dependency injection. Can be used as a global service locator, but need
+ * not be treated as a singleton. Types managed by the injector need not be aware of this injector,
+ * as dependencies are injected via constructors. Types managed by the injector must be
+ * move-constructible (e.g. so they can be moved out of the recipe function where they are created),
+ * but need not be copy-constructible.
+ *
+ * Instances of a given type are lazily created as they are requested with Injector#get, or
+ * repeatedly created using Injector#creat. Type instances are creating using "recipes", which are
+ * callbacks that return a type-erasing Container_t and receive the instance of the injector on
+ * which the get() or creat() methods were invoked. While it is perfectly acceptible for a recipe to
+ * return a Container_t directly, it is recommended to wrap the new instance of type T created by
+ * the recipe using Injector#containerize and have the recipe return this wrapped value.
+ *
+ * Injector instances contain an internal table of these recipe functions which are used to
+ * instantiate type instances. If a recipe for a given type T has been added via addRecipes, that
+ * recipe will be invoked when an instance of type T is requested (either when creat() is called or
+ * the first time get<T>() is invoked for type T).
+ *
+ * If a recipe is default-initializable, the injector does not need to have a recipe for it. As
+ * such, if an instance of type T is requested and no recipe for T has been added, the injector will
+ * attempt to default-initialize T. If this fails, the injector will throw an error indicating that
+ * it has no recipe for T and that T is not default initializable.
+ *
+ * For types that are not default-initializable but have a simple constructor, the
+ * addCtorRecipe()<T, ...Ts> method can be used to automatically add a recipe for type T which will
+ * call the constructor T((Ts)...). For TDep in Ts, the injector will call get() if TDep is an
+ * lvalue reference type, otherwise creat() will be called to create a new instance of (decayed)
+ * TDep.
+ *
+ * It is also possible for the type to hold a polymorphic interface bound to a specific
+ * implementation using the bindImpl() method. Once bindImpl() is invoked, subsequent calls to get()
+ * will return a reference to the given interface pointing to the given implementation (N.B. that
+ * creat() should not be used with an interface type if it is an abstract class).
+ *
+ * Lastly, get() and creat() will throw an exception if a circular dependency is detected (e.g. T
+ * invokes the constructor of U, which invokes the constructor of T, etc.)
+ */
 class Injector {
 public:
   using Container_t = std::unique_ptr<TypeContainerBase>;
@@ -38,17 +76,18 @@ public:
 
   /**
    * Create and add a recipe for T which will create an instance of T by calling T(Ts...). Will
-   * only accept Ts if T has a constructor that accepts references of all of the types in Ts in
+   * only accept Ts if T has a constructor that accepts all of the types in Ts in
    * order. Types with other constructor requirements should create a custom recipe with
    * addRecipes().
    */
-  template<typename T, typename... Ts>
+  template<typename Raw_t, typename... Ts>
   void addCtorRecipe() {
-    static_assert(std::constructible_from<T, std::add_lvalue_reference_t<InjType_t<Ts>>...>,
+    using T = InjType_t<Raw_t>;
+    static_assert(std::constructible_from<T, Ts...>,
                   "Injector#addCtorRecipe<T, ...Ts> will only accept Ts if T has a constructor "
                   "that accepts the arguments (Ts&...)");
     auto recipe = [](Injector &injector) {
-      T *pT = new T(injector.get<InjType_t<Ts>>()...);
+      T *pT = new T(injector.ctorArgDispatcher_<Ts>(injector)...);
       return injector.containerize(pT);
     };
     addRecipes({{TypeHash<T>, recipe}});
@@ -96,6 +135,10 @@ public:
     addRecipes({{TypeHash<Interface>, recipe}});
   }
 
+  /**
+   * Not the prettiest function in the world, but provides a nice convenience function for type
+   * erasure.
+   */
   template<typename T>
   Container_t containerize(T *pT) {
     std::unique_ptr<TypeContainer<T>> pCtr = std::make_unique<TypeContainer<T>>();
@@ -110,9 +153,11 @@ public:
    *
    * TODO: Add an option to cache the dependencies for T to allow for a fast allocation path that
    * can bypass locks and map lookups.
+   *
+   * TODO: Add cycle checking to this method as well
    */
   template<typename T>
-  std::unique_ptr<T> creat() {
+  T creat() {
     TypeContainer<T> ctr = inject_<T>(true);
     if(!ctr.has_value()) {
       std::string s("Failed to create value of type ");
@@ -120,10 +165,11 @@ public:
       throw std::runtime_error(s);
     }
 
-    T *ptr = ctr.release();
-
-    // N.B. the caller now owns the new instance
-    return std::unique_ptr<T>(ptr);
+    // This is slightly awkward, but what we are doing here is moving the value out of the
+    // container. The container still owns the pointer and will correctly deallocate the memory,
+    // however the value it points to is moved here and returned to the user as a fresh instance of
+    // T.
+    return std::move(*(ctr.ptr()));
   }
 
   /**
@@ -168,10 +214,29 @@ public:
 
 private:
   /**
+   * Dispatches to get() and returns a reference if Raw_t is a reference type, otherwise, decays to
+   * T, calling creat() and returning this new instance of T.
+   */
+  template<
+    typename Raw_t,
+    typename T = std::conditional_t<std::is_lvalue_reference_v<Raw_t>, Raw_t, InjType_t<Raw_t>>>
+  T ctorArgDispatcher_(Injector &injector) {
+    if constexpr(std::is_lvalue_reference_v<T>) {
+      return injector.get<T>();
+    }
+    else {
+      return injector.creat<T>();
+    }
+  }
+
+  /**
    * Perform the actual injection.
    * N.B. that Opt_t is necessary to prevent TypeContainer from receiving an abstract interface as a
    * type argument, as this would lead to compiler errors in generating code to store the abstract
    * interface in the TypeContainer instance.
+   *
+   * N.B. we validate the move constructible requirement (but not for interfaces) here, since the
+   * public API calls all eventually end up in this function.
    */
   template<typename T, typename Opt_t = std::conditional_t<std::is_abstract_v<T>, int, T>>
   TypeContainer<Opt_t> inject_(const bool forwardValue = false) {
@@ -194,6 +259,9 @@ private:
       recipeMap_.at(TypeHash<T>)(*this);
     }
     else {
+      static_assert(std::is_move_constructible_v<T>,
+                    "Types managed by the Injector class must be move-constructible (with the "
+                    "exception of abstract classes).");
       if(recipeIt != recipeMap_.end()) {
         // The container returned by a recipe need not contain a value (e.g. in the case of an
         // interface that has an associated implementation).
