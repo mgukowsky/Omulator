@@ -315,6 +315,16 @@ TEST_F(Injector_test, addCtorRecipe) {
   };
   injector.addCtorRecipe<RefAValB, A &, B>();
 
+  class RefAPtrB {
+  public:
+    RefAPtrB(A &a, B *b) : a_(a), b_(b) { }
+
+  private:
+    A &a_;
+    B *b_;
+  };
+  injector.addCtorRecipe<RefAPtrB, A &, B *>();
+
   [[maybe_unused]] ValAValB &vavb = injector.get<ValAValB>();
   EXPECT_EQ(1, na) << "An injector should call creat() to resolve dependencies when addCtorRecipe "
                       "receives those dependencies as value types.";
@@ -356,6 +366,13 @@ TEST_F(Injector_test, addCtorRecipe) {
                       "given dependency when dependencies are given with addCtorRecipe.";
 
   [[maybe_unused]] RefAValB ravb2 = injector.creat<RefAValB>();
+  EXPECT_EQ(3, na) << "An injector should correctly choose whether to call get() or creat() for a "
+                      "given dependency when dependencies are given with addCtorRecipe.";
+  EXPECT_EQ(5, nb) << "An injector should correctly choose whether to call get() or creat() for a "
+                      "given dependency when dependencies are given with addCtorRecipe.";
+
+  // Pointer types of constructor arguments should be handled like reference types
+  [[maybe_unused]] RefAPtrB rapb = injector.creat<RefAPtrB>();
   EXPECT_EQ(3, na) << "An injector should correctly choose whether to call get() or creat() for a "
                       "given dependency when dependencies are given with addCtorRecipe.";
   EXPECT_EQ(5, nb) << "An injector should correctly choose whether to call get() or creat() for a "

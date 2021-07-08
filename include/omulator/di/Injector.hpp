@@ -216,15 +216,19 @@ public:
 
 private:
   /**
-   * Dispatches to get() and returns a reference if Raw_t is a reference type, otherwise, decays to
-   * T, calling creat() and returning this new instance of T.
+   * Used internally by addCtorRecipe, dispatches to the appropriate behavior depending on the
+   * qualifiers of Raw_t. N.B. that a new instance of T will be created if Raw_t is neither a
+   * reference nor a pointer.
    */
   template<
     typename Raw_t,
     typename T = std::conditional_t<std::is_lvalue_reference_v<Raw_t>, Raw_t, InjType_t<Raw_t>>>
-  T ctorArgDispatcher_(Injector &injector) {
+  std::conditional_t<std::is_pointer_v<Raw_t>, Raw_t, T> ctorArgDispatcher_(Injector &injector) {
     if constexpr(std::is_lvalue_reference_v<T>) {
       return injector.get<T>();
+    }
+    else if constexpr(std::is_pointer_v<Raw_t>) {
+      return &(injector.get<T>());
     }
     else {
       return injector.creat<T>();
