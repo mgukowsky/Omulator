@@ -63,6 +63,20 @@ class OmulatorBuilder
     FileUtils.rm_r(OUTPUT_DIR, force: true, verbose: true)
   end
 
+  # Generate lcov report
+  def coverage
+    if @build_type != 'Debug' || !(@toolchain.match(/^gcc$/))
+      puts "Cannot create coverage report; build type must be 'Debug' and the gcc toolchain must be used"
+      return
+    end
+
+    test
+    spawn_cmd "lcov --capture --directory #{@build_dir} --output-file #{@build_dir}/coverage.info"
+    spawn_cmd "genhtml #{@build_dir}/coverage.info --output-directory #{@build_dir}/coverage"
+
+    puts "Coverage report generated successfully in #{@build_dir}/coverage"
+  end
+
   def exec
     oml = "#{@build_dir}/Omulator"
     oml += ".exe" if (@toolchain == ("msvc" || "clang-cl"))

@@ -251,6 +251,7 @@ function(config_for_gcc target_name)
       -march=broadwell
 
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:-g -O0>
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:$<$<CXX_COMPILER_ID:GNU>:--coverage>>
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:-O3 -fomit-frame-pointer>
   )
 
@@ -259,6 +260,7 @@ function(config_for_gcc target_name)
     PUBLIC
       # -rdynamic can help play nicely with backtraces
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:-g -rdynamic>
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:$<$<CXX_COMPILER_ID:GNU>:--coverage>>
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:-Wl,-O3>
 
       # --relax enables global addressing optimizations if using GCC
