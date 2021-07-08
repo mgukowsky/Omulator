@@ -13,14 +13,24 @@ struct MemBlock {
 };
 }  // namespace
 
-TEST(ObjectPool_test, getAnObj) {
+class ObjectPool_test : public ::testing::Test {
+public:
+  ObjectPool_test() {
+#if defined(OML_COMPILER_MSVC) || defined(OML_COMPILER_CLANG_CL)
+// Prevent death tests from returning false negatives in Visual Studio
+    _CrtSetReportHook2(_CRT_RPTHOOK_INSTALL, [](int, char*, int*) -> int { return true; });
+#endif
+  }
+};
+
+TEST_F(ObjectPool_test, getAnObj) {
   omulator::util::ObjectPool<MemBlock> op(4);
   MemBlock *i = op.get();
   i->data[0]  = 0x12;
   EXPECT_EQ(i->data[0], 0x12) << "ObjectPool must return valid memory";
 }
 
-TEST(ObjectPool_test, returnToPool) {
+TEST_F(ObjectPool_test, returnToPool) {
   omulator::util::ObjectPool<MemBlock> op(4);
   MemBlock *i  = op.get();
   MemBlock *i2 = op.get();
@@ -42,7 +52,7 @@ TEST(ObjectPool_test, returnToPool) {
                                   "placed in a FIFO structure";
 }
 
-TEST(ObjectPool_test, growth) {
+TEST_F(ObjectPool_test, growth) {
   omulator::util::ObjectPool<MemBlock> op(2);
   EXPECT_EQ(op.size(), 2) << "ObjectPools should be initialized to their requested size";
 
@@ -68,7 +78,7 @@ TEST(ObjectPool_test, growth) {
   EXPECT_EQ(op.size(), 12) << "ObjectPool should grow by a factor of 1.5";
 }
 
-TEST(ObjectPool_test, stress) {
+TEST_F(ObjectPool_test, stress) {
   omulator::util::ObjectPool<MemBlock> op(2);
   std::map<int, MemBlock *> memBlockMap;
 
@@ -86,7 +96,7 @@ TEST(ObjectPool_test, stress) {
   }
 }
 
-TEST(ObjectPool_test, returnForeignMemToPool) {
+TEST_F(ObjectPool_test, returnForeignMemToPool) {
 #ifndef NDEBUG
   ASSERT_DEATH(
     {
