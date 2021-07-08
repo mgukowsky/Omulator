@@ -215,6 +215,18 @@ TEST_F(Injector_test, interfaceAndImplementation) {
 
   EXPECT_EQ(2, Impl::numCalls) << "When invoking Injector#creat, an implementation bound to an "
                                   "interface should only invoke its constructor once";
+
+  injector.addRecipe<Impl>([&](omulator::di::Injector &inj) {
+    Impl *pImpl = new Impl;
+    ++na;
+    return inj.containerize(pImpl);
+  });
+
+  [[maybe_unused]] Impl impl3 = injector.creat<Impl>();
+
+  EXPECT_EQ(1, na)
+    << "When invoking Injector#creat for an implementation bound to an interface, the most recent "
+       "recipe added for the implementation should be invoked";
 }
 
 TEST_F(Injector_test, missingInterfaceImplementation) {
