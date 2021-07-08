@@ -130,6 +130,11 @@ public:
    * Bind an interface to an implementation. More concretely, force Injector#get<Interface>
    * to call and return Injector#get<Implementation> instead by creating a specialized recipe for
    * Interface.
+   *
+   * IMPORTANT: Calling creat<Implementation>(), even after using this method, will call the
+   * constructor for the interface TWICE (once during construction of the Implementation instance,
+   * and again when the move constructor for Implementation calls the constructor for the
+   * Interface).
    */
   template<typename RawInterface,
            typename RawImplementation,
@@ -168,8 +173,6 @@ public:
    *
    * TODO: Add an option to cache the dependencies for T to allow for a fast allocation path that
    * can bypass locks and map lookups.
-   *
-   * TODO: Add cycle checking to this method as well
    */
   template<typename Raw_t, typename T = InjType_t<Raw_t>>
   T creat() {
@@ -297,6 +300,10 @@ private:
     return retval;
   }
 
+  /**
+   * Abstracts away logic between get() and creat() that performs cycle checking and guarding access
+   * to the TypeMap instance.
+   */
   template<typename T, typename Opt_t = std::conditional_t<std::is_abstract_v<T>, int, T>>
   TypeContainer<Opt_t> makeDependency_(const bool forwardValue = false) {
     TypeContainer<Opt_t> retval;

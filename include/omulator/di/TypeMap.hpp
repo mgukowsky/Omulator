@@ -10,6 +10,8 @@
 #include <utility>
 
 namespace omulator::di {
+
+// Container providing type erasure
 class TypeContainerBase {
 public:
   virtual ~TypeContainerBase() = default;
@@ -24,8 +26,10 @@ public:
 
   TypeContainer(TypeContainer &) = delete;
   TypeContainer &operator=(TypeContainer &) = delete;
-  TypeContainer(TypeContainer &&rhs) { *this = TypeContainer(std::move(rhs)); }
 
+  // We have to define custom move operations for this type. Without this, the default move ops
+  // would keep hasOwnership_ true in the moved-from instance, leading to a double-free error.
+  TypeContainer(TypeContainer &&rhs) { *this = TypeContainer(std::move(rhs)); }
   TypeContainer &operator=(TypeContainer &&rhs) {
     this->ptr_          = rhs.ptr_;
     this->hasOwnership_ = rhs.hasOwnership_;
