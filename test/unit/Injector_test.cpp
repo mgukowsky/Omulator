@@ -8,7 +8,8 @@
 #include <memory>
 #include <vector>
 
-constexpr int MAGIC = 42;
+constexpr int MAGIC  = 42;
+constexpr int DMAGIC = MAGIC * 2;
 struct Klass {
   int               x;
   inline static int numCalls = 0;
@@ -89,7 +90,6 @@ TEST_F(Injector_test, defaultConstructibleTypes) {
 
 TEST_F(Injector_test, recipeInvocation) {
   omulator::di::Injector &injector = *pInjector;
-  constexpr int           DMAGIC   = MAGIC * 2;
 
   omulator::di::Injector::RecipeMap_t recipes{
     {omulator::di::TypeHash<Klass>, []([[maybe_unused]] omulator::di::Injector &inj) {
@@ -135,8 +135,9 @@ TEST_F(Injector_test, recipeLifetime) {
 
   auto &k1 = injector.get<Klass>();
 
-  EXPECT_EQ(1, k1.x) << "An injector should ignore a recipe given for a given type if a recipe for "
-                        "that type has been previously submitted";
+  EXPECT_EQ(2, k1.x)
+    << "When invoking Injector#get<T> for the first time (i.e. before an instance of T has been "
+       "instantiated), the most recent recipe submitted to the injector should be used.";
 
   omulator::di::Injector::RecipeMap_t thirdRecipe{
     {omulator::di::TypeHash<Klass>, [&]([[maybe_unused]] omulator::di::Injector &inj) {
@@ -148,12 +149,13 @@ TEST_F(Injector_test, recipeLifetime) {
   injector.addRecipes(thirdRecipe);
 
   auto &k2 = injector.get<Klass>();
-  EXPECT_EQ(1, k2.x) << "An injector should ignore a recipe given for a given type if a recipe for "
-                        "that type has been previously submitted";
+  EXPECT_EQ(2, k2.x)
+    << "Invocations of Injector#get<T> after the first invocation should not attempt to utilize a "
+       "recipe to instantiate a new instance of T, regardless of when the recipe was submitted.";
 
-  EXPECT_EQ(1, recipeInvocations[0]) << "An injector should ignore a recipe given for a given type "
+  EXPECT_EQ(0, recipeInvocations[0]) << "An injector should ignore a recipe given for a given type "
                                         "if a recipe for that type has been previously submitted";
-  EXPECT_EQ(0, recipeInvocations[1]) << "An injector should ignore a recipe given for a given type "
+  EXPECT_EQ(1, recipeInvocations[1]) << "An injector should ignore a recipe given for a given type "
                                         "if a recipe for that type has been previously submitted";
   EXPECT_EQ(0, recipeInvocations[2]) << "An injector should ignore a recipe given for a given type "
                                         "if a recipe for that type has been previously submitted";
@@ -352,6 +354,31 @@ TEST_F(Injector_test, creat) {
 
   EXPECT_EQ(3, Klass::numCalls)
     << "Injector#creat should return a fresh instance of a given type each time it is called";
+
+  omulator::di::Injector::RecipeMap_t recipes{
+    {omulator::di::TypeHash<Klass>, []([[maybe_unused]] omulator::di::Injector &inj) {
+       Klass *k = new Klass;
+       k->x     = DMAGIC;
+       return inj.containerize(k);
+     }}};
+  injector.addRecipes(recipes);
+
+  Klass k3 = injector.creat<Klass>();
+
+  omulator::di::Injector::RecipeMap_t moreRecipes{
+    {omulator::di::TypeHash<Klass>, []([[maybe_unused]] omulator::di::Injector &inj) {
+       Klass *k = new Klass;
+       k->x     = DMAGIC * 2;
+       return inj.containerize(k);
+     }}};
+  injector.addRecipes(moreRecipes);
+
+  Klass k4 = injector.creat<Klass>();
+
+  EXPECT_EQ(DMAGIC, k3.x) << "creat<T> should invoke the recipe for T if one is present, even if "
+                             "no recipe was present during previous calls to creat<T>";
+  EXPECT_EQ(DMAGIC * 2, k4.x) << "creat<T> should invoke the most recent recipe which has been "
+                                 "added to the Injector instance";
 }
 
 TEST_F(Injector_test, ignoreQualifiers) {

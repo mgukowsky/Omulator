@@ -13,6 +13,7 @@
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -94,15 +95,29 @@ public:
   }
 
   /**
-   * Add recipes which should be called for specific types instead as an alternative
-   * to the default injector behavior, which is to invoke the type's constructor with
-   * the lowest arity.
+   * Add a recipe which should be called for a specific type instead as an alternative
+   * to the default injector behavior, which is to attempt to default construct an instance of the
+   * requested type.
    *
    * It is recommended that recipe callbacks make use of Injector#containerize in order to ensure
    * the correct return type.
    *
-   * N.B. since this function calls std::map#merge under the hood, newRecipes will be INVALIDATED
-   * after this function is invoked!;
+   * If a recipe for type T has been previously added, it will be overwritten by the argument given
+   * to this function.
+   */
+  void addRecipe(const Hash_t     hsh,
+                 const Recipe_t   recipe,
+                 std::string_view tname = "<type name unavailable>");
+
+  /**
+   * Alternative API for addRecipe.
+   */
+  template<typename Raw_t, typename T = InjType_t<Raw_t>>
+  requires std::move_constructible<T>
+  void addRecipe(const Recipe_t recipe) { addRecipe(TypeHash<T>, recipe, TypeString<T>); }
+
+  /**
+   * Batched version of addRecipe.
    */
   void addRecipes(RecipeMap_t &newRecipes);
 
