@@ -171,9 +171,15 @@ public:
    *
    * TODO: Add cycle checking to this method as well
    */
-  template<typename T>
+  template<typename Raw_t, typename T = InjType_t<Raw_t>>
   T creat() {
-    TypeContainer<T> ctr = inject_<T>(true);
+    static_assert(
+      !std::is_abstract_v<T>,
+      "An instance of an abstract type cannot be created using Injector#creat(), even if it was "
+      "already bound to an implementation with bindImpl<T, implementation>, as this would require "
+      "instantiating an abstract type. As an alternative, use Injector#get<T>, or create an "
+      "instance of the implementation type with Injector#creat<implementation>");
+    TypeContainer<T> ctr = makeDependency_<T>(true);
     if(!ctr.has_value()) {
       std::string s("Failed to create value of type ");
       s += util::TypeString<T>;
@@ -195,29 +201,7 @@ public:
   template<typename Raw_t, typename T = InjType_t<Raw_t>>
   T &get() {
     if(!typeMap_.has_key<T>()) {
-      const auto thash = TypeHash<T>;
-      if(isInCycleCheck_) {
-        if(typeHashStack_.contains(thash)) {
-          std::string s("Dependency cycle detected for type ");
-          s += TypeString<T>;
-          throw std::runtime_error(s);
-        }
-        typeHashStack_.insert(thash);
-        inject_<T>();
-      }
-      else {
-        // Lock the mutex since we're at the top level of a dependency injection
-        std::scoped_lock lck(mtx_);
-        isInCycleCheck_ = true;
-
-        // 2 line DRY violation here, but less ugly alternatives.
-        typeHashStack_.insert(thash);
-        inject_<T>();
-        isInCycleCheck_ = false;
-      }
-
-      typeHashStack_.erase(thash);
-      invocationList_.push_back(thash);
+      makeDependency_<T>();
     }
     // TODO: there should be no harm in executing this code in parallel without a lock, since we
     // don't make use of any functions that invalidate typeMap_'s iterators, however it might not
@@ -308,6 +292,42 @@ private:
           "Could not create instance of type because it was not default initializable and there "
           "was no recipe available. Perhaps use Injector#addCtorRecipe");
       }
+    }
+
+    return retval;
+  }
+
+  template<typename T, typename Opt_t = std::conditional_t<std::is_abstract_v<T>, int, T>>
+  TypeContainer<Opt_t> makeDependency_(const bool forwardValue = false) {
+    TypeContainer<Opt_t> retval;
+
+    const auto thash = TypeHash<T>;
+    if(isInCycleCheck_) {
+      if(typeHashStack_.contains(thash)) {
+        std::string s("Dependency cycle detected for type ");
+        s += TypeString<T>;
+        throw std::runtime_error(s);
+      }
+      typeHashStack_.insert(thash);
+      retval = inject_<T>(forwardValue);
+    }
+    else {
+      // Lock the mutex since we're at the top level of a dependency injection
+      std::scoped_lock lck(mtx_);
+      isInCycleCheck_ = true;
+
+      // 2 line DRY violation here, but less ugly than the alternatives.
+      typeHashStack_.insert(thash);
+      retval          = inject_<T>(forwardValue);
+      isInCycleCheck_ = false;
+    }
+
+    typeHashStack_.erase(thash);
+
+    // If we're not calling with creat(), then we're creating the instance being placed in the type
+    // map, so record when it was instantiated.
+    if(!forwardValue) {
+      invocationList_.push_back(thash);
     }
 
     return retval;

@@ -24,8 +24,15 @@ public:
 
   TypeContainer(TypeContainer &) = delete;
   TypeContainer &operator=(TypeContainer &) = delete;
-  TypeContainer(TypeContainer &&)           = default;
-  TypeContainer &operator=(TypeContainer &&) = default;
+  TypeContainer(TypeContainer &&rhs) { *this = TypeContainer(std::move(rhs)); }
+
+  TypeContainer &operator=(TypeContainer &&rhs) {
+    this->ptr_          = rhs.ptr_;
+    this->hasOwnership_ = rhs.hasOwnership_;
+    rhs.hasOwnership_   = false;
+
+    return *this;
+  }
 
   inline T *ptr() const noexcept { return ptr_; }
   inline T &ref() const noexcept { return *ptr_; }

@@ -35,8 +35,22 @@ public:
 class Impl : public Base {
 public:
   Impl() { ++numCalls; }
-  ~Impl() override           = default;
-  inline static int numCalls = 0;
+  ~Impl() override = default;
+
+  Impl(const Impl &) { ++numCopyCalls; }
+  Impl &operator=(const Impl &) {
+    ++numCopyCalls;
+    return *this;
+  }
+  Impl(Impl &&) { ++numMoveCalls; }
+  Impl &operator=(Impl &&) {
+    ++numMoveCalls;
+    return *this;
+  }
+
+  inline static int numCalls     = 0;
+  inline static int numCopyCalls = 0;
+  inline static int numMoveCalls = 0;
   int               getnum() override { return MAGIC; }
 };
 
@@ -52,9 +66,11 @@ std::unique_ptr<omulator::di::Injector> pInjector;
 class Injector_test : public ::testing::Test {
 protected:
   void SetUp() override {
-    Klass::numCalls = 0;
-    Base::numCalls  = 0;
-    Impl::numCalls  = 0;
+    Klass::numCalls    = 0;
+    Base::numCalls     = 0;
+    Impl::numCalls     = 0;
+    Impl::numCopyCalls = 0;
+    Impl::numMoveCalls = 0;
     v.clear();
     na    = 0;
     nb    = 0;
@@ -183,6 +199,22 @@ TEST_F(Injector_test, interfaceAndImplementation) {
 
   EXPECT_EQ(MAGIC, base.getnum())
     << "An interface bound to an implementation should reference the correct implementation";
+
+  EXPECT_EQ(MAGIC, impl.getnum())
+    << "An interface bound to an implementation should reference the correct implementation";
+
+  [[maybe_unused]] Impl impl2 = injector.creat<Impl>();
+
+  // N.B. The constructor for the interface will be called twice, because the move constructor for
+  // the implementation (which Injector#create calls in order to return its value) will call the
+  // default constructor for the interface when using Injector#creat. Since the Injector has no
+  // control over this, we choose to ignore it here, but users should consider this behavior when
+  // using the Injector API.
+  EXPECT_EQ(3, Base::numCalls) << "When invoking Injector#creat, an interface bound to an "
+                                  "implementation should only invoke its constructor once";
+
+  EXPECT_EQ(2, Impl::numCalls) << "When invoking Injector#creat, an implementation bound to an "
+                                  "interface should only invoke its constructor once";
 }
 
 TEST_F(Injector_test, missingInterfaceImplementation) {
@@ -191,6 +223,31 @@ TEST_F(Injector_test, missingInterfaceImplementation) {
   EXPECT_THROW(injector.get<Base>(), std::runtime_error)
     << "An injector should throw an error when an interface does not have an associated "
        "implementation";
+}
+
+TEST_F(Injector_test, instanceConstruction) {
+  omulator::di::Injector &injector = *pInjector;
+
+  injector.bindImpl<Base, Impl>();
+
+  [[maybe_unused]] Impl &impl1 = injector.get<Impl>();
+  [[maybe_unused]] Impl &impl2 = injector.get<Impl>();
+
+  EXPECT_EQ(1, Impl::numCalls) << "When creating an instance of a given type T using Injector#get, "
+                                  "T's constructor should only be invoked once";
+  EXPECT_EQ(0, Impl::numCopyCalls) << "When creating an instance of a given type T using "
+                                      "Injector#get, T's copy constructor should never be called";
+  EXPECT_EQ(0, Impl::numMoveCalls) << "When creating an instance of a given type T using "
+                                      "Injector#get, T's move constructor should never be called";
+
+  [[maybe_unused]] Impl impl3 = injector.creat<Impl>();
+  EXPECT_EQ(2, Impl::numCalls) << "When creating an instance of a given type T using "
+                                  "Injector#creat, T's constructor should only be invoked once";
+  EXPECT_EQ(0, Impl::numCopyCalls) << "When creating an instance of a given type T using "
+                                      "Injector#creat, T's copy constructor should never be called";
+  EXPECT_EQ(1, Impl::numMoveCalls)
+    << "When creating an instance of a given type T using Injector#creat, T's move constructor "
+       "should only be invoked once";
 }
 
 TEST_F(Injector_test, addCtorRecipe) {
