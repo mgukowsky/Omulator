@@ -6,6 +6,12 @@
 namespace omulator::util {
 
 namespace detail {
+  consteval std::string_view typeStringCommon(std::string_view  rawString,
+                                              const std::size_t startIdx,
+                                              const std::size_t endIdx) {
+    return rawString.substr(startIdx, endIdx);
+  }
+
   /**
    * GCC and clang both place the typename of the type given as T in metastring two characters after
    * and '=' sign (e.g. "... T = "), with a small difference in the first character that comes after
@@ -16,7 +22,20 @@ namespace detail {
     const std::size_t startChar = rawString.find_first_of('=') + 2;
     const std::size_t endChar   = rawString.find_first_of(terminalChar);
 
-    return rawString.substr(startChar, endChar - startChar);
+    return typeStringCommon(rawString, startChar, endChar - startChar);
+  }
+
+  /**
+   * MSVC's mangling is slightly more verbose. The type name will be prefixed by 'metastring',
+   * followed by a '<' character, and will end will a '>)' sequence, which accounts for the +/- 1
+   * offsets in the two indices.
+   */
+  consteval std::string_view msvcTypeString(std::string_view rawString) {
+    const std::string_view startString = "metastring";
+    const std::size_t      startIdx    = rawString.find(startString) + startString.size() + 1;
+    const std::size_t      endIdx      = rawString.find_first_of('(') - 1;
+
+    return rawString.substr(startIdx, endIdx - startIdx);
   }
 
   /**
@@ -26,7 +45,7 @@ namespace detail {
   template<typename T>
   consteval std::string_view metastring() {
 #if defined(OML_COMPILER_MSVC) || defined(OML_COMPILER_CLANG_CL)
-    return __FUNCSIG__;
+    return msvcTypeString(__FUNCSIG__);
 #elif defined(OML_COMPILER_CLANG)
     return gccTypeString(std::string_view(__PRETTY_FUNCTION__), ']');
 #elif defined(OML_COMPILER_GCC)

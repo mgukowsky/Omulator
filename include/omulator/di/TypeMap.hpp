@@ -29,8 +29,8 @@ public:
 
   // We have to define custom move operations for this type. Without this, the default move ops
   // would keep hasOwnership_ true in the moved-from instance, leading to a double-free error.
-  TypeContainer(TypeContainer &&rhs) { *this = TypeContainer(std::move(rhs)); }
-  TypeContainer &operator=(TypeContainer &&rhs) {
+  TypeContainer(TypeContainer &&rhs) noexcept { *this = std::move(rhs); }
+  TypeContainer &operator=(TypeContainer &&rhs) noexcept {
     this->ptr_          = rhs.ptr_;
     this->hasOwnership_ = rhs.hasOwnership_;
     rhs.hasOwnership_   = false;
