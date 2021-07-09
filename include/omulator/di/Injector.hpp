@@ -24,9 +24,15 @@ using util::TypeString;
 /**
  * A class responsible for dependency injection. Can be used as a global service locator, but need
  * not be treated as a singleton. Types managed by the injector need not be aware of this injector,
- * as dependencies are injected via constructors. Types managed by the injector must be
- * move-constructible (e.g. so they can be moved out of the recipe function where they are created),
- * but need not be copy-constructible.
+ * as dependencies are injected via constructors.
+ *
+ * Types managed by the injector must be move-constructible (e.g. so they can be moved out of the
+ * recipe function where they are created), but need not be copy-constructible. Given this
+ * limitation, it is important to note that types which cannot be efficiently moved (i.e.
+ * std::array) should be given consideration when being managed and/or created by this class. In the
+ * case of std::array, a better solution would be to instead manage a wrapper class which
+ * dynamically allocates an instance of the std::array as a member, meaning that the move operation
+ * can be more efficiently as a simple pointer move.
  *
  * Instances of a given type are lazily created as they are requested with Injector#get, or
  * repeatedly created using Injector#creat. Type instances are creating using "recipes", which are
