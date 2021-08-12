@@ -91,22 +91,18 @@ class OmulatorBuilder
 
   # Rerun any tests that previously failed
   def retest
-    Dir.chdir @build_dir
-    spawn_cmd "ctest #{'-VV' if verbose?} #{@jobflag} --rerun-failed --output-on-failure"
-    Dir.chdir @proj_dir
+    spawn_cmd "ctest --test-dir #{@build_dir} #{'-VV' if verbose?} #{@jobflag} --rerun-failed --output-on-failure"
   end
 
   def test
     # First, update build if necessary
     build
-    Dir.chdir @build_dir
     if @testnames != nil
       testnamestring = "-R '#{@testnames.join('|')}'"
     else
       testnamestring = nil
     end
-    spawn_cmd "ctest #{'-VV' if verbose?} #{testnamestring if @testnames} #{@jobflag} --output-on-failure --schedule-random --repeat-until-fail 3"
-    Dir.chdir @proj_dir
+    spawn_cmd "ctest --test-dir #{@build_dir} #{'-VV' if verbose?} #{testnamestring if @testnames} #{@jobflag} --output-on-failure --schedule-random --repeat-until-fail 3"
   end
 
   private
