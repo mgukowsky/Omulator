@@ -15,7 +15,7 @@ function(define_target_arch target_name)
         OML_ARCH_ARM
     )
   else()
-    message(FATAL_ERROR "Unknown architecture...")
+    message(FATAL_ERROR "Unsupported architecture: " ${CMAKE_SYSTEM_PROCESSOR})
   endif()
 endfunction()
 
@@ -45,6 +45,6 @@ function(define_target_compiler target_name)
         OML_COMPILER_CLANG
     )
   else()
-    message(FATAL_ERROR "Unknown compiler: " ${CMAKE_CXX_COMPILER_ID})
+    message(FATAL_ERROR "Unsupported compiler: " ${CMAKE_CXX_COMPILER_ID})
   endif()
 endfunction()
