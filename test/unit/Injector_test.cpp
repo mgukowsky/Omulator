@@ -42,8 +42,8 @@ public:
     ++numCopyCalls;
     return *this;
   }
-  Impl(Impl &&) { ++numMoveCalls; }
-  Impl &operator=(Impl &&) {
+  Impl(Impl &&) noexcept { ++numMoveCalls; }
+  Impl &operator=(Impl &&) noexcept {
     ++numMoveCalls;
     return *this;
   }
