@@ -1,11 +1,17 @@
 #include "omulator/msg/MessageBuffer.hpp"
 
+#include "omulator/util/reinterpret.hpp"
+
 #include <gtest/gtest.h>
+
+#include <cmath>
+#include <cstddef>
 
 using omulator::U16;
 using omulator::U32;
 using omulator::U8;
 using omulator::msg::MessageBuffer;
+using omulator::util::reinterpret;
 
 namespace {
 constexpr int MAGIC = 42;
@@ -16,21 +22,35 @@ TEST(MessageBuffer_test, simpleAlloc) {
 
   EXPECT_TRUE(mb.empty()) << "MessageBuffers should be empty immediately after construction";
 
-  U8 *pAllocation = reinterpret_cast<U8 *>(mb.alloc(MAGIC, 8));
+  constexpr U16 MSG_SIZ     = sizeof(U32);
+  std::byte *   pAllocation = reinterpret_cast<std::byte *>(mb.alloc(MAGIC, MSG_SIZ));
+  MessageBuffer::MessageHeader &header =
+    reinterpret<MessageBuffer::MessageHeader>(pAllocation - MessageBuffer::HEADER_SIZE);
+
   EXPECT_FALSE(mb.empty())
     << "MessageBuffers should no longer be empty immediately following an allocation";
 
   *(reinterpret_cast<U32 *>(pAllocation)) = 0x1234'5678;
 
-  U8 *pAllocation2 = reinterpret_cast<U8 *>(mb.alloc(MAGIC + 1, 8));
+  std::byte *pAllocation2 = reinterpret_cast<std::byte *>(mb.alloc(MAGIC + 1, MSG_SIZ));
+  MessageBuffer::MessageHeader &header2 =
+    reinterpret<MessageBuffer::MessageHeader>(pAllocation2 - MessageBuffer::HEADER_SIZE);
 
-  EXPECT_EQ(MAGIC, *(reinterpret_cast<U16 *>(pAllocation - 8)))
+  EXPECT_EQ(MAGIC, header.id)
     << "MessageBuffers should correctly record the ID of an allocated message";
   EXPECT_EQ(0x1234'5678, *(reinterpret_cast<U32 *>(pAllocation)))
     << "Headers for MessageBuffer allocations should not overwrite previously allocated memory "
        "within the message buffer";
-  EXPECT_EQ(MAGIC + 1, *(reinterpret_cast<U16 *>(pAllocation2 - 8)))
+  EXPECT_EQ(MAGIC + 1, header2.id)
     << "MessageBuffers should correctly record the ID of an allocated message";
+
+  const std::ptrdiff_t allocDistance = std::abs(pAllocation2 - pAllocation);
+  EXPECT_EQ(allocDistance, header.offsetNext)
+    << "Allocations within MessageBuffers should point to the next message in the buffer, if one "
+       "exists";
+  EXPECT_EQ(MessageBuffer::HEADER_SIZE + MSG_SIZ, header2.offsetNext)
+    << "The MessageHeader for the last allocation within a MessageBuffer should point to the "
+       "memory directly after the allocation, where the next MessageHeader will be placed";
 }
 
 TEST(MessageBuffer_test, maxAllocation) {
