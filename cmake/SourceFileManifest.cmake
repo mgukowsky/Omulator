@@ -7,6 +7,7 @@ set(
     src/scheduler/Worker.cpp
     src/scheduler/WorkerPool.cpp
     src/SpdlogLogger.cpp
+    src/util/exception_handler.cpp
     ${PLATFORM_DIR}/CPUIdentifier.cpp
     ${PLATFORM_DIR}/PrimitiveIO.cpp
 )

@@ -1,6 +1,7 @@
 #include "omulator/util/ObjectPool.hpp"
 
 #include "mocks/PrimitiveIOMock.hpp"
+#include "mocks/exception_handler_mock.hpp"
 
 #include <gtest/gtest.h>
 
@@ -17,25 +18,25 @@ class ObjectPool_test : public ::testing::Test {
 public:
   ObjectPool_test() {
 #if defined(OML_COMPILER_MSVC) || defined(OML_COMPILER_CLANG_CL)
-// Prevent death tests from returning false negatives in Visual Studio
-    _CrtSetReportHook2(_CRT_RPTHOOK_INSTALL, [](int, char*, int*) -> int { return true; });
+    // Prevent death tests from returning false negatives in Visual Studio
+    _CrtSetReportHook2(_CRT_RPTHOOK_INSTALL, [](int, char *, int *) -> int { return true; });
 #endif
   }
 };
 
 TEST_F(ObjectPool_test, getAnObj) {
   omulator::util::ObjectPool<MemBlock> op(4);
-  MemBlock *i = op.get();
-  i->data[0]  = 0x12;
+  MemBlock *                           i = op.get();
+  i->data[0]                             = 0x12;
   EXPECT_EQ(i->data[0], 0x12) << "ObjectPool must return valid memory";
 }
 
 TEST_F(ObjectPool_test, returnToPool) {
   omulator::util::ObjectPool<MemBlock> op(4);
-  MemBlock *i  = op.get();
-  MemBlock *i2 = op.get();
-  i->data[0]   = 0x12;
-  i2->data[0]  = 0x34;
+  MemBlock *                           i  = op.get();
+  MemBlock *                           i2 = op.get();
+  i->data[0]                              = 0x12;
+  i2->data[0]                             = 0x34;
 
   auto addrI  = i;
   auto addrI2 = i2;
@@ -80,7 +81,7 @@ TEST_F(ObjectPool_test, growth) {
 
 TEST_F(ObjectPool_test, stress) {
   omulator::util::ObjectPool<MemBlock> op(2);
-  std::map<int, MemBlock *> memBlockMap;
+  std::map<int, MemBlock *>            memBlockMap;
 
   for(int i = 0; i < 1000; ++i) {
     memBlockMap.emplace(std::make_pair(i, op.get()));
@@ -101,7 +102,7 @@ TEST_F(ObjectPool_test, returnForeignMemToPool) {
   ASSERT_DEATH(
     {
       omulator::util::ObjectPool<MemBlock> op(4);
-      MemBlock foreignMem;
+      MemBlock                             foreignMem;
       op.return_to_pool(&foreignMem);
     },
     "")
