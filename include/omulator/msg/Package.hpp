@@ -84,7 +84,7 @@ private:
   MessageBuffer &head_;
   MessageBuffer *current_;
 
-  void *try_alloc_(const U32 id, const std::size_t size);
+  void *try_alloc_(const U32 id, const MessageBuffer::Offset_t size);
 };
 
 }  // namespace omulator::msg

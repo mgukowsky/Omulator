@@ -14,6 +14,8 @@ namespace omulator::msg {
  */
 class MessageBuffer {
 public:
+  using Offset_t = U16;
+
   /**
    * A control structure containing meta-information about the message which directly proceeds it.
    */
@@ -28,8 +30,8 @@ public:
      * Offset of the next MessageHeader from the start of this struct (i.e. inclusive of
      * HEADER_SIZE).
      */
-    U16 offsetNext;
-    U16 reserved_;
+    Offset_t offsetNext;
+    Offset_t reserved_;
   };
 
   /**
@@ -41,7 +43,7 @@ public:
    * @param id An identifier for the message, which need not be unique
    * @param size The size, in bytes, to allocate within the MessageBuffer
    */
-  void *alloc(const U32 id, const std::size_t size);
+  void *alloc(const U32 id, const Offset_t size);
 
   /**
    * Return the first MessageHeader in the buffer, or nullptr if it's empty.
@@ -59,8 +61,8 @@ public:
   MessageBuffer *next_buff() const noexcept;
   MessageBuffer *next_buff(MessageBuffer *pNext) noexcept;
 
-  U16 offsetFirst() const noexcept;
-  U16 offsetLast() const noexcept;
+  Offset_t offsetFirst() const noexcept;
+  Offset_t offsetLast() const noexcept;
 
   /**
    * MessageBuffer needs to be a trivial type since it is intended to be resused (e.g. as part of an
@@ -76,9 +78,9 @@ public:
    * The size of the buffer is somewhat arbitrary, but we want it to be somewhat cache-friendly. We
    * use a buffer of 8K, or roughly 2 standard pages on x64.
    */
-  static constinit const std::size_t BUFFER_SIZE  = 0x2000;
-  static constinit const std::size_t HEADER_SIZE  = sizeof(MessageHeader);
-  static constinit const std::size_t MAX_MSG_SIZE = BUFFER_SIZE - sizeof(MessageHeader);
+  static constinit const Offset_t BUFFER_SIZE  = 0x2000;
+  static constinit const Offset_t HEADER_SIZE  = sizeof(MessageHeader);
+  static constinit const Offset_t MAX_MSG_SIZE = BUFFER_SIZE - sizeof(MessageHeader);
 
   /**
    * Factory convenience function to create and initialize a MessageBuffer.
@@ -86,7 +88,7 @@ public:
   static MessageBuffer make_buff();
 
 private:
-  bool can_alloc_(const std::size_t size) const noexcept;
+  bool can_alloc_(const Offset_t size) const noexcept;
 
   /**
    * The encapsulated buffer. N.B. this is not allocated on the separately on the heap; it is part
@@ -106,7 +108,7 @@ private:
    * Distance in bytes from the start of buff_ to the location within buff_ of the first
    * MessageHeader.
    */
-  U16 offsetFirst_;
+  Offset_t offsetFirst_;
 
   /**
    * Distance in bytes from the start of buff_ to the location within buff_ where the next
@@ -115,7 +117,7 @@ private:
    * N.B. that this should not be dereferenced directly; similar to a std::end iterator this may
    * point at or past the end of buff_!
    */
-  U16 offsetLast_;
+  Offset_t offsetLast_;
 };
 
 }  // namespace omulator::msg

@@ -5,7 +5,7 @@
 
 namespace omulator::msg {
 
-void *MessageBuffer::alloc(const U32 id, const std::size_t size) {
+void *MessageBuffer::alloc(const U32 id, const MessageBuffer::Offset_t size) {
   if(size > MAX_MSG_SIZE) {
     throw std::runtime_error("Requested storage greater than MAX_MSG_SIZE");
   }
@@ -13,7 +13,7 @@ void *MessageBuffer::alloc(const U32 id, const std::size_t size) {
     MessageHeader *hdr = reinterpret_cast<MessageHeader *>(buff_ + offsetLast_);
     hdr->id            = id;
 
-    U16 nextHdr     = size + HEADER_SIZE;
+    Offset_t nextHdr     = size + HEADER_SIZE;
     hdr->offsetNext = nextHdr;
     offsetLast_ += nextHdr;
 
@@ -60,9 +60,9 @@ MessageBuffer *MessageBuffer::next_buff(MessageBuffer *pNext) noexcept {
   return next_buff();
 }
 
-U16 MessageBuffer::offsetFirst() const noexcept { return offsetFirst_; }
+MessageBuffer::Offset_t MessageBuffer::offsetFirst() const noexcept { return offsetFirst_; }
 
-U16 MessageBuffer::offsetLast() const noexcept { return offsetLast_; }
+MessageBuffer::Offset_t MessageBuffer::offsetLast() const noexcept { return offsetLast_; }
 
 void MessageBuffer::reset() noexcept {
   pNext_       = nullptr;
@@ -75,7 +75,7 @@ void MessageBuffer::reset() noexcept {
                 "enough to span the entire range of the internal buffer");
 }
 
-bool MessageBuffer::can_alloc_(const std::size_t size) const noexcept {
+bool MessageBuffer::can_alloc_(const MessageBuffer::Offset_t size) const noexcept {
   if(size > MAX_MSG_SIZE) {
     return false;
   }
