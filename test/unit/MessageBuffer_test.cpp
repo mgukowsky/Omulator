@@ -54,7 +54,7 @@ TEST(MessageBuffer_test, simpleAlloc) {
 }
 
 TEST(MessageBuffer_test, maxAllocation) {
-  MessageBuffer mb;
+  MessageBuffer mb = MessageBuffer::make_buff();
   EXPECT_THROW(mb.alloc(MAGIC, MessageBuffer::MAX_MSG_SIZE + 1), std::runtime_error)
     << "Attempting an allocation larger than MessageBuffer::MAX_MSG_SIZE should cause an exception "
        "to be raised.";
@@ -65,4 +65,38 @@ TEST(MessageBuffer_test, maxAllocation) {
   EXPECT_EQ(nullptr, mb2.alloc(MAGIC, 1))
     << "MessageBuffer::alloc should return a nullptr when the MessageBuffer cannot accomodate an "
        "allocation of the requested number of bytes";
+}
+
+TEST(MessageBuffer_test, headerOnlyAllocations) {
+  MessageBuffer mb = MessageBuffer::make_buff();
+
+  /**
+   * The static assert within the MessageBuffer implementation ensures that BUFFER_SIZE will be
+   * divisible by HEADER_SIZE.
+   */
+  const MessageBuffer::Offset_t LIMIT = MessageBuffer::BUFFER_SIZE / MessageBuffer::HEADER_SIZE;
+
+  std::byte *pHeader = reinterpret_cast<std::byte *>(mb.alloc(MAGIC));
+  const std::byte * const pInitialHeader = pHeader;
+
+  for(MessageBuffer::Offset_t i = 0; i < LIMIT - 1; i++) {
+    MessageBuffer::MessageHeader &hdr = reinterpret<MessageBuffer::MessageHeader>(pHeader);
+    EXPECT_EQ(MAGIC, hdr.id)
+      << "A header-only allocation within a MessageBuffer should correctly record a message ID";
+    EXPECT_EQ(MessageBuffer::HEADER_SIZE, hdr.offsetNext)
+      << "A header-only allocation within a MessageBuffer should point to the next location within "
+         "the buffer where a header will be placed";
+    pHeader = reinterpret_cast<std::byte *>(mb.alloc(MAGIC));
+  }
+
+  MessageBuffer::MessageHeader &hdr = reinterpret<MessageBuffer::MessageHeader>(pHeader);
+  EXPECT_EQ(MAGIC, hdr.id)
+    << "A header-only allocation within a MessageBuffer should correctly record a message ID";
+  EXPECT_EQ(MessageBuffer::HEADER_SIZE, hdr.offsetNext)
+    << "The final header-only allocation within a MessageBuffer should point just past the end of "
+       "the buffer";
+  EXPECT_EQ(static_cast<std::ptrdiff_t>(MessageBuffer::BUFFER_SIZE),
+            (std::abs(pHeader - pInitialHeader) + hdr.offsetNext))
+    << "A MessageBuffer filled with header-only messages should span the entire buffer with no "
+       "wasted space";
 }

@@ -46,6 +46,16 @@ public:
   void *alloc(const U32 id, const Offset_t size);
 
   /**
+   * Overload of alloc which inserts a MessageHeader but no message. Can be used in situations where
+   * a simple notification with no additional accompanying information is desirable, such as a
+   * one-off alert.
+   *
+   * UNLIKE the two-argument overload, a pointer to the allocated message HEADER will be returned if
+   * the allocation succeeds, however a nullptr will still be returned if the allocation fails.
+   */
+  void *alloc(const U32 id) noexcept;
+
+  /**
    * Return the first MessageHeader in the buffer, or nullptr if it's empty.
    */
   const MessageHeader *begin() const noexcept;

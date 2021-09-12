@@ -13,8 +13,8 @@ void *MessageBuffer::alloc(const U32 id, const MessageBuffer::Offset_t size) {
     MessageHeader *hdr = reinterpret_cast<MessageHeader *>(buff_ + offsetLast_);
     hdr->id            = id;
 
-    Offset_t nextHdr     = size + HEADER_SIZE;
-    hdr->offsetNext = nextHdr;
+    Offset_t nextHdr = size + HEADER_SIZE;
+    hdr->offsetNext  = nextHdr;
     offsetLast_ += nextHdr;
 
     // Pointer arithmetic magic will point us to right after the storage for the message header.
@@ -23,6 +23,15 @@ void *MessageBuffer::alloc(const U32 id, const MessageBuffer::Offset_t size) {
   else {
     return nullptr;
   }
+}
+
+void *MessageBuffer::alloc(const U32 id) noexcept {
+  std::byte *pAlloc = reinterpret_cast<std::byte *>(alloc(id, 0));
+  if(pAlloc != nullptr) {
+    pAlloc -= HEADER_SIZE;
+  }
+
+  return pAlloc;
 }
 
 const MessageBuffer::MessageHeader *MessageBuffer::begin() const noexcept {
@@ -73,6 +82,12 @@ void MessageBuffer::reset() noexcept {
   static_assert(BUFFER_SIZE < std::numeric_limits<decltype(offsetLast_)>::max(),
                 "MessageBuffer's members containing offsets to its internal buffer must be large "
                 "enough to span the entire range of the internal buffer");
+
+  // ditto, although arguably this is more of a nice-to-have than a strict requirement... may help
+  // with alignment of allocations though!
+  static_assert(BUFFER_SIZE % HEADER_SIZE == 0,
+                "A MessageBuffer should be able to be filled exclusively with MessageHeaders with "
+                "no space left over");
 }
 
 bool MessageBuffer::can_alloc_(const MessageBuffer::Offset_t size) const noexcept {
