@@ -39,8 +39,8 @@ class OmulatorBuilder
       "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON "\
       "-DOMULATOR_BUILD_TESTS=#{@notests ? 'OFF' : 'ON'} "\
       "#{toolchain_args} #{kwargs[:addl_cmake_args]}"\
-      "&& cmake --build #{@build_dir} #{@jobflag} #{kwargs[:addl_cmake_bld_args]} "\
-      "#{'-v' if verbose?} -- #{kwargs[:addl_generator_args]}"
+      "&& cmake --build #{@build_dir} #{'-v' if verbose?} #{@jobflag} "\
+      "#{kwargs[:addl_cmake_bld_args]} -- #{kwargs[:addl_generator_args]}"
     # CMake screws up the permissions for executables with the msvc-wsl toolchain
     spawn_cmd "find #{@build_dir} -iname *.exe | xargs chmod 755" if @toolchain == "msvc-wsl"
 

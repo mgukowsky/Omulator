@@ -103,6 +103,12 @@ function(config_for_msvc target_name)
       /Fa${CMAKE_CURRENT_BINARY_DIR}/
       /WX
 
+      # Prefer UTF-8 throughout the project
+      /utf-8
+
+      # ISO C++20 coroutines support
+      /await:strict
+
       # Additional optimizations for x64, off for now...
       #/favor:INTEL64
 
@@ -130,10 +136,9 @@ function(config_for_msvc target_name)
       /wd4946
       /wd5045
 
-      # Experimental MSVC feature which ignores errors from system headers. N.B. this
-      # will eventually no longer be experimental and will have to change. This sets
-      # warnings from <angle bracket> headers to W0. Needs to be off for clang-cl, though.
-      $<$<CXX_COMPILER_ID:MSVC>:/experimental:external /external:anglebrackets /external:W0>
+      # MSVC feature which ignores errors from system headers. This sets warnings from
+      # <angle bracket> headers to W0. Needs to be off for clang-cl, though.
+      $<$<CXX_COMPILER_ID:MSVC>:/external:anglebrackets /external:W0>
 
       # Create an assembly dump, force ISO compliancy
       $<$<CXX_COMPILER_ID:MSVC>:/FAcs /Zc:referenceBinding /Zc:throwingNew>
