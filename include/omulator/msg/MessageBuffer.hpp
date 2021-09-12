@@ -88,9 +88,9 @@ public:
    * The size of the buffer is somewhat arbitrary, but we want it to be somewhat cache-friendly. We
    * use a buffer of 8K, or roughly 2 standard pages on x64.
    */
-  static constinit const Offset_t BUFFER_SIZE  = 0x2000;
-  static constinit const Offset_t HEADER_SIZE  = sizeof(MessageHeader);
-  static constinit const Offset_t MAX_MSG_SIZE = BUFFER_SIZE - sizeof(MessageHeader);
+  static constexpr Offset_t BUFFER_SIZE  = 0x2000;
+  static constexpr Offset_t HEADER_SIZE  = sizeof(MessageHeader);
+  static constexpr Offset_t MAX_MSG_SIZE = BUFFER_SIZE - sizeof(MessageHeader);
 
   /**
    * Factory convenience function to create and initialize a MessageBuffer.
