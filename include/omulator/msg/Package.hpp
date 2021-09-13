@@ -54,7 +54,7 @@ public:
   Package(Pool_t &pool);
 
   template<typename Raw_t, typename T = std::decay_t<Raw_t>>
-  T &alloc() {
+  T &alloc_data() {
     // Fairly self-evident assert, so we can omit the explanation string.
     static_assert(sizeof(T) <= MessageBuffer::MAX_MSG_SIZE);
 
@@ -62,28 +62,22 @@ public:
                   "A Package can only allocate messages which are of a trivial type, since neither "
                   "a constructor nor a destructor for said type will necessarily be invoked");
 
-    void *pAlloc = try_alloc_(di::TypeHash32<T>, sizeof(T));
+    static_assert(
+      sizeof(T) > 0,
+      "Package::alloc_data() is not intended only for types that have size > 0 and contain data. "
+      "Consider using Package::alloc_msg for messages that do not contain any associated data.");
 
-    // If the allocation fails then we have to acquire a new MessageBuffer
-    if(pAlloc == nullptr) {
-      auto *pNextBuff = pool_.get();
-      current_->next_buff(pNextBuff);
-      current_ = current_->next_buff();
-      current_->reset();
-
-      // Unlike the previous attempt to set pAlloc, this invocation cannot fail since we have the
-      // static assert for MAX_MSG_SIZE above and we are allocating from an empty MessageBuffer.
-      pAlloc = try_alloc_(di::TypeHash32<T>, sizeof(T));
-    }
-
-    return *(reinterpret_cast<T *>(pAlloc));
+    return reinterpret<T>(alloc_(di::TypeHash32<T>, sizeof(T)));
   }
+
+  void alloc_msg(const U32 id);
 
 private:
   Pool_t &       pool_;
   MessageBuffer &head_;
   MessageBuffer *current_;
 
+  void *alloc_(const U32 id, const MessageBuffer::Offset_t size);
   void *try_alloc_(const U32 id, const MessageBuffer::Offset_t size);
 };
 
