@@ -3,6 +3,7 @@
 #include "omulator/di/TypeHash.hpp"
 #include "omulator/msg/MessageBuffer.hpp"
 #include "omulator/util/ObjectPool.hpp"
+#include "omulator/util/reinterpret.hpp"
 
 #include <type_traits>
 
@@ -67,7 +68,7 @@ public:
       "Package::alloc_data() is not intended only for types that have size > 0 and contain data. "
       "Consider using Package::alloc_msg for messages that do not contain any associated data.");
 
-    return reinterpret<T>(alloc_(di::TypeHash32<T>, sizeof(T)));
+    return util::reinterpret<T>(alloc_(di::TypeHash32<T>, sizeof(T)));
   }
 
   void alloc_msg(const U32 id);
