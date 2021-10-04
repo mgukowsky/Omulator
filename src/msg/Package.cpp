@@ -1,5 +1,7 @@
 #include "omulator/msg/Package.hpp"
 
+#include <cassert>
+
 namespace omulator::msg {
 
 Package::Package(Pool_t &pool) : pool_(pool), head_(*(pool_.get())), current_(&head_) {
@@ -32,12 +34,18 @@ void *Package::alloc_(const U32 id, const MessageBuffer::Offset_t size) {
 }
 
 void *Package::try_alloc_(const U32 id, const MessageBuffer::Offset_t size) {
+  void *retval = nullptr;
+
   if(size == 0) {
-    return current_->alloc(id);
+    retval = current_->alloc(id);
   }
   else {
-    return current_->alloc(id, size);
+    retval = current_->alloc(id, size);
   }
+
+  assert(retval != nullptr);
+
+  return retval;
 }
 
 }  // namespace omulator::msg
