@@ -76,7 +76,7 @@ TEST(MessageBuffer_test, headerOnlyAllocations) {
    */
   const MessageBuffer::Offset_t LIMIT = MessageBuffer::BUFFER_SIZE / MessageBuffer::HEADER_SIZE;
 
-  std::byte *pHeader = reinterpret_cast<std::byte *>(mb.alloc(MAGIC));
+  std::byte *             pHeader        = reinterpret_cast<std::byte *>(mb.alloc(MAGIC));
   const std::byte * const pInitialHeader = pHeader;
 
   for(MessageBuffer::Offset_t i = 0; i < LIMIT - 1; i++) {
@@ -86,6 +86,8 @@ TEST(MessageBuffer_test, headerOnlyAllocations) {
     EXPECT_EQ(MessageBuffer::HEADER_SIZE, hdr.offsetNext)
       << "A header-only allocation within a MessageBuffer should point to the next location within "
          "the buffer where a header will be placed";
+    EXPECT_EQ((&hdr) + 1, mb.end()) << "A header-only allocation within a MessageBuffer should "
+                                       "update the address returned by MessageBuffer::end";
     pHeader = reinterpret_cast<std::byte *>(mb.alloc(MAGIC));
   }
 
@@ -95,8 +97,51 @@ TEST(MessageBuffer_test, headerOnlyAllocations) {
   EXPECT_EQ(MessageBuffer::HEADER_SIZE, hdr.offsetNext)
     << "The final header-only allocation within a MessageBuffer should point just past the end of "
        "the buffer";
+  EXPECT_EQ((&hdr) + 1, mb.end()) << "A header-only allocation within a MessageBuffer should "
+                                     "update the address returned by MessageBuffer::end";
   EXPECT_EQ(static_cast<std::ptrdiff_t>(MessageBuffer::BUFFER_SIZE),
             (std::abs(pHeader - pInitialHeader) + hdr.offsetNext))
     << "A MessageBuffer filled with header-only messages should span the entire buffer with no "
        "wasted space";
+}
+
+TEST(MessageBuffer_test, beginAndEnd) {
+  MessageBuffer mb = MessageBuffer::make_buff();
+
+  EXPECT_EQ(nullptr, mb.begin())
+    << "MessageBuffer::begin should return nullptr when the buffer is empty";
+  EXPECT_EQ(nullptr, mb.end())
+    << "MessageBuffer::end should return nullptr when the buffer is empty";
+
+  MessageBuffer::MessageHeader *alloca =
+    reinterpret_cast<MessageBuffer::MessageHeader *>(mb.alloc(MAGIC));
+  MessageBuffer::MessageHeader *allocb =
+    reinterpret_cast<MessageBuffer::MessageHeader *>(mb.alloc(MAGIC));
+
+  EXPECT_EQ(alloca, mb.begin())
+    << "MessageBuffer::begin should return the address of the first MessageHeader in the buffer";
+
+  EXPECT_EQ(allocb + 1, mb.end())
+    << "MessageBuffer::end should return the address directly after the last message in the buffer";
+}
+
+TEST(MessageBuffer_test, beginAndEndWithData) {
+  constexpr std::size_t MSGSIZ = 0x10;
+
+  MessageBuffer mb = MessageBuffer::make_buff();
+
+  EXPECT_EQ(nullptr, mb.begin())
+    << "MessageBuffer::begin should return nullptr when the buffer is empty";
+  EXPECT_EQ(nullptr, mb.end())
+    << "MessageBuffer::end should return nullptr when the buffer is empty";
+
+  const std::byte *alloca = reinterpret_cast<const std::byte *>(mb.alloc(MAGIC, MSGSIZ));
+  const std::byte *allocb = reinterpret_cast<const std::byte *>(mb.alloc(MAGIC, MSGSIZ));
+
+  EXPECT_EQ(alloca - sizeof(MessageBuffer::MessageHeader),
+            reinterpret_cast<const std::byte *>(mb.begin()))
+    << "MessageBuffer::begin should return the address of the first MessageHeader in the buffer";
+
+  EXPECT_EQ(allocb + MSGSIZ, reinterpret_cast<const std::byte *>(mb.end()))
+    << "MessageBuffer::end should return the address directly after the last message in the buffer";
 }
