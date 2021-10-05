@@ -32,6 +32,20 @@ public:
      */
     Offset_t offsetNext;
     Offset_t reserved_;
+
+    /**
+     * Gets the associated data, or nullptr if there isn't any.
+     */
+    inline const void *data() const noexcept {
+      // N.B. that this indicates no data b/c offsetNext is inclusive of header size.
+      if(offsetNext == sizeof(MessageHeader)) {
+        return nullptr;
+      }
+      else {
+        // Pointer arithmetic will point us just past the header.
+        return this + 1;
+      }
+    }
   };
 
   /**

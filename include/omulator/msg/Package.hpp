@@ -1,58 +1,24 @@
 #pragma once
 
+#include "omulator/ILogger.hpp"
 #include "omulator/di/TypeHash.hpp"
 #include "omulator/msg/MessageBuffer.hpp"
 #include "omulator/util/ObjectPool.hpp"
 #include "omulator/util/reinterpret.hpp"
 
+#include <functional>
+#include <map>
 #include <type_traits>
 
 namespace omulator::msg {
 
 class Package {
 public:
-  /* // TODO: should only be a const/input iterator? */
-  /* class iterator { */
-  /* public: */
-  /*   MessageBuffer::MessageHeader &operator*() const { return *pHdr_; } */
-  /*   MessageBuffer::MessageHeader *operator->() { return pHdr_; } */
+  using MsgReceiverFn_t = std::function<void(const void *)>;
+  using Pool_t          = util::ObjectPool<MessageBuffer>;
+  using ReceiverMap_t   = std::map<U32, MsgReceiverFn_t>;
 
-  /*   iterator &operator++() { */
-  /*     // Need to walk the buffer here. Figure out when we're at the end b/c the MessageBuffer's
-   */
-  /*     // offsetLast_ will equal the pHdr_ (well, we'll have to maybe make it an offset instead to
-   */
-  /*     // make the comparison easier...) */
-  /*     pHdr_ = (reinterpret_cast<U8 *>(pHdr_) + pHdr_->offsetNext_); */
-  /*     if(pHdr_ == pBuff_->end()) { */
-  /*       pBuff_ = pBuff_->next_buff(); */
-  /*       if(pBuff_ != nullptr) { */
-  /*         pHdr_ = pBuff_->begin(); */
-  /*       } */
-  /*     } */
-
-  /*     return *this; */
-  /*   } */
-
-  /*   iterator operator++(int) { */
-  /*     iterator tmp = *this; */
-  /*     ++(*this); */
-  /*     return tmp; */
-  /*   } */
-
-  /*   friend bool operator==(const iterator &a, const iterator &b) { return a.pHdr_ == b.pHdr_; }
-   */
-  /*   friend bool operator!=(const iterator &a, const iterator &b) { return a.pHdr_ != b.pHdr_; }
-   */
-
-  /* private: */
-  /*   MessageBuffer *pBuff_; */
-  /*   MessageHeader *pHdr_; */
-  /* }; */
-
-  using Pool_t = util::ObjectPool<MessageBuffer>;
-
-  Package(Pool_t &pool);
+  Package(Pool_t &pool, ILogger &logger);
 
   template<typename Raw_t, typename T = std::decay_t<Raw_t>>
   T &alloc_data() {
@@ -73,8 +39,23 @@ public:
 
   void alloc_msg(const U32 id);
 
+  /**
+   * Walk through the messages in the Package in the order they appear in the Package. For each
+   * message in the Package, if there is a matching receiver function in the receiverMap, then
+   * the receiver function will be invoked. If invoked, the receiver function will receive a
+   * pointer to the message data, or a nullptr if there is no data associated with the message.
+   * If there is no matching receiver function in the receiver_map, then no callback function
+   * will be invoked and a message will be logged indicating that there was a dropped message.
+   *
+   * I personally prefer this interface as it means we don't need to provide any of the underlying
+   * MessageBuffer's internals outside this class, and it gives us the ability to easily record when
+   * messages would be dropped.
+   */
+  void receive_msgs(const ReceiverMap_t &receiver_map);
+
 private:
   Pool_t &       pool_;
+  ILogger &      logger_;
   MessageBuffer &head_;
   MessageBuffer *current_;
 
