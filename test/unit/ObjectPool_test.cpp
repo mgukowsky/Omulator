@@ -111,3 +111,30 @@ TEST_F(ObjectPool_test, returnForeignMemToPool) {
   ASSERT_EQ(1, 1);
 #endif
 }
+
+TEST_F(ObjectPool_test, returnBatchToPool) {
+  omulator::util::ObjectPool<MemBlock> op(4);
+
+  MemBlock *i1 = op.get();
+  MemBlock *i2 = op.get();
+  MemBlock *i3 = op.get();
+
+  *(reinterpret_cast<MemBlock **>(i1)) = i2;
+  *(reinterpret_cast<MemBlock **>(i2)) = i3;
+
+  op.return_batch_to_pool(i1, i3);
+
+  MemBlock *i1a = op.get();
+  MemBlock *i2a = op.get();
+  MemBlock *i3a = op.get();
+
+  EXPECT_EQ(i1, i1a)
+    << "Items returned to a pool in batches should be placed at the front of the pool and should "
+       "be retrieved in the same order in which they were submitted";
+  EXPECT_EQ(i2, i2a)
+    << "Items returned to a pool in batches should be placed at the front of the pool and should "
+       "be retrieved in the same order in which they were submitted";
+  EXPECT_EQ(i3, i3a)
+    << "Items returned to a pool in batches should be placed at the front of the pool and should "
+       "be retrieved in the same order in which they were submitted";
+}

@@ -71,16 +71,12 @@ void *Package::alloc_(const U32 id, const MessageBuffer::Offset_t size) {
 }
 
 void *Package::try_alloc_(const U32 id, const MessageBuffer::Offset_t size) {
-  void *retval = nullptr;
-
   if(size == 0) {
-    retval = current_->alloc(id);
+    return current_->alloc(id);
   }
   else {
-    retval = current_->alloc(id, size);
+    return current_->alloc(id, size);
   }
-
-  return retval;
 }
 
 }  // namespace omulator::msg

@@ -89,6 +89,32 @@ public:
   }
 
   /**
+   * Return several objects to the pool at once by placing them at the front of the pool.
+   * Works the same as return_to_pool, except that pFirst will become the value of pNextFree_,
+   * with pLast now pointing to the previous value of pNextFree_.
+   *
+   * N.B. that pLast MUST be reachable through a linked-list starting from pFirst, otherwise the
+   * behavior of this function is undefined! This means that pFirst through pLast must be properly
+   * formatted as a singly-linked list prior to submission!
+   */
+  inline void return_batch_to_pool(T *pFirst, T *pLast) {
+    std::scoped_lock lck(poolLock_);
+
+#ifndef NDEBUG
+    // Walk the linked list and make sure that each element can be submitted to this pool
+    T *pMem = pFirst;
+    while(pMem != pLast) {
+      assert(is_element_from_pool_(pMem));
+      pMem = *(reinterpret_cast<T **>(pMem));
+    }
+    assert(is_element_from_pool_(pMem));
+#endif
+
+    *(reinterpret_cast<T **>(pLast)) = pNextFree_;
+    pNextFree_                       = pFirst;
+  }
+
+  /**
    * Returns the of the pool, in # of T elements.
    */
   std::size_t size() const noexcept { return size_; }
