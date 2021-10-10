@@ -98,7 +98,8 @@ TEST(Package_test, allocData) {
                        std::byte comp = shouldFlip ? FLIPVAL : VAL;
 
                        for(std::size_t i = 0; i < MessageBuffer::MAX_MSG_SIZE; ++i) {
-                         EXPECT_EQ(comp, msg.data[i]);
+                         EXPECT_EQ(comp, msg.data[i])
+                           << "Data set within a Package should be properly received by clients";
                        }
 
                        shouldFlip = true;

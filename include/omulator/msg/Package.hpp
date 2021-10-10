@@ -19,6 +19,12 @@ public:
   using ReceiverMap_t   = std::map<U32, MsgReceiverFn_t>;
 
   Package(Pool_t &pool, ILogger &logger);
+  ~Package();
+
+  Package(const Package &) = delete;
+  Package &operator=(const Package &) = delete;
+  Package(Package &&)                 = delete;
+  Package &operator=(Package &&) = delete;
 
   template<typename Raw_t, typename T = std::decay_t<Raw_t>>
   T &alloc_data() {
@@ -57,7 +63,7 @@ private:
   Pool_t &       pool_;
   ILogger &      logger_;
   MessageBuffer &head_;
-  MessageBuffer *current_;
+  MessageBuffer *pCurrent_;
 
   void *alloc_(const U32 id, const MessageBuffer::Offset_t size);
   void *try_alloc_(const U32 id, const MessageBuffer::Offset_t size);

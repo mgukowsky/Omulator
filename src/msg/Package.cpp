@@ -7,8 +7,31 @@ namespace omulator::msg {
 using Hdr_t = MessageBuffer::MessageHeader;
 
 Package::Package(Pool_t &pool, ILogger &logger)
-  : pool_(pool), logger_(logger), head_(*(pool_.get())), current_(&head_) {
-  current_->reset();
+  : pool_(pool), logger_(logger), head_(*(pool_.get())), pCurrent_(&head_) {
+  pCurrent_->reset();
+}
+
+Package::~Package() {
+  if(&head_ == pCurrent_) {
+    pool_.return_to_pool(pCurrent_);
+  }
+  else {
+    MessageBuffer *pMem = &head_;
+
+    // Format all the MessageBuffers in the package into a singly-linked list that can
+    // be accepted by ObjectPool::return_batch_to_pool()
+    while(pMem != pCurrent_) {
+      MessageBuffer *pNext = pMem->next_buff();
+      *(reinterpret_cast<MessageBuffer **>(pMem)) = pNext;
+      pMem = pNext;
+
+      // Should never happen, since by this point all of these buffers with the exception of
+      // pCurrent_ should have their next buffer set.
+      assert(pMem != nullptr);
+    }
+
+    pool_.return_batch_to_pool(&head_, pCurrent_);
+  }
 }
 
 void Package::alloc_msg(const U32 id) {
@@ -58,9 +81,9 @@ void *Package::alloc_(const U32 id, const MessageBuffer::Offset_t size) {
   // If the allocation fails then we have to acquire a new MessageBuffer
   if(pAlloc == nullptr) {
     auto *pNextBuff = pool_.get();
-    current_->next_buff(pNextBuff);
-    current_ = current_->next_buff();
-    current_->reset();
+    pCurrent_->next_buff(pNextBuff);
+    pCurrent_ = pCurrent_->next_buff();
+    pCurrent_->reset();
 
     // Unlike the previous attempt to set pAlloc, this invocation cannot fail since we have the
     // static assert for MAX_MSG_SIZE above and we are allocating from an empty MessageBuffer.
@@ -72,10 +95,10 @@ void *Package::alloc_(const U32 id, const MessageBuffer::Offset_t size) {
 
 void *Package::try_alloc_(const U32 id, const MessageBuffer::Offset_t size) {
   if(size == 0) {
-    return current_->alloc(id);
+    return pCurrent_->alloc(id);
   }
   else {
-    return current_->alloc(id, size);
+    return pCurrent_->alloc(id, size);
   }
 }
 
