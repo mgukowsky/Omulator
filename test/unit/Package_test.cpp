@@ -14,7 +14,7 @@
 #include <cstddef>
 
 using omulator::U32;
-using omulator::di::TypeHash;
+using omulator::di::TypeHash32;
 using omulator::msg::MessageBuffer;
 using omulator::msg::Package;
 using omulator::util::ObjectPool;
@@ -92,7 +92,7 @@ TEST(Package_test, allocData) {
 
   bool shouldFlip = false;
 
-  pkg.receive_msgs({{TypeHash<MaxMsg>, [&](const void *data) {
+  pkg.receive_msgs({{TypeHash32<MaxMsg>, [&](const void *data) {
                        const MaxMsg &msg = reinterpret<const MaxMsg>(data);
 
                        std::byte comp = shouldFlip ? FLIPVAL : VAL;
