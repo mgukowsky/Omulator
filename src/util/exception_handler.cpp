@@ -39,6 +39,7 @@ void omulator::util::exception_handler() noexcept {
   // Double fault; something is very wrong if we get here!
   catch(...) {
     omulator::PrimitiveIO::alert_err("Fault occurred in exception_handler!");
+    std::abort();
   }
 
   /**
