@@ -26,7 +26,7 @@ public:
    * Forwards arguments directly to the allocator function.
    */
   template<typename... Args>
-  explicit ResourceWrapper(Args &&... args) : instance_(allocator(std::forward<Args>(args)...)) {
+  explicit ResourceWrapper(Args &&...args) : instance_(allocator(std::forward<Args>(args)...)) {
 // TODO: clang-7 seems to have issues with the is_invocable checks...
 #ifndef __clang__
     static_assert(std::is_invocable_r_v<T, decltype(allocator), Args...>,
@@ -43,6 +43,12 @@ public:
   }
 
   ~ResourceWrapper() { deallocator(instance_); }
+
+  inline T *operator->() noexcept { return &instance_; }
+  inline T &operator*() noexcept { return instance_; }
+
+  inline const T *operator->() const noexcept { return &instance_; }
+  inline const T &operator*() const noexcept { return instance_; }
 
 private:
   T instance_;

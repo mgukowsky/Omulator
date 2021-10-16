@@ -3,6 +3,7 @@
 #include "omulator/di/TypeHash.hpp"
 #include "omulator/msg/MessageBuffer.hpp"
 #include "omulator/util/ObjectPool.hpp"
+#include "omulator/util/ResourceWrapper.hpp"
 #include "omulator/util/reinterpret.hpp"
 
 #include "mocks/LoggerMock.hpp"
@@ -22,12 +23,25 @@ using omulator::util::reinterpret;
 
 namespace {
 constexpr U32 MAGIC = 0x1234'5678;
-}
+
+auto FnPkgAlloc = [](ObjectPool<MessageBuffer> *pool, LoggerMock *logger) {
+  Package pkg;
+  pkg.reset(pool, logger);
+  return pkg;
+};
+
+auto FnPkgDealloc = [](Package &pkg) noexcept { pkg.release(); };
+
+using ManagedPkg_t = omulator::util::ResourceWrapper<Package, FnPkgAlloc, FnPkgDealloc>;
+
+}  // namespace
 
 TEST(Package_test, simpleAlloc) {
   LoggerMock                logger;
   ObjectPool<MessageBuffer> pool(0x10);
-  Package                   pkg(pool, logger);
+
+  ManagedPkg_t mpkg(&pool, &logger);
+  Package &    pkg = *mpkg;
 
   int &buffInt = pkg.alloc_data<int>();
   buffInt      = MAGIC;
@@ -50,7 +64,9 @@ TEST(Package_test, simpleAlloc) {
 TEST(Package_test, allocMsg) {
   LoggerMock                logger;
   ObjectPool<MessageBuffer> pool(0x10);
-  Package                   pkg(pool, logger);
+
+  ManagedPkg_t mpkg(&pool, &logger);
+  Package &    pkg = *mpkg;
 
   pkg.alloc_msg(MAGIC);
 
@@ -73,7 +89,9 @@ TEST(Package_test, allocMsg) {
 TEST(Package_test, allocData) {
   LoggerMock                logger;
   ObjectPool<MessageBuffer> pool(0x10);
-  Package                   pkg(pool, logger);
+
+  ManagedPkg_t mpkg(&pool, &logger);
+  Package &    pkg = *mpkg;
 
   struct MaxMsg {
     std::byte data[MessageBuffer::MAX_MSG_SIZE];

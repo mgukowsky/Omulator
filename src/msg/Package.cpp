@@ -6,31 +6,34 @@ namespace omulator::msg {
 
 using Hdr_t = MessageBuffer::MessageHeader;
 
-Package::Package(Pool_t &pool, ILogger &logger)
-  : pool_(pool), logger_(logger), head_(*(pool_.get())), pCurrent_(&head_) {
+void Package::reset(Pool_t *pPool, ILogger *pLogger) noexcept {
+  pPool_    = pPool;
+  pLogger_  = pLogger;
+  pHead_    = pPool_->get();
+  pCurrent_ = pHead_;
   pCurrent_->reset();
 }
 
-Package::~Package() {
-  if(&head_ == pCurrent_) {
-    pool_.return_to_pool(pCurrent_);
+void Package::release() noexcept {
+  if(pHead_ == pCurrent_) {
+    pPool_->return_to_pool(pCurrent_);
   }
   else {
-    MessageBuffer *pMem = &head_;
+    MessageBuffer *pMem = pHead_;
 
     // Format all the MessageBuffers in the package into a singly-linked list that can
     // be accepted by ObjectPool::return_batch_to_pool()
     while(pMem != pCurrent_) {
-      MessageBuffer *pNext = pMem->next_buff();
+      MessageBuffer *pNext                        = pMem->next_buff();
       *(reinterpret_cast<MessageBuffer **>(pMem)) = pNext;
-      pMem = pNext;
+      pMem                                        = pNext;
 
       // Should never happen, since by this point all of these buffers with the exception of
       // pCurrent_ should have their next buffer set.
       assert(pMem != nullptr);
     }
 
-    pool_.return_batch_to_pool(&head_, pCurrent_);
+    pPool_->return_batch_to_pool(pHead_, pCurrent_);
   }
 }
 
@@ -42,7 +45,7 @@ void Package::alloc_msg(const U32 id) {
 }
 
 void Package::receive_msgs(const Package::ReceiverMap_t &receiver_map) {
-  const MessageBuffer *buff = &head_;
+  const MessageBuffer *buff = pHead_;
   const Hdr_t *        pHdr = buff->begin();
 
   while(pHdr != nullptr) {
@@ -67,7 +70,7 @@ void Package::receive_msgs(const Package::ReceiverMap_t &receiver_map) {
     else {
       std::string errmsg("Could not find receiver for type: ");
       errmsg += std::to_string(hdr.id);
-      logger_.warn(errmsg.c_str());
+      pLogger_->warn(errmsg.c_str());
     }
 
     pHdr =
@@ -80,7 +83,7 @@ void *Package::alloc_(const U32 id, const MessageBuffer::Offset_t size) {
 
   // If the allocation fails then we have to acquire a new MessageBuffer
   if(pAlloc == nullptr) {
-    auto *pNextBuff = pool_.get();
+    auto *pNextBuff = pPool_->get();
     pCurrent_->next_buff(pNextBuff);
     pCurrent_ = pCurrent_->next_buff();
     pCurrent_->reset();

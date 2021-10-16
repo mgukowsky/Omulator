@@ -18,13 +18,17 @@ public:
   using Pool_t          = util::ObjectPool<MessageBuffer>;
   using ReceiverMap_t   = std::map<U32, MsgReceiverFn_t>;
 
-  Package(Pool_t &pool, ILogger &logger);
-  ~Package();
+  /**
+   * As is the case with MessageBuffer, we make use of two-phase initialization so that this class
+   * can be considered trivial and thus usable in an ObjectPool.
+   */
+  void reset(Pool_t *pPool, ILogger *pLogger) noexcept;
 
-  Package(const Package &) = delete;
-  Package &operator=(const Package &) = delete;
-  Package(Package &&)                 = delete;
-  Package &operator=(Package &&) = delete;
+  /**
+   * Returns the MessageBuffers held by this Package to pPool_. Causes undefined behavior if reset()
+   * has not been called at least once previously on this Package.
+   */
+  void release() noexcept;
 
   template<typename Raw_t, typename T = std::decay_t<Raw_t>>
   T &alloc_data() {
@@ -60,9 +64,9 @@ public:
   void receive_msgs(const ReceiverMap_t &receiver_map);
 
 private:
-  Pool_t &       pool_;
-  ILogger &      logger_;
-  MessageBuffer &head_;
+  Pool_t *       pPool_;
+  ILogger *      pLogger_;
+  MessageBuffer *pHead_;
   MessageBuffer *pCurrent_;
 
   void *alloc_(const U32 id, const MessageBuffer::Offset_t size);
