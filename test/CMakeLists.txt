@@ -56,6 +56,7 @@ add_unit_test(TypeMap)
 add_unit_test_with_source(Injector di)
 add_unit_test_with_source(MessageBuffer msg)
 add_unit_test_with_source(Package msg ${PROJECT_SOURCE_DIR}/src/msg/MessageBuffer.cpp)
+add_unit_test_with_source(Mailbox msg ${PROJECT_SOURCE_DIR}/src/msg/MessageBuffer.cpp ${PROJECT_SOURCE_DIR}/src/msg/Package.cpp)
 
 add_unit_test(Worker
   ${PROJECT_SOURCE_DIR}/src/scheduler/Worker.cpp

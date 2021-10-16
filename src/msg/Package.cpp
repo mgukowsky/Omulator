@@ -44,7 +44,7 @@ void Package::alloc_msg(const U32 id) {
   alloc_(id, 0);
 }
 
-void Package::receive_msgs(const Package::ReceiverMap_t &receiver_map) {
+void Package::receive_msgs(const ReceiverMap_t &receiver_map) const {
   const MessageBuffer *buff = pHead_;
   const Hdr_t *        pHdr = buff->begin();
 

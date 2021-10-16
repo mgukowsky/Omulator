@@ -11,12 +11,12 @@
 #include <type_traits>
 
 namespace omulator::msg {
+using MsgReceiverFn_t = std::function<void(const void *)>;
+using ReceiverMap_t   = std::map<U32, MsgReceiverFn_t>;
 
 class Package {
 public:
-  using MsgReceiverFn_t = std::function<void(const void *)>;
-  using Pool_t          = util::ObjectPool<MessageBuffer>;
-  using ReceiverMap_t   = std::map<U32, MsgReceiverFn_t>;
+  using Pool_t = util::ObjectPool<MessageBuffer>;
 
   /**
    * As is the case with MessageBuffer, we make use of two-phase initialization so that this class
@@ -61,7 +61,7 @@ public:
    * MessageBuffer's internals outside this class, and it gives us the ability to easily record when
    * messages would be dropped.
    */
-  void receive_msgs(const ReceiverMap_t &receiver_map);
+  void receive_msgs(const ReceiverMap_t &receiver_map) const;
 
 private:
   Pool_t *       pPool_;
