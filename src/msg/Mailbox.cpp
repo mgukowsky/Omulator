@@ -20,9 +20,7 @@ void Mailbox::send(const Package *pPkg) {
   pkgQueue_.push(pPkg);
 }
 
-std::size_t Mailbox::recv(const ReceiverMap_t &receiverMap) {
-  std::size_t numPkgs = 0;
-
+void Mailbox::recv(const ReceiverMap_t &receiverMap) {
   while(true) {
     const Package *pPkg = nullptr;
     {
@@ -40,11 +38,7 @@ std::size_t Mailbox::recv(const ReceiverMap_t &receiverMap) {
 
     pEmptyPkg->release();
     pool_.return_to_pool(pEmptyPkg);
-
-    ++numPkgs;
   }
-
-  return numPkgs;
 }
 
 }  // namespace omulator::msg

@@ -42,7 +42,7 @@ public:
    *
    * Periodically LOCKS mtx_ to pull a package off of the queue.
    */
-  std::size_t recv(const ReceiverMap_t &receiverMap);
+  void recv(const ReceiverMap_t &receiverMap);
 
 private:
   ILogger &                  logger_;

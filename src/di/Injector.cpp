@@ -8,7 +8,7 @@
 
 namespace omulator::di {
 
-Injector::Injector() : isInCycleCheck_(false) { }
+Injector::Injector() : isInCycleCheck_(false) { typeMap_.emplace_external_ptr<Injector>(this); }
 
 Injector::~Injector() {
   // Delete the elements in the type map in the reverse order they were constructed
@@ -29,11 +29,7 @@ void Injector::addRecipe(const Hash_t hsh, const Recipe_t recipe, std::string_vi
   recipeMap_.insert_or_assign(hsh, recipe);
 }
 
-void Injector::addRecipes(RecipeMap_t &newRecipes) {
-  // std::set::merge essentially moves from the container being merged, so it makes sense to just
-  // move the reference here
-  addRecipes(std::move(newRecipes));
-}
+void Injector::addRecipes(RecipeMap_t &newRecipes) { addRecipes(std::move(newRecipes)); }
 
 void Injector::addRecipes(RecipeMap_t &&newRecipes) {
   for(const auto &[k, v] : newRecipes) {

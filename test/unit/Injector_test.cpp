@@ -555,3 +555,21 @@ TEST_F(Injector_test, orderOfDestruction) {
   EXPECT_EQ(4, v[3]) << "An injector should destroy the instances it contains in the reverse order "
                         "in which they were created.";
 }
+
+TEST_F(Injector_test, dependencyOnSelf) {
+  omulator::di::Injector &injector = *pInjector;
+
+  struct A {
+    A(omulator::di::Injector &inj) : injector(inj) { }
+
+    omulator::di::Injector &injector;
+  };
+
+  injector.addCtorRecipe<A, omulator::di::Injector &>();
+
+  A a = injector.creat<A>();
+
+  EXPECT_EQ(&injector, &(a.injector))
+    << "An class that has a dependency on an Injector should receive the instance of the managing "
+       "Injector as a dependency";
+}

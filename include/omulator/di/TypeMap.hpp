@@ -149,6 +149,24 @@ public:
     }
   }
 
+  /**
+   * Add a entry for an unmanaged instance of a type, i.e. an instance of T external to this class
+   * that is managed elsewhere.
+   */
+  template<typename T>
+  bool emplace_external_ptr(T *pT) {
+    if(has_key<T>()) {
+      return true;
+    }
+    else {
+      std::unique_ptr<TypeContainer<T>> ctr = std::make_unique<TypeContainer<T>>();
+      ctr->setref(pT);
+      map_.emplace(TypeHash<T>, std::move(ctr));
+
+      return false;
+    }
+  }
+
   void erase(const Hash_t hsh) { map_.erase(hsh); }
 
   /**
