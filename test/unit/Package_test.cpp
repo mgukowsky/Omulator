@@ -24,13 +24,13 @@ using omulator::util::reinterpret;
 namespace {
 constexpr U32 MAGIC = 0x1234'5678;
 
-auto FnPkgAlloc = [](ObjectPool<MessageBuffer> *pool, LoggerMock *logger) {
+Package FnPkgAlloc(ObjectPool<MessageBuffer> *pool, LoggerMock *logger) {
   Package pkg;
   pkg.reset(pool, logger);
   return pkg;
 };
 
-auto FnPkgDealloc = [](Package &pkg) noexcept { pkg.release(); };
+void FnPkgDealloc(Package &pkg) noexcept { pkg.release(); };
 
 using ManagedPkg_t = omulator::util::ResourceWrapper<Package, FnPkgAlloc, FnPkgDealloc>;
 
