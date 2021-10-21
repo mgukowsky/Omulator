@@ -282,11 +282,10 @@ private:
     else {
       // Injectors are not move-constructible, but each Injector instance adds itself to its
       // typeMap_ in the event that an Injector dependency is needed.
-      if constexpr(!std::is_same_v<Injector, T>) {
-        static_assert(std::is_move_constructible_v<T>,
-                      "Types managed by the Injector class must be move-constructible (with the "
-                      "exception of abstract classes).");
-      }
+      static_assert(std::is_same_v<Injector, T> || std::is_move_constructible_v<T>,
+                    "Types managed by the Injector class must be move-constructible (with the "
+                    "exception of abstract classes).");
+
       if(recipeIt != recipeMap_.end()) {
         // The container returned by a recipe need not contain a value (e.g. in the case of an
         // interface that has an associated implementation).
