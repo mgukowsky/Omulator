@@ -160,6 +160,8 @@ public:
     }
     else {
       std::unique_ptr<TypeContainer<T>> ctr = std::make_unique<TypeContainer<T>>();
+
+      // We don't call TypeContainer::reset() here because we DON'T want to take ownership of pT
       ctr->setref(pT);
       map_.emplace(TypeHash<T>, std::move(ctr));
 

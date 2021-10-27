@@ -26,14 +26,6 @@ using util::TypeString;
  * not be treated as a singleton. Types managed by the injector need not be aware of this injector,
  * as dependencies are injected via constructors.
  *
- * Types managed by the injector must be move-constructible (e.g. so they can be moved out of the
- * recipe function where they are created), but need not be copy-constructible. Given this
- * limitation, it is important to note that types which cannot be efficiently moved (i.e.
- * std::array) should be given consideration when being managed and/or created by this class. In the
- * case of std::array, a better solution would be to instead manage a wrapper class which
- * dynamically allocates an instance of the std::array as a member, meaning that the move operation
- * can be more efficiently as a simple pointer move.
- *
  * Instances of a given type are lazily created as they are requested with Injector#get, or
  * repeatedly created using Injector#creat. Type instances are creating using "recipes", which are
  * callbacks that return a type-erasing Container_t and receive the instance of the injector on
@@ -128,8 +120,9 @@ public:
    * Alternative API for addRecipe.
    */
   template<typename Raw_t, typename T = InjType_t<Raw_t>>
-  requires std::move_constructible<T>
-  void addRecipe(const Recipe_t recipe) { addRecipe(TypeHash<T>, recipe, TypeString<T>); }
+  void addRecipe(const Recipe_t recipe) {
+    addRecipe(TypeHash<T>, recipe, TypeString<T>);
+  }
 
   /**
    * Batched version of addRecipe.
@@ -145,11 +138,6 @@ public:
    * Bind an interface to an implementation. More concretely, force Injector#get<Interface>
    * to call and return Injector#get<Implementation> instead by creating a specialized recipe for
    * Interface.
-   *
-   * IMPORTANT: Calling creat<Implementation>(), even after using this method, will call the
-   * constructor for the interface TWICE (once during construction of the Implementation instance,
-   * and again when the move constructor for Implementation calls the constructor for the
-   * Interface).
    */
   template<typename RawInterface,
            typename RawImplementation,
@@ -186,11 +174,18 @@ public:
    * Same as Injector#get, except it returns a fresh instance rather than placing one in the type
    * map, and rejects abstract classes.
    *
+   * Originally we considered having creat() just return a fresh instance of T, however this would
+   * require that T be move-constructible, as it would need to be moved _out_ of the TypeContainer
+   * used to create it via makeDependency_<T>(). Instead, it is easier to instantiate the instance
+   * once within the TypeContainer and instead return a std::unique_ptr that takes ownership of it.
+   * If the user really needs direct access to a raw instance of T, they can simply move the
+   * instance out of the unique_ptr returned by this function.
+   *
    * TODO: Add an option to cache the dependencies for T to allow for a fast allocation path that
-   * can bypass locks and map lookups.
+   * can bypass locks and map lookups (and maybe use a faster allocator?).
    */
   template<typename Raw_t, typename T = InjType_t<Raw_t>>
-  T creat() {
+  std::unique_ptr<T> creat() {
     static_assert(
       !std::is_abstract_v<T>,
       "An instance of an abstract type cannot be created using Injector#creat(), even if it was "
@@ -204,11 +199,9 @@ public:
       throw std::runtime_error(s);
     }
 
-    // This is slightly awkward, but what we are doing here is moving the value out of the
-    // container. The container still owns the pointer and will correctly deallocate the memory,
-    // however the value it points to is moved here and returned to the user as a fresh instance of
-    // T.
-    return std::move(*(ctr.ptr()));
+    // No need to call std::make_unique b/c the allocation has been performed already; we're just
+    // taking ownership of ctr's pointer
+    return std::unique_ptr<T>(ctr.release());
   }
 
   /**
@@ -246,18 +239,16 @@ private:
       return &(injector.get<T>());
     }
     else {
-      return injector.creat<T>();
+      return std::move(*(injector.creat<T>()));
     }
   }
 
   /**
    * Perform the actual injection.
+   *
    * N.B. that Opt_t is necessary to prevent TypeContainer from receiving an abstract interface as a
    * type argument, as this would lead to compiler errors in generating code to store the abstract
    * interface in the TypeContainer instance.
-   *
-   * N.B. we validate the move constructible requirement (but not for interfaces) here, since the
-   * public API calls all eventually end up in this function.
    */
   template<typename T, typename Opt_t = std::conditional_t<std::is_abstract_v<T>, int, T>>
   TypeContainer<Opt_t> inject_(const bool forwardValue = false) {
@@ -265,6 +256,7 @@ private:
     auto recipeIt = std::find_if(recipeMap_.begin(), recipeMap_.end(), [this](const auto &kv) {
       return kv.first == TypeHash<T>;
     });
+
     /**
      * We need to wrap everything in an if constexpr block to keep compilers happy by preventing
      * them from generating code which would otherwise instantiate an abstract class.
@@ -280,12 +272,6 @@ private:
       recipeMap_.at(TypeHash<T>)(*this);
     }
     else {
-      // Injectors are not move-constructible, but each Injector instance adds itself to its
-      // typeMap_ in the event that an Injector dependency is needed.
-      static_assert(std::is_same_v<Injector, T> || std::is_move_constructible_v<T>,
-                    "Types managed by the Injector class must be move-constructible (with the "
-                    "exception of abstract classes).");
-
       if(recipeIt != recipeMap_.end()) {
         // The container returned by a recipe need not contain a value (e.g. in the case of an
         // interface that has an associated implementation).
@@ -301,6 +287,7 @@ private:
           }
         }
       }
+
       // Once again, we need if constexpr here to prevent the compiler from
       // generating code that calls emplace<T> with no arguments for types that aren't default
       // constructible.
