@@ -71,7 +71,7 @@ TEST(Package_test, allocMsg) {
   pkg.alloc_msg(MAGIC);
 
   {
-    // Since we are providing no receivers, we should log that we dropped the sincle message in the
+    // Since we are providing no receivers, we should log that we dropped the since message in the
     // Package
     EXPECT_CALL(logger, warn).Times(1);
     pkg.receive_msgs({});

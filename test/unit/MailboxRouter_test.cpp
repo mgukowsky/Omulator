@@ -60,3 +60,18 @@ TEST_F(MailboxRouter_test, claimAndThenGet) {
     << "Two separate calls to MailboxRouter::getMailbox(), invoked with the same arguments, should "
        "return the same Mailbox instance";
 }
+
+TEST_F(MailboxRouter_test, doubleClaim) {
+  MailboxRouter mailboxRouter(*pLogger, *pInjector);
+
+  [[maybe_unused]] Mailbox &mailboxA = mailboxRouter.claim_mailbox(TypeHash<int>);
+
+  EXPECT_CALL(*pLogger, error).Times(1);
+  [[maybe_unused]] Mailbox &mailboxB = mailboxRouter.claim_mailbox(TypeHash<int>);
+
+  // We have to manually destruct the mock object here in order to validate the EXPECT_CALL
+  // expectation above, otherwise we would get a spurious GMock failure because pLogger would be
+  // destroyed outside the scope where the EXPECT_CALL invocation was made, therefore making it
+  // impossible to verify the mock calls.
+  pLogger.reset();
+}
