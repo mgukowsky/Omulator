@@ -26,7 +26,7 @@ Worker::~Worker() {
   }
 }
 
-const std::deque<Job_ty> &Worker::job_queue() const noexcept { return jobQueue_; }
+std::size_t Worker::num_jobs() const noexcept { return jobQueue_.size(); }
 
 std::thread::id Worker::thread_id() const noexcept { return thread_.get_id(); }
 
@@ -56,7 +56,8 @@ void Worker::thread_proc_() {
       //
       // The period chosen here doesn't represent anything special; if can certainly be changed
       // per profiler results if necessary.
-      jobCV_.wait_for(cvLock, WORKER_WAIT_TIMEOUT, [this]() noexcept { return !jobQueue_.empty() || done_; });
+      jobCV_.wait_for(
+        cvLock, WORKER_WAIT_TIMEOUT, [this]() noexcept { return !jobQueue_.empty() || done_; });
     }
 
     // This empty check does not need to be protected; even if a task is added while the check is

@@ -12,9 +12,10 @@ using namespace std::chrono_literals;
 TEST(Worker_test, addSingleJob) {
   omulator::scheduler::Worker worker;
 
-  EXPECT_TRUE(worker.job_queue().empty()) << "The Worker's work queue should initially be empty";
+  EXPECT_TRUE(worker.num_jobs() == 0) << "The Worker's work queue should initially be empty";
 
   int i = 1;
+
   std::promise<void> readyPromise;
 
   worker.add_job([&] {
@@ -33,15 +34,15 @@ TEST(Worker_test, jobPriorityTest) {
   std::promise<void> startSignal, readySignal, doneSignal;
 
   // A dummy job to hold the worker in stasis until we're ready.
-  worker.add_job([&] { 
-    startSignal.set_value();   
+  worker.add_job([&] {
+    startSignal.set_value();
     readySignal.get_future().wait();
   });
 
   startSignal.get_future().wait();
 
   std::vector<int> v;
-  const int normalPriority = static_cast<int>(omulator::scheduler::Priority::NORMAL);
+  const int        normalPriority = static_cast<int>(omulator::scheduler::Priority::NORMAL);
 
   // If priority is obeyed, the vector will be filled with 9..0. If priority is ignored,
   // then the vector will be random or filled with 0..9.

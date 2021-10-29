@@ -35,7 +35,7 @@ public:
 
   Worker(const Worker &) = delete;
   Worker &operator=(const Worker &) = delete;
-  Worker(Worker &&)                 = delete;
+  Worker(Worker &&) = delete;
   Worker &operator=(Worker &&) = delete;
 
   /**
@@ -52,9 +52,9 @@ public:
    *   execution.
    */
   template<typename Callable>
-  void add_job(Callable &&work,
-               const omulator::scheduler::Priority priority
-               = omulator::scheduler::Priority::NORMAL) {
+  void add_job(
+    Callable &&work,
+    const omulator::scheduler::Priority priority = omulator::scheduler::Priority::NORMAL) {
     static_assert(std::is_invocable_r_v<void, Callable>,
                   "Jobs submitted to a Worker must return void and take no arguments");
 
@@ -71,7 +71,7 @@ public:
   /**
    * Returns a read-only version of the underlying work queue.
    */
-  const std::deque<Job_ty> &job_queue() const noexcept;
+  std::size_t num_jobs() const noexcept;
 
   /**
    * Returns the ID of the underlying thread.
@@ -118,6 +118,7 @@ private:
   // until everthing else in the object is ready to go, and whine if we do anything
   // to the contrary.
   std::thread thread_;
+
   void thread_proc_();
 
   //  class WorkerImpl;

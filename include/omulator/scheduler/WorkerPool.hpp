@@ -57,19 +57,19 @@ public:
    *   execution.
    */
   template<typename Callable>
-  void add_job(Callable &&work,
-               const omulator::scheduler::Priority priority
-               = omulator::scheduler::Priority::NORMAL) {
+  void add_job(
+    Callable &&                         work,
+    const omulator::scheduler::Priority priority = omulator::scheduler::Priority::NORMAL) {
     static_assert(std::is_invocable_r_v<void, Callable>,
                   "Jobs submitted to a WorkerPool must return void and take no arguments");
 
     std::scoped_lock lck(poolLock_);
 
-    Worker *bestFitWorker  = nullptr;
-    std::size_t minNumJobs = std::numeric_limits<std::size_t>::max();
+    Worker *    bestFitWorker = nullptr;
+    std::size_t minNumJobs    = std::numeric_limits<std::size_t>::max();
 
     for(Worker &worker : workerPool_) {
-      std::size_t numJobs = worker.job_queue().size();
+      std::size_t numJobs = worker.num_jobs();
       if(numJobs == 0) {
         bestFitWorker = &worker;
         break;
@@ -104,8 +104,8 @@ private:
    * us, for now at least.
    */
   static constexpr auto WORKER_COMPARATOR = [](const Worker &a, const Worker &b) {
-    const auto aSiz = a.job_queue().size();
-    const auto bSiz = b.job_queue().size();
+    const auto aSiz = a.num_jobs();
+    const auto bSiz = b.num_jobs();
 
     if(aSiz == bSiz) {
       return a.thread_id() < b.thread_id();
