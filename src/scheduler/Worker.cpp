@@ -7,13 +7,12 @@ using namespace std::chrono_literals;
 
 namespace omulator::scheduler {
 
-Worker::Worker() : startupLatch_(1), done_(false), thread_(&Worker::thread_proc_, this) {
-  // As long as the job queue is initially empty, the following line is pointless. If the
-  // initial job queue is NOT empty, however, uncomment the following line.
-  // std::make_heap(jobQueue_.begin(), jobQueue_.end());
+Worker::Worker(std::pmr::memory_resource *memRsrc)
+  : startupLatch_(1),
+    jobQueue_(std::pmr::polymorphic_allocator<Job_ty>(memRsrc)),
+    done_(false),
+    thread_(&Worker::thread_proc_, this) {
   startupLatch_.count_down();
-
-  // TODO: Do we want to do anything with thread priority? Do we care? Need to profile tho...
 }
 
 Worker::~Worker() {
@@ -78,12 +77,8 @@ void Worker::thread_proc_() {
         //
         // To avoid this, we move the packaged_task into a new object and then immediately
         // update the state of the queue by destroying the moved-from object.
-        //
-        // TODO: would this be cleaner by wrapping the packaged_task in a smart pointer? At
-        // a minimum this would minimize the amount of work needed to be done by std::move...
         currentJob = std::move(jobQueue_.front());
-        std::pop_heap(jobQueue_.begin(), jobQueue_.end(), JOB_COMPARATOR);
-        jobQueue_.pop_back();
+        jobQueue_.pop_front();
       }
 
       currentJob.task();

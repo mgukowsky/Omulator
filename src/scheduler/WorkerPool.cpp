@@ -6,10 +6,16 @@
 
 namespace omulator::scheduler {
 
-WorkerPool::WorkerPool(const std::size_t numWorkers) : workerPool_(numWorkers) {}
+WorkerPool::WorkerPool(const std::size_t numWorkers, std::pmr::memory_resource *memRsrc) {
+  for(std::size_t i = 0; i < numWorkers; ++i) {
+    workerPool_.emplace_back(std::make_unique<Worker>(memRsrc));
+  }
+}
 
-WorkerPool::~WorkerPool() {}
+WorkerPool::~WorkerPool() { }
 
-const std::vector<Worker> &WorkerPool::worker_pool() const noexcept { return workerPool_; }
+const std::vector<std::unique_ptr<Worker>> &WorkerPool::worker_pool() const noexcept {
+  return workerPool_;
+}
 
 } /* namespace omulator::scheduler */

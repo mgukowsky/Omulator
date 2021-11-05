@@ -4,13 +4,18 @@
 
 #include <chrono>
 #include <future>
+#include <memory_resource>
 #include <thread>
 #include <vector>
+
+namespace {
+auto memRsrc = std::pmr::get_default_resource();
+}
 
 using namespace std::chrono_literals;
 
 TEST(Worker_test, addSingleJob) {
-  omulator::scheduler::Worker worker;
+  omulator::scheduler::Worker worker(memRsrc);
 
   EXPECT_TRUE(worker.num_jobs() == 0) << "The Worker's work queue should initially be empty";
 
@@ -29,7 +34,7 @@ TEST(Worker_test, addSingleJob) {
 }
 
 TEST(Worker_test, jobPriorityTest) {
-  omulator::scheduler::Worker worker;
+  omulator::scheduler::Worker worker(memRsrc);
 
   std::promise<void> startSignal, readySignal, doneSignal;
 

@@ -31,7 +31,7 @@ struct Job_ty {
   /**
    * A trivial constructor which performs no action and has minimal priority.
    */
-  Job_ty() : task(NULL_TASK), priority(Priority::MIN) {}
+  Job_ty() : task(NULL_TASK), priority(Priority::MIN) { }
 
   /**
    * We need a simple ctor here to handle templated callable args (helps us use emplace
@@ -39,19 +39,10 @@ struct Job_ty {
    */
   template<typename Callable>
   Job_ty(Callable &&callable, Priority priorityArg)
-    : task(std::forward<Callable>(callable)), priority(priorityArg) {}
+    : task(std::forward<Callable>(callable)), priority(priorityArg) { }
 
   std::packaged_task<void()> task;
-  Priority priority;
+  Priority                   priority;
 };
-
-/**
- * Comparator function which will place higher-priority jobs first.
- *
- * TODO: Do we also want to factor in how long the job has been around for (i.e.
- * allow a job that has been waiting in the queue to have a chance to run?)
- */
-static constexpr auto JOB_COMPARATOR
-  = [](const Job_ty &a, const Job_ty &b) -> bool { return a.priority < b.priority; };
 
 } /* namespace omulator::scheduler */

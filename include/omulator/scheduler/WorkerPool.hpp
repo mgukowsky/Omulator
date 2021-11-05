@@ -4,6 +4,8 @@
 
 #include <cassert>
 #include <limits>
+#include <memory>
+#include <memory_resource>
 #include <mutex>
 #include <utility>
 #include <vector>
@@ -24,7 +26,7 @@ public:
    *  reported by std::hardware_concurrency, while accounting for any threads that are currently
    *  running.
    */
-  WorkerPool(const std::size_t numWorkers);
+  WorkerPool(const std::size_t numWorkers, std::pmr::memory_resource *memRsrc);
 
   /**
    * Blocks until all threads have completed their current task and stopped execution.
@@ -39,7 +41,7 @@ public:
   /**
    * Get a read-only reference to the underlying threadpool.
    */
-  const std::vector<Worker> &worker_pool() const noexcept;
+  const std::vector<std::unique_ptr<Worker>> &worker_pool() const noexcept;
 
   /**
    * Submit a task to the threadpool. The Worker which will receive the task is selected as follows:
@@ -68,7 +70,8 @@ public:
     Worker *    bestFitWorker = nullptr;
     std::size_t minNumJobs    = std::numeric_limits<std::size_t>::max();
 
-    for(Worker &worker : workerPool_) {
+    for(std::unique_ptr<Worker> &pWorker : workerPool_) {
+      Worker &    worker  = *pWorker;
       std::size_t numJobs = worker.num_jobs();
       if(numJobs == 0) {
         bestFitWorker = &worker;
@@ -92,7 +95,9 @@ private:
 
   Lock_ty poolLock_;
 
-  std::vector<Worker> workerPool_;
+  // We wrap each Worker in a std::unique_ptr to prevent errors arising from the fact that Workers
+  // are neither copy- nor move-constructible.
+  std::vector<std::unique_ptr<Worker>> workerPool_;
 
   /**
    * Sorts workers first by the number of jobs in their queue, and then by their thread ID. Sorting

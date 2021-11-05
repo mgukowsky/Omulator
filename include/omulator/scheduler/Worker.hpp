@@ -8,8 +8,9 @@
 #include <atomic>
 #include <condition_variable>
 #include <future>
+#include <list>
+#include <memory_resource>
 #include <mutex>
-#include <queue>
 #include <thread>
 #include <type_traits>
 #include <utility>
@@ -25,8 +26,11 @@ class Worker {
 public:
   /**
    * Blocks until the underlying thread has started and is ready to receive work.
+   *
+   * We choose to pass in a memory resource so that workers have the option to receive an efficient
+   * allocator to use with their internal job queue data structure.
    */
-  Worker();
+  Worker(std::pmr::memory_resource *memRsrc);
 
   /**
    * Blocks until the currently executing task has finished.
@@ -35,7 +39,7 @@ public:
 
   Worker(const Worker &) = delete;
   Worker &operator=(const Worker &) = delete;
-  Worker(Worker &&) = delete;
+  Worker(Worker &&)                 = delete;
   Worker &operator=(Worker &&) = delete;
 
   /**
@@ -53,7 +57,7 @@ public:
    */
   template<typename Callable>
   void add_job(
-    Callable &&work,
+    Callable &&                         work,
     const omulator::scheduler::Priority priority = omulator::scheduler::Priority::NORMAL) {
     static_assert(std::is_invocable_r_v<void, Callable>,
                   "Jobs submitted to a Worker must return void and take no arguments");
@@ -61,8 +65,17 @@ public:
     {
       std::scoped_lock queueLock(jobQueueLock_);
 
-      jobQueue_.emplace(jobQueue_.end(), std::forward<Callable>(work), priority);
-      std::push_heap(jobQueue_.begin(), jobQueue_.end(), JOB_COMPARATOR);
+      // Insert the job right before the first job with the next highest priority, or at the end of
+      // the queue if there is no such job.
+      // TODO: should be const iter?
+      auto jobIt = jobQueue_.begin();
+      for(; jobIt != jobQueue_.end(); ++jobIt) {
+        if(jobIt->priority < priority) {
+          break;
+        }
+      }
+
+      jobQueue_.emplace(jobIt, std::forward<Callable>(work), priority);
     }
 
     jobCV_.notify_one();
@@ -90,12 +103,10 @@ private:
    * pop high-priority work off the front and other threads can pop low-priority work off
    * the back (or pull the next-highest priority task if needed).
    *
-   * We also use a deque rather than a vector here (std::vector is also compatible with
-   * the set of STL heap functions we'll be using) since the most common operation for
-   * the work queue will be pushing onto the back and popping off of the front, and
-   * a deque has O(1) performance for these operations.
+   * We use a list since we need access to standard queue functionalities like push/pop, in addition
+   * to random access insertion and deletion for work-stealing functionality.
    */
-  std::deque<Job_ty> jobQueue_;
+  std::pmr::list<Job_ty> jobQueue_;
 
   /**
    * Used to protect access to jobQueue_. Also used by jobCV_ to make help ensure that the
@@ -120,9 +131,6 @@ private:
   std::thread thread_;
 
   void thread_proc_();
-
-  //  class WorkerImpl;
-  //  omulator::util::Pimpl<WorkerImpl> impl_;
 };
 
 } /* namespace omulator::scheduler */
