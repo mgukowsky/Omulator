@@ -58,7 +58,7 @@ void Worker::steal_job() {
       // Otherwise, there is a possibility that Worker::peek_job() could be invoked on another
       // worker with no jobs in its queue (e.g. the job was moved between the call to num_jobs() and
       // peek_job()), which would cause undefined behavior.
-      std::scoped_lock(worker.jobQueueLock_);
+      std::scoped_lock workerLock(worker.jobQueueLock_);
       if(worker.num_jobs() > 0) {
         Job_ty &job = worker.peek_job();
 
