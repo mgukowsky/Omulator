@@ -91,7 +91,7 @@ void Worker::steal_job_() {
     // N.B. there is a race condition that can occur here where the job that we peeked at earlier
     // could have since been popped out of the other Worker's queue (either by the otherWorker
     // itself or from another thread that stole it first). In this case the results are benign,
-    // since the next line will result in the execution of a job with Job_ty::NULL_TASK.
+    // since the next line would result in the execution of a job with Job_ty::NULL_TASK.
     Job_ty job = otherWorker->pop_job();
     job.task();
   }

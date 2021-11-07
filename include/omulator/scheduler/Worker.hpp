@@ -162,7 +162,9 @@ private:
 
   /**
    * Find the highest priority job out of all the workers in workerGroup_, steal it, and execute it,
-   * or do nothing if no such job can be found.
+   * or do nothing if no such job can be found. This gives Workers the ability to "rescue" jobs in the
+   * queues of other Workers that are not being executed either because the other Worker is asleep or
+   * because the other Worker's thread is blocked on a currently running job.
    */
   void steal_job_();
 
