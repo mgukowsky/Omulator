@@ -98,11 +98,6 @@ public:
   std::size_t num_jobs() const noexcept;
 
   /**
-   * Get a reference to the highest priority job in the Worker's jobQueue_.
-   */
-  Job_ty &peek_job();
-
-  /**
    * Pops the highest priority job off of the Worker's jobQueue_ and returns it, or returns
    * a null job (with Priority::IGNORE) if there are no jobs in the queue.
    *
@@ -161,10 +156,15 @@ private:
   std::thread thread_;
 
   /**
+   * Get a reference to the highest priority job in the Worker's jobQueue_.
+   */
+  Job_ty &peek_job_();
+
+  /**
    * Find the highest priority job out of all the workers in workerGroup_, steal it, and execute it,
    * or do nothing if no such job can be found.
    */
-  void steal_job();
+  void steal_job_();
 
   void thread_proc_();
 };

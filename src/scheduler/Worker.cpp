@@ -3,6 +3,7 @@
 #include <cassert>
 #include <chrono>
 #include <optional>
+#include <stdexcept>
 
 using namespace std::chrono_literals;
 
@@ -29,8 +30,6 @@ Worker::~Worker() {
 
 std::size_t Worker::num_jobs() const noexcept { return jobQueue_.size(); }
 
-Job_ty &Worker::peek_job() { return jobQueue_.front(); }
-
 Job_ty Worker::pop_job() {
   std::scoped_lock queueLock(jobQueueLock_);
 
@@ -38,14 +37,27 @@ Job_ty Worker::pop_job() {
     return Job_ty();
   }
   else {
-    Job_ty currentJob = std::move(peek_job());
+    Job_ty currentJob = std::move(peek_job_());
     jobQueue_.pop_front();
 
     return currentJob;
   }
 }
 
-void Worker::steal_job() {
+std::thread::id Worker::thread_id() const noexcept { return thread_.get_id(); }
+
+Job_ty &Worker::peek_job_() {
+  // If this happens then it's better to throw, since calling front() on an empty std::list
+  // causes undefined behavior. This should never happen provided that proper locking of
+  // jobQueueLock_ is utilized around calls to this method.
+  if(jobQueue_.empty()) {
+    throw std::runtime_error("Called Worker::peek_job_() on a Worker with an empty job queue");
+  }
+
+  return jobQueue_.front();
+}
+
+void Worker::steal_job_() {
   Worker * otherWorker     = nullptr;
   Priority highestPriority = Priority::IGNORE;
 
@@ -55,12 +67,12 @@ void Worker::steal_job() {
 
       // We cheat a little bit here since we have access to the other Workers' private variables,
       // but this is necessary to ensure that the following few lines are executed atomically.
-      // Otherwise, there is a possibility that Worker::peek_job() could be invoked on another
+      // Otherwise, there is a possibility that Worker::peek_job_() could be invoked on another
       // worker with no jobs in its queue (e.g. the job was moved between the call to num_jobs() and
-      // peek_job()), which would cause undefined behavior.
+      // peek_job_()), which would cause undefined behavior.
       std::scoped_lock workerLock(worker.jobQueueLock_);
       if(worker.num_jobs() > 0) {
-        Job_ty &job = worker.peek_job();
+        Job_ty &job = worker.peek_job_();
 
         if(job.priority == Priority::MAX) {
           otherWorker = &worker;
@@ -84,8 +96,6 @@ void Worker::steal_job() {
     job.task();
   }
 }
-
-std::thread::id Worker::thread_id() const noexcept { return thread_.get_id(); }
 
 void Worker::thread_proc_() {
   // Don't do anything until the parent thread is ready.
@@ -121,7 +131,7 @@ void Worker::thread_proc_() {
     // of time than WORKER_WAIT_TIMEOUT as opposed to having been awoken due to a notification from
     // add_job(), so we attempt to steal a job sitting in the queue of another worker.
     if(jobQueue_.empty() && !done_) {
-      steal_job();
+      steal_job_();
     }
 
     // This empty check does not need to be protected; even if a task is added while the check is
