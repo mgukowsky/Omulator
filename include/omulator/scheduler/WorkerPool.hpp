@@ -1,5 +1,6 @@
 #pragma once
 
+#include "omulator/oml_types.hpp"
 #include "omulator/scheduler/Worker.hpp"
 
 #include <cassert>
@@ -17,6 +18,10 @@ namespace omulator::scheduler {
  */
 class WorkerPool {
 public:
+  struct WorkerStats {
+    std::size_t numJobs;
+  };
+
   /**
    * Blocks until all threads are started and ready to accept work. Creates a pool of workers
    * based on the argument given.
@@ -88,6 +93,8 @@ public:
     assert(bestFitWorker != nullptr);
     bestFitWorker->add_job(std::forward<Callable>(work), priority);
   }
+
+  const std::vector<WorkerStats> stats() const;
 
 private:
   // TODO **IMPORTANT**: Should maybe be a spinlock?

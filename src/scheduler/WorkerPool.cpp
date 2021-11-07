@@ -18,4 +18,14 @@ const std::vector<std::unique_ptr<Worker>> &WorkerPool::worker_pool() const noex
   return workerPool_;
 }
 
+const std::vector<WorkerPool::WorkerStats> WorkerPool::stats() const {
+  std::vector<WorkerStats> stats(workerPool_.size());
+
+  for(std::size_t i = 0; i < workerPool_.size(); ++i) {
+    stats.at(i).numJobs = workerPool_.at(i)->num_jobs();
+  }
+
+  return stats;
+}
+
 } /* namespace omulator::scheduler */
