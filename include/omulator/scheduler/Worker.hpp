@@ -70,6 +70,10 @@ public:
                   "Jobs submitted to a Worker must return void and take no arguments");
 
     {
+      if(priority == Priority::IGNORE) {
+        return;
+      }
+
       std::scoped_lock queueLock(jobQueueLock_);
 
       // Insert the job right before the first job with the next highest priority, or at the end of

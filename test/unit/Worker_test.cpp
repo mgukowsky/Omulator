@@ -69,6 +69,37 @@ TEST(Worker_test, jobPriorityTest) {
   }
 }
 
+TEST(Worker_test, ignoreJobTest) {
+  omulator::scheduler::Worker worker(workerGroup, memRsrc);
+
+  std::promise<void> startSignal, readySignal, doneSignal;
+
+  // A dummy job to hold the worker in stasis until we're ready.
+  worker.add_job([&] {
+    startSignal.set_value();
+    readySignal.get_future().wait();
+  });
+
+  startSignal.get_future().wait();
+
+  int i = 0;
+
+  worker.add_job([&] { ++i; }, omulator::scheduler::Priority::IGNORE);
+  worker.add_job([&] { ++i; }, omulator::scheduler::Priority::NORMAL);
+  worker.add_job([&] { doneSignal.set_value(); }, omulator::scheduler::Priority::LOW);
+
+  EXPECT_EQ(2, worker.num_jobs())
+    << "Jobs with priority set to Priority::IGNORE should never be enqueued via Worker::add_job()";
+
+  readySignal.set_value();
+  doneSignal.get_future().wait();
+
+  // Technically there is a race condition possible here since the LOW priority task that unblocks
+  // the main thread will be executed before the lowest priority IGNORE task can be executed, but
+  // since the IGNORE task will never be executed anyway we don't really care.
+  EXPECT_EQ(1, i) << "Jobs with priority set to Priority::IGNORE should never be executed";
+}
+
 TEST(Worker_test, nullJobTest) {
   omulator::scheduler::Worker worker(workerGroup, memRsrc);
 
