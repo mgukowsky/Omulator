@@ -97,28 +97,7 @@ private:
 
   // We wrap each Worker in a std::unique_ptr to prevent errors arising from the fact that Workers
   // are neither copy- nor move-constructible.
-  std::vector<std::unique_ptr<Worker>> workerPool_;
-
-  /**
-   * Sorts workers first by the number of jobs in their queue, and then by their thread ID. Sorting
-   * by thread ID is a small optimization which allows us to repeatedly re-use the same thread,
-   * potentially making things easier on the scheduler.
-   *
-   * N.B. we don't lock the workers while doing this, so it's possible that the size of the
-   * job_queue can change while this comparison is taking place, but that's an acceptable risk for
-   * us, for now at least.
-   */
-  static constexpr auto WORKER_COMPARATOR = [](const Worker &a, const Worker &b) {
-    const auto aSiz = a.num_jobs();
-    const auto bSiz = b.num_jobs();
-
-    if(aSiz == bSiz) {
-      return a.thread_id() < b.thread_id();
-    }
-    else {
-      return aSiz > bSiz;
-    }
-  };
+  Worker::WorkerGroup_t workerPool_;
 };
 
 }  // namespace omulator::scheduler

@@ -8,7 +8,7 @@ namespace omulator::scheduler {
 
 WorkerPool::WorkerPool(const std::size_t numWorkers, std::pmr::memory_resource *memRsrc) {
   for(std::size_t i = 0; i < numWorkers; ++i) {
-    workerPool_.emplace_back(std::make_unique<Worker>(memRsrc));
+    workerPool_.emplace_back(std::make_unique<Worker>(workerPool_, memRsrc));
   }
 }
 

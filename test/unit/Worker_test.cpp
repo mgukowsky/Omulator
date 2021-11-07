@@ -9,13 +9,15 @@
 #include <vector>
 
 namespace {
+omulator::scheduler::Worker::WorkerGroup_t workerGroup;
+
 auto memRsrc = std::pmr::get_default_resource();
-}
+}  // namespace
 
 using namespace std::chrono_literals;
 
 TEST(Worker_test, addSingleJob) {
-  omulator::scheduler::Worker worker(memRsrc);
+  omulator::scheduler::Worker worker(workerGroup, memRsrc);
 
   EXPECT_TRUE(worker.num_jobs() == 0) << "The Worker's work queue should initially be empty";
 
@@ -34,7 +36,7 @@ TEST(Worker_test, addSingleJob) {
 }
 
 TEST(Worker_test, jobPriorityTest) {
-  omulator::scheduler::Worker worker(memRsrc);
+  omulator::scheduler::Worker worker(workerGroup, memRsrc);
 
   std::promise<void> startSignal, readySignal, doneSignal;
 
@@ -68,11 +70,68 @@ TEST(Worker_test, jobPriorityTest) {
 }
 
 TEST(Worker_test, nullJobTest) {
-  omulator::scheduler::Worker worker(memRsrc);
+  omulator::scheduler::Worker worker(workerGroup, memRsrc);
 
   worker.add_job([] {});
   EXPECT_EQ(omulator::scheduler::Priority::NORMAL, worker.pop_job().priority);
   EXPECT_EQ(omulator::scheduler::Priority::IGNORE, worker.pop_job().priority)
     << "Worker::pop_job should return a null job with Priority::IGNORE when there are no jobs "
        "remaining in the Worker's queue";
+}
+
+TEST(Worker_test, jobStealTest) {
+  omulator::scheduler::Worker::WorkerGroup_t localWorkerGroup;
+
+  std::promise<void> startSignal1, startSignal2, readySignal1, readySignal2, doneSignal1,
+    doneSignal2;
+
+  omulator::scheduler::Worker &worker1 = *(localWorkerGroup.emplace_back(
+    std::make_unique<omulator::scheduler::Worker>(localWorkerGroup, memRsrc)));
+  omulator::scheduler::Worker &worker2 = *(localWorkerGroup.emplace_back(
+    std::make_unique<omulator::scheduler::Worker>(localWorkerGroup, memRsrc)));
+
+  // A dummy job to hold the worker in stasis until we're ready.
+  worker1.add_job([&] {
+    startSignal1.set_value();
+    readySignal1.get_future().wait();
+  });
+
+  // ditto
+  worker2.add_job([&] {
+    startSignal2.set_value();
+    readySignal2.get_future().wait();
+  });
+
+  startSignal1.get_future().wait();
+  startSignal2.get_future().wait();
+
+  int           i     = 0;
+  constexpr int MAGIC = 0xABCD;
+
+  // Add a job to worker1's queue...
+  worker1.add_job([&] {
+    i = MAGIC;
+    doneSignal2.set_value();
+  });
+  EXPECT_EQ(1, worker1.num_jobs());
+  EXPECT_EQ(0, worker2.num_jobs());
+  EXPECT_EQ(0, i);
+
+  // ...but then leave worker1 blocked and UNblock worker2, which should cause worker2 to steal the
+  // job from worker1. Use doneSignal2 to block on the main thread until worker2 steals the job from
+  // worker1 and executes it.
+  readySignal2.set_value();
+  doneSignal2.get_future().wait();
+
+  EXPECT_EQ(0, worker1.num_jobs()) << "A Worker should steal a job from another Worker when "
+                                      "periodically wakes up and has no work to do";
+  EXPECT_EQ(0, worker2.num_jobs()) << "A Worker should steal a job from another Worker when "
+                                      "periodically wakes up and has no work to do";
+  EXPECT_EQ(MAGIC, i) << "A Worker should steal a job from another Worker when periodically wakes "
+                         "up and has no work to do";
+
+  worker1.add_job([&] { doneSignal1.set_value(); });
+
+  readySignal1.set_value();
+  doneSignal1.get_future().wait();
 }

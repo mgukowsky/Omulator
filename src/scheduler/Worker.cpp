@@ -1,5 +1,6 @@
 #include "omulator/scheduler/Worker.hpp"
 
+#include <cassert>
 #include <chrono>
 #include <optional>
 
@@ -7,8 +8,9 @@ using namespace std::chrono_literals;
 
 namespace omulator::scheduler {
 
-Worker::Worker(std::pmr::memory_resource *memRsrc)
+Worker::Worker(Worker::WorkerGroup_t &workerGroup, std::pmr::memory_resource *memRsrc)
   : startupLatch_(1),
+    workerGroup_(workerGroup),
     jobQueue_(std::pmr::polymorphic_allocator<Job_ty>(memRsrc)),
     done_(false),
     thread_(&Worker::thread_proc_, this) {
@@ -27,6 +29,8 @@ Worker::~Worker() {
 
 std::size_t Worker::num_jobs() const noexcept { return jobQueue_.size(); }
 
+Job_ty &Worker::peek_job() { return jobQueue_.front(); }
+
 Job_ty Worker::pop_job() {
   std::scoped_lock queueLock(jobQueueLock_);
 
@@ -34,10 +38,50 @@ Job_ty Worker::pop_job() {
     return Job_ty();
   }
   else {
-    Job_ty currentJob = std::move(jobQueue_.front());
+    Job_ty currentJob = std::move(peek_job());
     jobQueue_.pop_front();
 
     return currentJob;
+  }
+}
+
+void Worker::steal_job() {
+  Worker * otherWorker     = nullptr;
+  Priority highestPriority = Priority::IGNORE;
+
+  for(auto &workerIt : workerGroup_) {
+    if(workerIt.get() != this) {
+      Worker &worker = *workerIt;
+
+      // We cheat a little bit here since we have access to the other Workers' private variables,
+      // but this is necessary to ensure that the following few lines are executed atomically.
+      // Otherwise, there is a possibility that Worker::peek_job() could be invoked on another
+      // worker with no jobs in its queue (e.g. the job was moved between the call to num_jobs() and
+      // peek_job()), which would cause undefined behavior.
+      std::scoped_lock(worker.jobQueueLock_);
+      if(worker.num_jobs() > 0) {
+        Job_ty &job = worker.peek_job();
+
+        if(job.priority == Priority::MAX) {
+          otherWorker = &worker;
+          break;
+        }
+        else if(job.priority > highestPriority) {
+          otherWorker     = &worker;
+          highestPriority = job.priority;
+        }
+      }
+    }
+  }
+
+  // otherWorker will be nullptr if no other Workers have any jobs
+  if(otherWorker != nullptr) {
+    // N.B. there is a race condition that can occur here where the job that we peeked at earlier
+    // could have since been popped out of the other Worker's queue (either by the otherWorker
+    // itself or from another thread that stole it first). In this case the results are benign,
+    // since the next line will result in the execution of a job with Job_ty::NULL_TASK.
+    Job_ty job = otherWorker->pop_job();
+    job.task();
   }
 }
 
@@ -49,7 +93,7 @@ void Worker::thread_proc_() {
 
   /**
    * Since it's possible for the worker to be notified before it enters an alertable state (i.e.
-   * calling a wait functiuon on jobCV_), we periodically have the threads wake up to check if
+   * calling a wait function on jobCV_), we periodically have the threads wake up to check if
    * there is any work to be done. The quantity here is arbitrary, and can be tuned as per
    * profiling results if necessary.
    *
@@ -71,6 +115,13 @@ void Worker::thread_proc_() {
       // per profiler results if necessary.
       jobCV_.wait_for(
         cvLock, WORKER_WAIT_TIMEOUT, [this]() noexcept { return !jobQueue_.empty() || done_; });
+    }
+
+    // In this case, the worker has most likely been awoken due to having slept for a greater amount
+    // of time than WORKER_WAIT_TIMEOUT as opposed to having been awoken due to a notification from
+    // add_job(), so we attempt to steal a job sitting in the queue of another worker.
+    if(jobQueue_.empty() && !done_) {
+      steal_job();
     }
 
     // This empty check does not need to be protected; even if a task is added while the check is

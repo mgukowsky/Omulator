@@ -9,11 +9,13 @@
 #include <condition_variable>
 #include <future>
 #include <list>
+#include <memory>
 #include <memory_resource>
 #include <mutex>
 #include <thread>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace omulator::scheduler {
 
@@ -24,13 +26,18 @@ namespace omulator::scheduler {
  */
 class Worker {
 public:
+  using WorkerGroup_t = std::vector<std::unique_ptr<Worker>>;
+
   /**
    * Blocks until the underlying thread has started and is ready to receive work.
+   *
+   * We pass in a reference to a group of other Workers from which this Worker can steal jobs. This
+   * avoids us having to pass in a reference to the entire WorkerPool that contains this worker.
    *
    * We choose to pass in a memory resource so that workers have the option to receive an efficient
    * allocator to use with their internal job queue data structure.
    */
-  Worker(std::pmr::memory_resource *memRsrc);
+  Worker(WorkerGroup_t &workerGroup, std::pmr::memory_resource *memRsrc);
 
   /**
    * Blocks until the currently executing task has finished.
@@ -87,7 +94,12 @@ public:
   std::size_t num_jobs() const noexcept;
 
   /**
-   * Pops the next-highest priority job off of the Worker's jobQueue_ and returns it, or returns
+   * Get a reference to the highest priority job in the Worker's jobQueue_.
+   */
+  Job_ty &peek_job();
+
+  /**
+   * Pops the highest priority job off of the Worker's jobQueue_ and returns it, or returns
    * a null job (with Priority::IGNORE) if there are no jobs in the queue.
    *
    * LOCKS jobQueueLock_.
@@ -104,6 +116,12 @@ private:
 
   // TODO **IMPORTANT**: Should maybe be a spinlock?
   using Lock_ty = std::mutex;
+
+  /**
+   * A reference to other Workers that this Worker may steal jobs from. N.B. that this group may
+   * contain this Worker!
+   */
+  WorkerGroup_t &workerGroup_;
 
   /**
    * The work queue of what needs to be done. We use a deque rather that a priority_queue
@@ -137,6 +155,12 @@ private:
   // until everthing else in the object is ready to go, and whine if we do anything
   // to the contrary.
   std::thread thread_;
+
+  /**
+   * Find the highest priority job out of all the workers in workerGroup_, steal it, and execute it,
+   * or do nothing if no such job can be found.
+   */
+  void steal_job();
 
   void thread_proc_();
 };
