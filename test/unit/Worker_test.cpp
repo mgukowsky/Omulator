@@ -66,3 +66,13 @@ TEST(Worker_test, jobPriorityTest) {
     v.pop_back();
   }
 }
+
+TEST(Worker_test, nullJobTest) {
+  omulator::scheduler::Worker worker(memRsrc);
+
+  worker.add_job([] {});
+  EXPECT_EQ(omulator::scheduler::Priority::NORMAL, worker.pop_job().priority);
+  EXPECT_EQ(omulator::scheduler::Priority::IGNORE, worker.pop_job().priority)
+    << "Worker::pop_job should return a null job with Priority::IGNORE when there are no jobs "
+       "remaining in the Worker's queue";
+}

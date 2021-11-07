@@ -27,6 +27,20 @@ Worker::~Worker() {
 
 std::size_t Worker::num_jobs() const noexcept { return jobQueue_.size(); }
 
+Job_ty Worker::pop_job() {
+  std::scoped_lock queueLock(jobQueueLock_);
+
+  if(jobQueue_.empty()) {
+    return Job_ty();
+  }
+  else {
+    Job_ty currentJob = std::move(jobQueue_.front());
+    jobQueue_.pop_front();
+
+    return currentJob;
+  }
+}
+
 std::thread::id Worker::thread_id() const noexcept { return thread_.get_id(); }
 
 void Worker::thread_proc_() {
@@ -66,22 +80,10 @@ void Worker::thread_proc_() {
         break;
       }
 
-      Job_ty currentJob;
-      {
-        std::scoped_lock queueLock(jobQueueLock_);
-
-        // We can't simply grab a reference to the head and pop it later, as other threads
-        // may push additional work at a higher priority while this task is executing, thereby
-        // invalidating iterators (i.e. pop_heap and pop_back below might operate on a higher
-        // priority task that was pushed while the currentJob was executing).
-        //
-        // To avoid this, we move the packaged_task into a new object and then immediately
-        // update the state of the queue by destroying the moved-from object.
-        currentJob = std::move(jobQueue_.front());
-        jobQueue_.pop_front();
+      Job_ty currentJob = pop_job();
+      if(currentJob.priority != Priority::IGNORE) {
+        currentJob.task();
       }
-
-      currentJob.task();
       // TODO: When the current task finishes executing, check to see if an exception was raised
       // and, if so, log it.
     }

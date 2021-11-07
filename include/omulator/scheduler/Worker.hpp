@@ -87,6 +87,14 @@ public:
   std::size_t num_jobs() const noexcept;
 
   /**
+   * Pops the next-highest priority job off of the Worker's jobQueue_ and returns it, or returns
+   * a null job (with Priority::IGNORE) if there are no jobs in the queue.
+   *
+   * LOCKS jobQueueLock_.
+   */
+  Job_ty pop_job();
+
+  /**
    * Returns the ID of the underlying thread.
    */
   std::thread::id thread_id() const noexcept;

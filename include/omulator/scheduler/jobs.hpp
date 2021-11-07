@@ -15,7 +15,8 @@ namespace omulator::scheduler {
  * The priority of a task; where a higher value means greater priority.
  */
 enum class Priority : U8 {
-  MIN    = 0,
+  IGNORE = 0,
+  MIN    = 1,
   LOW    = 63,
   NORMAL = 127,
   HIGH   = 191,
@@ -31,7 +32,7 @@ struct Job_ty {
   /**
    * A trivial constructor which performs no action and has minimal priority.
    */
-  Job_ty() : task(NULL_TASK), priority(Priority::MIN) { }
+  Job_ty() : task(NULL_TASK), priority(Priority::IGNORE) { }
 
   /**
    * We need a simple ctor here to handle templated callable args (helps us use emplace
