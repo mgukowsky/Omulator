@@ -50,9 +50,7 @@ Job_ty &Worker::peek_job_() {
   // If this happens then it's better to throw, since calling front() on an empty std::list
   // causes undefined behavior. This should never happen provided that proper locking of
   // jobQueueLock_ is utilized around calls to this method.
-  if(jobQueue_.empty()) {
-    throw std::runtime_error("Called Worker::peek_job_() on a Worker with an empty job queue");
-  }
+  assert(!jobQueue_.empty());
 
   return jobQueue_.front();
 }
