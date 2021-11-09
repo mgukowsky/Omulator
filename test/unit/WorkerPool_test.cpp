@@ -12,7 +12,7 @@ auto memRsrc = std::pmr::get_default_resource();
 }
 
 TEST(WorkerPool_test, jobDistribution) {
-  constexpr int numThreads = 4;
+  constexpr size_t numThreads = 4;
 
   omulator::scheduler::WorkerPool wp(numThreads, memRsrc);
 
@@ -20,26 +20,26 @@ TEST(WorkerPool_test, jobDistribution) {
 
   std::array<std::promise<void>, numThreads> startSignals, readySignals, doneSignals;
 
-  for(int i = 0; i < numThreads; ++i) {
+  for(size_t i = 0; i < numThreads; ++i) {
     wp.add_job([&, i] {
       startSignals.at(i).set_value();
       readySignals.at(i).get_future().wait();
     });
   };
 
-  for(int i = 0; i < numThreads; ++i) {
+  for(size_t i = 0; i < numThreads; ++i) {
     startSignals.at(i).get_future().wait(); 
   }
 
   {
     const auto stats = wp.stats();
 
-    for(int i = 0; i < numThreads; ++i) {
+    for(size_t i = 0; i < numThreads; ++i) {
       EXPECT_EQ(0, stats.at(i).numJobs);
     }
   }
 
-  for(int i = 0; i < numThreads; ++i) {
+  for(size_t i = 0; i < numThreads; ++i) {
     wp.add_job([&, i] { doneSignals.at(i).set_value(); });
   }
 
@@ -54,23 +54,23 @@ TEST(WorkerPool_test, jobDistribution) {
     EXPECT_EQ(2, stats.at(0).numJobs)
       << "WorkerPools should properly distribute workloads across all Workers";
 
-    for(int i = 1; i < numThreads; ++i) {
+    for(size_t i = 1; i < numThreads; ++i) {
       EXPECT_EQ(1, stats.at(i).numJobs)
         << "WorkerPools should properly distribute workloads across all Workers";
     }
   }
 
-  for(int i = 0; i < numThreads; ++i) {
+  for(size_t i = 0; i < numThreads; ++i) {
     readySignals.at(i).set_value();
   }
 
-  for(int i = 0; i < numThreads; ++i) {
+  for(size_t i = 0; i < numThreads; ++i) {
     doneSignals.at(i).get_future().wait();
   }
 
   {
     const auto stats = wp.stats();
-    for(int i = 0; i < numThreads; ++i) {
+    for(size_t i = 0; i < numThreads; ++i) {
       EXPECT_EQ(0, stats.at(i).numJobs);
     }
   }
