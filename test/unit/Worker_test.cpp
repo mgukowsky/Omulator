@@ -103,11 +103,26 @@ TEST(Worker_test, ignoreJobTest) {
 TEST(Worker_test, nullJobTest) {
   omulator::scheduler::Worker worker(workerGroup, memRsrc);
 
+  std::promise<void> startSignal, doneSignal;
+
+  // Without this there would be a race condition between the first call on the main thread to
+  // pop_job() below and the Worker's internal thread which calls pop_job on its own thread.
+  worker.add_job([&] {
+    startSignal.set_value();
+    doneSignal.get_future().wait();
+  });
+
+  startSignal.get_future().wait();
+
+  // Again, by holding the thread in statis above, we ensure that the job added here will only ever
+  // be popped by the pop_job() call below this.
   worker.add_job([] {});
   EXPECT_EQ(omulator::scheduler::Priority::NORMAL, worker.pop_job().priority);
   EXPECT_EQ(omulator::scheduler::Priority::IGNORE, worker.pop_job().priority)
     << "Worker::pop_job should return a null job with Priority::IGNORE when there are no jobs "
        "remaining in the Worker's queue";
+
+  doneSignal.set_value();
 }
 
 TEST(Worker_test, jobStealTest) {

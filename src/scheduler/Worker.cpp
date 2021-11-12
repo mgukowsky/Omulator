@@ -20,6 +20,8 @@ Worker::Worker(Worker::WorkerGroup_t &workerGroup, std::pmr::memory_resource *me
 
 Worker::~Worker() {
   done_ = true;
+
+  // Kick the thread to wake up and finish off anything in its queue.
   jobCV_.notify_one();
 
   // TODO: put in code to kill the thread if it takes more than a few secs to respond...
