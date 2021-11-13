@@ -40,6 +40,14 @@ protected:
     pInjector->addRecipe<ObjectPool<Package>>(
       [](Injector &inj) { return inj.containerize(new ObjectPool<Package>(0x10)); });
   }
+
+  void TearDown() override {
+    // We _HAVE_ to delete the logger mock here, as mock objects need to be destroyed 
+    // after tests end and before GoogleMock begins its global teardown, otherwise we
+    // will get an exception thrown. See https://github.com/google/googletest/issues/1963
+    pLogger.reset();
+    pInjector.reset();
+  }
 };
 
 TEST_F(MailboxRouter_test, claimAndThenGet) {

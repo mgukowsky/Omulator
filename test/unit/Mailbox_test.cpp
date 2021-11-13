@@ -37,6 +37,15 @@ protected:
     pMbPool.reset(new ObjectPool<MessageBuffer>(0x10));
     pPkgPool.reset(new ObjectPool<Package>(0x10));
   }
+
+  void TearDown() override {
+    // We _HAVE_ to delete the logger mock here, as mock objects need to be destroyed 
+    // after tests end and before GoogleMock begins its global teardown, otherwise we
+    // will get an exception thrown. See https://github.com/google/googletest/issues/1963
+    pLogger.reset();
+    pMbPool.reset();
+    pPkgPool.reset();
+  }
 };
 
 TEST_F(Mailbox_test, packageLifecycle) {
