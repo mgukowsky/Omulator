@@ -14,9 +14,7 @@ WorkerPool::WorkerPool(const std::size_t numWorkers, std::pmr::memory_resource *
 
 WorkerPool::~WorkerPool() { }
 
-const std::vector<std::unique_ptr<Worker>> &WorkerPool::worker_pool() const noexcept {
-  return workerPool_;
-}
+std::size_t WorkerPool::size() const noexcept { return workerPool_.size(); }
 
 const std::vector<WorkerPool::WorkerStats> WorkerPool::stats() const {
   std::vector<WorkerStats> stats(workerPool_.size());

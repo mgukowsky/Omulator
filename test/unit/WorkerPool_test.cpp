@@ -16,7 +16,7 @@ TEST(WorkerPool_test, jobDistribution) {
 
   omulator::scheduler::WorkerPool wp(numThreads, memRsrc);
 
-  EXPECT_EQ(numThreads, wp.worker_pool().size());
+  EXPECT_EQ(numThreads, wp.size());
 
   std::array<std::promise<void>, numThreads> startSignals, readySignals, doneSignals;
 
@@ -28,7 +28,7 @@ TEST(WorkerPool_test, jobDistribution) {
   };
 
   for(size_t i = 0; i < numThreads; ++i) {
-    startSignals.at(i).get_future().wait(); 
+    startSignals.at(i).get_future().wait();
   }
 
   {

@@ -44,11 +44,6 @@ public:
   WorkerPool &operator=(WorkerPool &&) = delete;
 
   /**
-   * Get a read-only reference to the underlying threadpool.
-   */
-  const std::vector<std::unique_ptr<Worker>> &worker_pool() const noexcept;
-
-  /**
    * Submit a task to the threadpool. The Worker which will receive the task is selected as follows:
    *    -Iterate through all Workers, and select the first worker found with zero jobs in its queue
    *    -Otherwise, select the worker with the least amount of work in its queue. If there is a tie,
@@ -65,18 +60,18 @@ public:
    */
   template<typename Callable>
   void add_job(
-    Callable &&                         work,
+    Callable                          &&work,
     const omulator::scheduler::Priority priority = omulator::scheduler::Priority::NORMAL) {
     static_assert(std::is_invocable_r_v<void, Callable>,
                   "Jobs submitted to a WorkerPool must return void and take no arguments");
 
     std::scoped_lock lck(poolLock_);
 
-    Worker *    bestFitWorker = nullptr;
+    Worker     *bestFitWorker = nullptr;
     std::size_t minNumJobs    = std::numeric_limits<std::size_t>::max();
 
     for(std::unique_ptr<Worker> &pWorker : workerPool_) {
-      Worker &    worker  = *pWorker;
+      Worker     &worker  = *pWorker;
       std::size_t numJobs = worker.num_jobs();
       if(numJobs == 0) {
         bestFitWorker = &worker;
@@ -93,6 +88,8 @@ public:
     assert(bestFitWorker != nullptr);
     bestFitWorker->add_job(std::forward<Callable>(work), priority);
   }
+
+  std::size_t size() const noexcept;
 
   const std::vector<WorkerStats> stats() const;
 
