@@ -77,11 +77,10 @@ public:
         bestFitWorker = &worker;
         break;
       }
-      else {
-        if(numJobs < minNumJobs) {
-          minNumJobs    = numJobs;
-          bestFitWorker = &worker;
-        }
+
+      if(numJobs < minNumJobs) {
+        minNumJobs    = numJobs;
+        bestFitWorker = &worker;
       }
     }
 

@@ -146,7 +146,7 @@ public:
   requires std::derived_from<Implementation, Interface>
   void bindImpl() {
     auto recipe = [](Injector &injector) {
-      Implementation &impl = injector.get<Implementation>();
+      auto &impl = injector.get<Implementation>();
 
       injector.typeMap_.emplace_impl<Interface, Implementation>(impl);
 
@@ -277,8 +277,8 @@ private:
         // interface that has an associated implementation).
         Container_t anyValue = recipeIt->second(*this);
         if(anyValue.get() != nullptr) {
-          TypeContainer<T> *pCtr = reinterpret_cast<TypeContainer<T> *>(anyValue.get());
-          T *               pVal = pCtr->release();
+          auto *pCtr = reinterpret_cast<TypeContainer<T> *>(anyValue.get());
+          T    *pVal = pCtr->release();
           if(forwardValue) {
             retval.reset(pVal);
           }

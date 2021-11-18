@@ -4,7 +4,7 @@
 
 namespace omulator {
 
-Latch::Latch(std::ptrdiff_t value) : counter_(value), destructorInvoked_(false), ready_(false) {}
+Latch::Latch(std::ptrdiff_t value) : counter_(value), destructorInvoked_(false), ready_(false) { }
 
 Latch::~Latch() { destructorInvoked_ = true; }
 
@@ -14,11 +14,11 @@ void Latch::count_down(std::ptrdiff_t n) {
   // If either of these conditions are true we need to throw an exception,
   // as the behavior is undefined per the spec.
   if(n > counter_) {
-    throw std::runtime_error(
-      "Latch::count_down called with a value that would cause the "
-      "internal counter to become negative.");
+    throw std::runtime_error("Latch::count_down called with a value that would cause the "
+                             "internal counter to become negative.");
   }
-  else if(n < 0) {
+
+  if(n < 0) {
     throw std::runtime_error("Latch::count_down called with a negative value.");
   }
 
@@ -45,7 +45,8 @@ void Latch::wait() const {
     if(counter_ == 0) {
       return;
     }
-    else if(destructorInvoked_) {
+
+    if(destructorInvoked_) {
       throw std::runtime_error(
         "Attempted to call Latch::wait on a Latch that is being destructed.");
     }

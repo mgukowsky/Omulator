@@ -14,7 +14,7 @@ int main([[maybe_unused]] const int argc, [[maybe_unused]] const char **argv) {
     }
     omulator::di::Injector injector;
     omulator::di::Injector::installDefaultRules(injector);
-    omulator::ILogger &logger = injector.get<omulator::ILogger>();
+    auto &logger = injector.get<omulator::ILogger>();
     logger.info("Hello, using spdlog!");
   }
 

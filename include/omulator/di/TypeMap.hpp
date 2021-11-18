@@ -84,7 +84,7 @@ private:
 
   // Use a raw pointer since we're need to manage lifetimes differently based on whether or not we
   // have ownership
-  T *  ptr_;
+  T   *ptr_;
   bool hasOwnership_;
 };
 
@@ -109,13 +109,12 @@ public:
     if(has_key<T>()) {
       return true;
     }
-    else {
-      map_.emplace(TypeHash<T>, std::make_unique<TypeContainer<T>>());
-      auto pContainerBase = map_.at(TypeHash<T>).get();
-      reinterpret_cast<TypeContainer<T> *>(pContainerBase)
-        ->createInstance(std::forward<Args>(args)...);
-      return false;
-    }
+
+    map_.emplace(TypeHash<T>, std::make_unique<TypeContainer<T>>());
+    auto pContainerBase = map_.at(TypeHash<T>).get();
+    reinterpret_cast<TypeContainer<T> *>(pContainerBase)
+      ->createInstance(std::forward<Args>(args)...);
+    return false;
   }
 
   template<typename Interface, typename Impl>
@@ -142,11 +141,10 @@ public:
     if(has_key<T>()) {
       return true;
     }
-    else {
-      map_.emplace(TypeHash<T>, std::move(ctr));
 
-      return false;
-    }
+    map_.emplace(TypeHash<T>, std::move(ctr));
+
+    return false;
   }
 
   /**
@@ -158,15 +156,14 @@ public:
     if(has_key<T>()) {
       return true;
     }
-    else {
-      std::unique_ptr<TypeContainer<T>> ctr = std::make_unique<TypeContainer<T>>();
 
-      // We don't call TypeContainer::reset() here because we DON'T want to take ownership of pT
-      ctr->setref(pT);
-      map_.emplace(TypeHash<T>, std::move(ctr));
+    std::unique_ptr<TypeContainer<T>> ctr = std::make_unique<TypeContainer<T>>();
 
-      return false;
-    }
+    // We don't call TypeContainer::reset() here because we DON'T want to take ownership of pT
+    ctr->setref(pT);
+    map_.emplace(TypeHash<T>, std::move(ctr));
+
+    return false;
   }
 
   void erase(const Hash_t hsh) { map_.erase(hsh); }

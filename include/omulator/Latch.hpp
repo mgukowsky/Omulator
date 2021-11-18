@@ -19,6 +19,9 @@ public:
   Latch(const Latch &) = delete;
   Latch &operator=(const Latch &) = delete;
 
+  Latch(Latch &&) = delete;
+  Latch &operator=(Latch &&) = delete;
+
   void count_down(std::ptrdiff_t n = 1);
   void count_down_and_wait();
   bool is_ready() const noexcept;
