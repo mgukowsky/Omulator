@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <chrono>
 
 /**
  * A set of aliases for common types.
@@ -17,4 +18,5 @@ using U16 = std::uint16_t;
 using U32 = std::uint32_t;
 using U64 = std::uint64_t;
 
+using TimePoint_t = decltype(std::chrono::steady_clock::now());
 } /* namespace omulator */

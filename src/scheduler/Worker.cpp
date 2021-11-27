@@ -9,8 +9,11 @@ using namespace std::chrono_literals;
 
 namespace omulator::scheduler {
 
-Worker::Worker(Worker::WorkerGroup_t &workerGroup, std::pmr::memory_resource *memRsrc)
+Worker::Worker(Worker::WorkerGroup_t     &workerGroup,
+               IClock                    &clock,
+               std::pmr::memory_resource *memRsrc)
   : startupLatch_(1),
+    clock_(clock),
     workerGroup_(workerGroup),
     jobQueue_(std::pmr::polymorphic_allocator<Job_ty>(memRsrc)),
     done_(false),
@@ -32,9 +35,7 @@ Worker::~Worker() {
 
 std::size_t Worker::num_jobs() const noexcept { return jobQueue_.size(); }
 
-void Worker::poke() noexcept {
-  jobCV_.notify_one();
-}
+void Worker::poke() noexcept { jobCV_.notify_one(); }
 
 Job_ty Worker::pop_job() {
   std::scoped_lock queueLock(jobQueueLock_);
@@ -62,7 +63,7 @@ Job_ty &Worker::peek_job_() {
 }
 
 void Worker::steal_job_() {
-  Worker * otherWorker     = nullptr;
+  Worker  *otherWorker     = nullptr;
   Priority highestPriority = Priority::IGNORE;
 
   for(auto &workerIt : workerGroup_) {

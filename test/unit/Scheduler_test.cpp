@@ -1,8 +1,11 @@
 #include "omulator/scheduler/Scheduler.hpp"
 
+#include "mocks/ClockMock.hpp"
+
 #include <gtest/gtest.h>
 
 #include <array>
+#include <chrono>
 #include <future>
 #include <memory_resource>
 #include <thread>
@@ -14,7 +17,8 @@ auto memRsrc = std::pmr::get_default_resource();
 TEST(Scheduler_test, jobDistribution) {
   constexpr size_t numThreads = 4;
 
-  omulator::scheduler::Scheduler wp(numThreads, memRsrc);
+  ClockMock                      clock(std::chrono::steady_clock::now());
+  omulator::scheduler::Scheduler wp(numThreads, clock, memRsrc);
 
   EXPECT_EQ(numThreads, wp.size());
 

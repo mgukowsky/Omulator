@@ -6,9 +6,12 @@
 
 namespace omulator::scheduler {
 
-Scheduler::Scheduler(const std::size_t numWorkers, std::pmr::memory_resource *memRsrc) {
+Scheduler::Scheduler(const std::size_t          numWorkers,
+                     IClock                    &clock,
+                     std::pmr::memory_resource *memRsrc)
+  : clock_(clock) {
   for(std::size_t i = 0; i < numWorkers; ++i) {
-    workerPool_.emplace_back(std::make_unique<Worker>(workerPool_, memRsrc));
+    workerPool_.emplace_back(std::make_unique<Worker>(workerPool_, clock_, memRsrc));
   }
 }
 

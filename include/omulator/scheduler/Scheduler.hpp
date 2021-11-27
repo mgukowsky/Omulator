@@ -1,5 +1,6 @@
 #pragma once
 
+#include "omulator/IClock.hpp"
 #include "omulator/oml_types.hpp"
 #include "omulator/scheduler/Worker.hpp"
 
@@ -31,7 +32,7 @@ public:
    *  reported by std::hardware_concurrency, while accounting for any threads that are currently
    *  running.
    */
-  Scheduler(const std::size_t numWorkers, std::pmr::memory_resource *memRsrc);
+  Scheduler(const std::size_t numWorkers, IClock &clock, std::pmr::memory_resource *memRsrc);
 
   /**
    * Blocks until all threads have completed their current task and stopped execution.
@@ -62,18 +63,18 @@ public:
    */
   template<typename Callable>
   void add_job(
-    Callable &&                         work,
+    Callable                          &&work,
     const omulator::scheduler::Priority priority = omulator::scheduler::Priority::NORMAL) {
     static_assert(std::is_invocable_r_v<void, Callable>,
                   "Jobs submitted to a Scheduler must return void and take no arguments");
 
     std::scoped_lock lck(poolLock_);
 
-    Worker *    bestFitWorker = nullptr;
+    Worker     *bestFitWorker = nullptr;
     std::size_t minNumJobs    = std::numeric_limits<std::size_t>::max();
 
     for(std::unique_ptr<Worker> &pWorker : workerPool_) {
-      Worker &    worker  = *pWorker;
+      Worker     &worker  = *pWorker;
       std::size_t numJobs = worker.num_jobs();
       if(numJobs == 0) {
         bestFitWorker = &worker;
@@ -109,6 +110,8 @@ private:
   // We wrap each Worker in a std::unique_ptr to prevent errors arising from the fact that Workers
   // are neither copy- nor move-constructible.
   Worker::WorkerGroup_t workerPool_;
+
+  IClock &clock_;
 };
 
 }  // namespace omulator::scheduler

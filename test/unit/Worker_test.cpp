@@ -1,5 +1,7 @@
 #include "omulator/scheduler/Worker.hpp"
 
+#include "mocks/ClockMock.hpp"
+
 #include <gtest/gtest.h>
 
 #include <chrono>
@@ -17,7 +19,8 @@ auto memRsrc = std::pmr::get_default_resource();
 using namespace std::chrono_literals;
 
 TEST(Worker_test, addSingleJob) {
-  omulator::scheduler::Worker worker(workerGroup, memRsrc);
+  ClockMock                   clock(std::chrono::steady_clock::now());
+  omulator::scheduler::Worker worker(workerGroup, clock, memRsrc);
 
   EXPECT_TRUE(worker.num_jobs() == 0) << "The Worker's work queue should initially be empty";
 
@@ -36,7 +39,8 @@ TEST(Worker_test, addSingleJob) {
 }
 
 TEST(Worker_test, jobPriorityTest) {
-  omulator::scheduler::Worker worker(workerGroup, memRsrc);
+  ClockMock                   clock(std::chrono::steady_clock::now());
+  omulator::scheduler::Worker worker(workerGroup, clock, memRsrc);
 
   std::promise<void> startSignal, readySignal, doneSignal;
 
@@ -70,7 +74,8 @@ TEST(Worker_test, jobPriorityTest) {
 }
 
 TEST(Worker_test, ignoreJobTest) {
-  omulator::scheduler::Worker worker(workerGroup, memRsrc);
+  ClockMock                   clock(std::chrono::steady_clock::now());
+  omulator::scheduler::Worker worker(workerGroup, clock, memRsrc);
 
   std::promise<void> startSignal, readySignal, doneSignal;
 
@@ -101,7 +106,8 @@ TEST(Worker_test, ignoreJobTest) {
 }
 
 TEST(Worker_test, nullJobTest) {
-  omulator::scheduler::Worker worker(workerGroup, memRsrc);
+  ClockMock                   clock(std::chrono::steady_clock::now());
+  omulator::scheduler::Worker worker(workerGroup, clock, memRsrc);
 
   std::promise<void> startSignal, doneSignal;
 
@@ -126,15 +132,16 @@ TEST(Worker_test, nullJobTest) {
 }
 
 TEST(Worker_test, jobStealTest) {
+  ClockMock                                  clock(std::chrono::steady_clock::now());
   omulator::scheduler::Worker::WorkerGroup_t localWorkerGroup;
 
   std::promise<void> startSignal1, startSignal2, readySignal1, readySignal2, doneSignal1,
     doneSignal2;
 
   omulator::scheduler::Worker &worker1 = *(localWorkerGroup.emplace_back(
-    std::make_unique<omulator::scheduler::Worker>(localWorkerGroup, memRsrc)));
+    std::make_unique<omulator::scheduler::Worker>(localWorkerGroup, clock, memRsrc)));
   omulator::scheduler::Worker &worker2 = *(localWorkerGroup.emplace_back(
-    std::make_unique<omulator::scheduler::Worker>(localWorkerGroup, memRsrc)));
+    std::make_unique<omulator::scheduler::Worker>(localWorkerGroup, clock, memRsrc)));
 
   // A dummy job to hold the worker in stasis until we're ready.
   worker1.add_job([&] {

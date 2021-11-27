@@ -1,5 +1,6 @@
 #pragma once
 
+#include "omulator/IClock.hpp"
 #include "omulator/Latch.hpp"
 #include "omulator/scheduler/jobs.hpp"
 #include "omulator/util/Pimpl.hpp"
@@ -32,12 +33,12 @@ public:
    * Blocks until the underlying thread has started and is ready to receive work.
    *
    * We pass in a reference to a group of other Workers from which this Worker can steal jobs. This
-   * avoids us having to pass in a reference to the entire WorkerPool that contains this worker.
+   * avoids us having to pass in a reference to the entire Scheduler that contains this worker.
    *
    * We choose to pass in a memory resource so that workers have the option to receive an efficient
    * allocator to use with their internal job queue data structure.
    */
-  Worker(WorkerGroup_t &workerGroup, std::pmr::memory_resource *memRsrc);
+  Worker(WorkerGroup_t &workerGroup, IClock &clock, std::pmr::memory_resource *memRsrc);
 
   /**
    * Blocks until the currently executing task has finished.
@@ -64,7 +65,7 @@ public:
    */
   template<typename Callable>
   void add_job(
-    Callable &&                         work,
+    Callable                          &&work,
     const omulator::scheduler::Priority priority = omulator::scheduler::Priority::NORMAL) {
     static_assert(std::is_invocable_r_v<void, Callable>,
                   "Jobs submitted to a Worker must return void and take no arguments");
@@ -127,6 +128,8 @@ private:
    */
   WorkerGroup_t &workerGroup_;
 
+  IClock &clock_;
+
   /**
    * The work queue of what needs to be done. We use a deque rather that a priority_queue
    * b/c the deque is a great enabler for work stealing by other Workers: this worker can
@@ -167,9 +170,9 @@ private:
 
   /**
    * Find the highest priority job out of all the workers in workerGroup_, steal it, and execute it,
-   * or do nothing if no such job can be found. This gives Workers the ability to "rescue" jobs in the
-   * queues of other Workers that are not being executed either because the other Worker is asleep or
-   * because the other Worker's thread is blocked on a currently running job.
+   * or do nothing if no such job can be found. This gives Workers the ability to "rescue" jobs in
+   * the queues of other Workers that are not being executed either because the other Worker is
+   * asleep or because the other Worker's thread is blocked on a currently running job.
    */
   void steal_job_();
 
