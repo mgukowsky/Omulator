@@ -5,6 +5,7 @@
 class ClockMock : public omulator::IClock {
 public:
   ClockMock(omulator::TimePoint_t initialTime) : now_(initialTime) { }
+  ~ClockMock() override = default;
 
   omulator::TimePoint_t now() const noexcept override { return now_; }
 

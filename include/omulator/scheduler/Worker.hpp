@@ -119,6 +119,8 @@ public:
 private:
   Latch_ty startupLatch_;
 
+  IClock &clock_;
+
   // TODO **IMPORTANT**: Should maybe be a spinlock?
   using Lock_ty = std::mutex;
 
@@ -127,8 +129,6 @@ private:
    * contain this Worker!
    */
   WorkerGroup_t &workerGroup_;
-
-  IClock &clock_;
 
   /**
    * The work queue of what needs to be done. We use a deque rather that a priority_queue
