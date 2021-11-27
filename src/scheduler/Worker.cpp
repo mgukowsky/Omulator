@@ -22,7 +22,7 @@ Worker::~Worker() {
   done_ = true;
 
   // Kick the thread to wake up and finish off anything in its queue.
-  jobCV_.notify_one();
+  poke();
 
   // TODO: put in code to kill the thread if it takes more than a few secs to respond...
   if(thread_.joinable()) {
@@ -31,6 +31,10 @@ Worker::~Worker() {
 }
 
 std::size_t Worker::num_jobs() const noexcept { return jobQueue_.size(); }
+
+void Worker::poke() noexcept {
+  jobCV_.notify_one();
+}
 
 Job_ty Worker::pop_job() {
   std::scoped_lock queueLock(jobQueueLock_);

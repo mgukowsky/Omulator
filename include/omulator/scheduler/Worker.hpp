@@ -89,13 +89,18 @@ public:
       jobQueue_.emplace(jobIt, std::forward<Callable>(work), priority);
     }
 
-    jobCV_.notify_one();
+    poke();
   }
 
   /**
    * Returns a read-only version of the underlying work queue.
    */
   std::size_t num_jobs() const noexcept;
+
+  /**
+   * Wakes the underlying thread up in case it is sleeping in an idle state.
+   */
+  void poke() noexcept;
 
   /**
    * Pops the highest priority job off of the Worker's jobQueue_ and returns it, or returns
