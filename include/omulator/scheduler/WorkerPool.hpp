@@ -49,6 +49,8 @@ public:
    *    -Otherwise, select the worker with the least amount of work in its queue. If there is a tie,
    *      choose the worker according to its order in the queue.
    *
+   * LOCKS poolLock_
+   *
    * @param work
    *   The task to perform. Should be a callable taking no arguments and returning void. N.B. we
    *   take this in as a universal reference as this may be given as a one-off lambda rvalue given
@@ -90,13 +92,19 @@ public:
 
   std::size_t size() const noexcept;
 
+  /**
+   * Gathers and returns information about the WorkerPool.
+   * 
+   * LOCKS poolLock_
+   */
   const std::vector<WorkerStats> stats() const;
 
 private:
   // TODO **IMPORTANT**: Should maybe be a spinlock?
   using Lock_ty = std::mutex;
 
-  Lock_ty poolLock_;
+  // Marked mutable so that const methods can be atomic and lock this
+  mutable Lock_ty poolLock_;
 
   // We wrap each Worker in a std::unique_ptr to prevent errors arising from the fact that Workers
   // are neither copy- nor move-constructible.
