@@ -1,4 +1,4 @@
-#include "omulator/scheduler/WorkerPool.hpp"
+#include "omulator/scheduler/Scheduler.hpp"
 
 #include <algorithm>
 #include <stdexcept>
@@ -6,17 +6,17 @@
 
 namespace omulator::scheduler {
 
-WorkerPool::WorkerPool(const std::size_t numWorkers, std::pmr::memory_resource *memRsrc) {
+Scheduler::Scheduler(const std::size_t numWorkers, std::pmr::memory_resource *memRsrc) {
   for(std::size_t i = 0; i < numWorkers; ++i) {
     workerPool_.emplace_back(std::make_unique<Worker>(workerPool_, memRsrc));
   }
 }
 
-WorkerPool::~WorkerPool() { }
+Scheduler::~Scheduler() { }
 
-std::size_t WorkerPool::size() const noexcept { return workerPool_.size(); }
+std::size_t Scheduler::size() const noexcept { return workerPool_.size(); }
 
-const std::vector<WorkerPool::WorkerStats> WorkerPool::stats() const {
+const std::vector<Scheduler::WorkerStats> Scheduler::stats() const {
   std::scoped_lock lck(poolLock_);
 
   std::vector<WorkerStats> stats(workerPool_.size());

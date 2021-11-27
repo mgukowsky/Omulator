@@ -1,4 +1,4 @@
-#include "omulator/scheduler/WorkerPool.hpp"
+#include "omulator/scheduler/Scheduler.hpp"
 
 #include <gtest/gtest.h>
 
@@ -11,10 +11,10 @@ namespace {
 auto memRsrc = std::pmr::get_default_resource();
 }
 
-TEST(WorkerPool_test, jobDistribution) {
+TEST(Scheduler_test, jobDistribution) {
   constexpr size_t numThreads = 4;
 
-  omulator::scheduler::WorkerPool wp(numThreads, memRsrc);
+  omulator::scheduler::Scheduler wp(numThreads, memRsrc);
 
   EXPECT_EQ(numThreads, wp.size());
 
@@ -52,11 +52,11 @@ TEST(WorkerPool_test, jobDistribution) {
 
     // The additional HIGH priority job we just added should be delegated to the first worker
     EXPECT_EQ(2, stats.at(0).numJobs)
-      << "WorkerPools should properly distribute workloads across all Workers";
+      << "Schedulers should properly distribute workloads across all Workers";
 
     for(size_t i = 1; i < numThreads; ++i) {
       EXPECT_EQ(1, stats.at(i).numJobs)
-        << "WorkerPools should properly distribute workloads across all Workers";
+        << "Schedulers should properly distribute workloads across all Workers";
     }
   }
 

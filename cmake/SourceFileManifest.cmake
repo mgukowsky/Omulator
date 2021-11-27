@@ -5,7 +5,7 @@ set(
     src/di/Injector.cpp
     src/di/injector_rules.cpp
     src/scheduler/Worker.cpp
-    src/scheduler/WorkerPool.cpp
+    src/scheduler/Scheduler.cpp
     src/SpdlogLogger.cpp
     src/util/exception_handler.cpp
     ${PLATFORM_DIR}/CPUIdentifier.cpp

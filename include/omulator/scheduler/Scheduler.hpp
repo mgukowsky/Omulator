@@ -16,7 +16,7 @@ namespace omulator::scheduler {
 /**
  * A threadpool class which dispatches jobs to Workers.
  */
-class WorkerPool {
+class Scheduler {
 public:
   struct WorkerStats {
     std::size_t numJobs;
@@ -31,17 +31,17 @@ public:
    *  reported by std::hardware_concurrency, while accounting for any threads that are currently
    *  running.
    */
-  WorkerPool(const std::size_t numWorkers, std::pmr::memory_resource *memRsrc);
+  Scheduler(const std::size_t numWorkers, std::pmr::memory_resource *memRsrc);
 
   /**
    * Blocks until all threads have completed their current task and stopped execution.
    */
-  ~WorkerPool();
+  ~Scheduler();
 
-  WorkerPool(const WorkerPool &) = delete;
-  WorkerPool &operator=(const WorkerPool &) = delete;
-  WorkerPool(WorkerPool &&)                 = delete;
-  WorkerPool &operator=(WorkerPool &&) = delete;
+  Scheduler(const Scheduler &) = delete;
+  Scheduler &operator=(const Scheduler &) = delete;
+  Scheduler(Scheduler &&)                 = delete;
+  Scheduler &operator=(Scheduler &&) = delete;
 
   /**
    * Submit a task to the threadpool. The Worker which will receive the task is selected as follows:
@@ -62,18 +62,18 @@ public:
    */
   template<typename Callable>
   void add_job(
-    Callable                          &&work,
+    Callable &&                         work,
     const omulator::scheduler::Priority priority = omulator::scheduler::Priority::NORMAL) {
     static_assert(std::is_invocable_r_v<void, Callable>,
-                  "Jobs submitted to a WorkerPool must return void and take no arguments");
+                  "Jobs submitted to a Scheduler must return void and take no arguments");
 
     std::scoped_lock lck(poolLock_);
 
-    Worker     *bestFitWorker = nullptr;
+    Worker *    bestFitWorker = nullptr;
     std::size_t minNumJobs    = std::numeric_limits<std::size_t>::max();
 
     for(std::unique_ptr<Worker> &pWorker : workerPool_) {
-      Worker     &worker  = *pWorker;
+      Worker &    worker  = *pWorker;
       std::size_t numJobs = worker.num_jobs();
       if(numJobs == 0) {
         bestFitWorker = &worker;
@@ -93,8 +93,8 @@ public:
   std::size_t size() const noexcept;
 
   /**
-   * Gathers and returns information about the WorkerPool.
-   * 
+   * Gathers and returns information about the Scheduler.
+   *
    * LOCKS poolLock_
    */
   const std::vector<WorkerStats> stats() const;
