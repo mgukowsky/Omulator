@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  msvc:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: seanmiddleditch/gha-setup-ninja@master
+      - uses: ilammy/msvc-dev-cmd@v1 # defaults to x64
+      - name: Init submodules
+        run: git submodule update --init --recursive
+      - name: build.rb
+        run: ruby.exe build.rb -t msvc -b ${{ matrix.build_type }} -v build test
