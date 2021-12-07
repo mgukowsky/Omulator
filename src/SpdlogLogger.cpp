@@ -13,6 +13,10 @@
 
 #include <memory>
 
+namespace {
+constexpr const char * const FMTSTR = "{}:{} ({}): {}";
+}  // namespace
+
 namespace omulator {
 
 struct SpdlogLogger::Impl_ {
@@ -21,16 +25,35 @@ struct SpdlogLogger::Impl_ {
   std::shared_ptr<spdlog::logger> logger;
 };
 
-SpdlogLogger::SpdlogLogger(const ILogger::LogLevel initialLevel) { set_level(initialLevel); }
+SpdlogLogger::SpdlogLogger(const ILogger::LogLevel initialLevel) {
+  impl_->logger->set_pattern("%D:%H:%M:%S:%f [TID: %t][%l]: %v");
+  set_level(initialLevel);
+}
 
 SpdlogLogger::~SpdlogLogger() { impl_->logger->flush(); }
 
-void SpdlogLogger::critical(const char * const msg) { impl_->logger->critical(msg); }
-void SpdlogLogger::error(const char * const msg) { impl_->logger->error(msg); }
-void SpdlogLogger::warn(const char * const msg) { impl_->logger->warn(msg); }
-void SpdlogLogger::info(const char * const msg) { impl_->logger->info(msg); }
-void SpdlogLogger::debug(const char * const msg) { impl_->logger->debug(msg); }
-void SpdlogLogger::trace(const char * const msg) { impl_->logger->trace(msg); }
+void SpdlogLogger::critical(const char * const msg, const util::SourceLocation location) {
+  impl_->logger->critical(
+    FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
+}
+void SpdlogLogger::error(const char * const msg, const util::SourceLocation location) {
+  impl_->logger->error(
+    FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
+}
+void SpdlogLogger::warn(const char * const msg, const util::SourceLocation location) {
+  impl_->logger->warn(FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
+}
+void SpdlogLogger::info(const char * const msg, const util::SourceLocation location) {
+  impl_->logger->info(FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
+}
+void SpdlogLogger::debug(const char * const msg, const util::SourceLocation location) {
+  impl_->logger->debug(
+    FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
+}
+void SpdlogLogger::trace(const char * const msg, const util::SourceLocation location) {
+  impl_->logger->trace(
+    FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
+}
 
 void SpdlogLogger::set_level(ILogger::LogLevel level) {
   switch(level) {

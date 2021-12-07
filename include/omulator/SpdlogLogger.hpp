@@ -14,12 +14,12 @@ public:
   SpdlogLogger(SpdlogLogger &&)                 = default;
   SpdlogLogger &operator=(SpdlogLogger &&) = default;
 
-  void critical(const char * const msg) override;
-  void error(const char * const msg) override;
-  void warn(const char * const msg) override;
-  void info(const char * const msg) override;
-  void debug(const char * const msg) override;
-  void trace(const char * const msg) override;
+  void critical(const char * const msg, const util::SourceLocation location) override;
+  void error(const char * const msg, const util::SourceLocation location) override;
+  void warn(const char * const msg, const util::SourceLocation location) override;
+  void info(const char * const msg, const util::SourceLocation location) override;
+  void debug(const char * const msg, const util::SourceLocation location) override;
+  void trace(const char * const msg, const util::SourceLocation location) override;
 
   void set_level(LogLevel level) override;
 

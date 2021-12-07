@@ -1,5 +1,7 @@
 #pragma once
 
+#include "omulator/util/SourceLocation.hpp"
+
 namespace omulator {
 
 /**
@@ -26,12 +28,18 @@ public:
   ILogger(ILogger &&)                 = default;
   ILogger &operator=(ILogger &&) = default;
 
-  virtual void critical(const char * const) = 0;
-  virtual void error(const char * const)    = 0;
-  virtual void warn(const char * const)     = 0;
-  virtual void info(const char * const)     = 0;
-  virtual void debug(const char * const)    = 0;
-  virtual void trace(const char * const)    = 0;
+  virtual void critical(const char * const,
+                        const util::SourceLocation location = util::SourceLocation::current()) = 0;
+  virtual void error(const char * const,
+                     const util::SourceLocation location = util::SourceLocation::current())    = 0;
+  virtual void warn(const char * const,
+                    const util::SourceLocation location = util::SourceLocation::current())     = 0;
+  virtual void info(const char * const,
+                    const util::SourceLocation location = util::SourceLocation::current())     = 0;
+  virtual void debug(const char * const,
+                     const util::SourceLocation location = util::SourceLocation::current())    = 0;
+  virtual void trace(const char * const,
+                     const util::SourceLocation location = util::SourceLocation::current())    = 0;
 
   /**
    * The remainder of the functions here serve to manipulate the state of the underlying
