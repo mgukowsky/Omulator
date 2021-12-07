@@ -1,5 +1,5 @@
 # Omulator
-![CI](https://github.com/mgukowsky/Omulator/actions/workflows/ci.yml/badge.svg)
+[![CI](https://github.com/mgukowsky/Omulator/actions/workflows/ci.yml/badge.svg)](https://github.com/mgukowsky/Omulator/actions/workflows/ci.yml)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/mgukowsky/Omulator/master/LICENSE)
 
 The Omnibus Emulator
