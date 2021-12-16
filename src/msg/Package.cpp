@@ -46,7 +46,7 @@ void Package::alloc_msg(const U32 id) {
 
 void Package::receive_msgs(const ReceiverMap_t &receiver_map) const {
   const MessageBuffer *buff = pHead_;
-  const Hdr_t *        pHdr = buff->begin();
+  const Hdr_t         *pHdr = buff->begin();
 
   while(pHdr != nullptr) {
     if(pHdr == buff->end()) {
@@ -88,8 +88,8 @@ void *Package::alloc_(const U32 id, const MessageBuffer::Offset_t size) {
     pCurrent_ = pCurrent_->next_buff();
     pCurrent_->reset();
 
-    // Unlike the previous attempt to set pAlloc, this invocation cannot fail since we have the
-    // static assert for MAX_MSG_SIZE above and we are allocating from an empty MessageBuffer.
+    // Unlike the previous attempt to set pAlloc, this invocation cannot fail since we are now
+    // allocating from a MessageBuffer that is guaranteed to be empty.
     pAlloc = try_alloc_(id, size);
   }
 
