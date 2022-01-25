@@ -20,7 +20,7 @@ public:
    * all implementations seem to define ATOMIC_FLAG_INIT with {braces} in order
    * to comply with the standard.
    */
-  Spinlock() noexcept : lock_ ATOMIC_FLAG_INIT {}
+  Spinlock() noexcept : lock_ ATOMIC_FLAG_INIT { }
 
   /**
    * Destructor. N.B. no attempt is made to unlock the spinlock; this
@@ -38,10 +38,10 @@ public:
    * until the spinlock is acquired.
    */
   OML_FORCEINLINE void lock() noexcept {
-    while(OML_UNLIKELY(!try_lock())) {
+    while(!try_lock()) {
       // If available, the pause intrinsic is designed to indicate
       // to the processor that this is a spin loop.
-      OML_INTRIN_PAUSE();
+      [[unlikely]] OML_INTRIN_PAUSE();
     }
   }
 

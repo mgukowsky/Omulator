@@ -15,8 +15,6 @@ Scheduler::Scheduler(const std::size_t          numWorkers,
   }
 }
 
-Scheduler::~Scheduler() { }
-
 std::size_t Scheduler::size() const noexcept { return workerPool_.size(); }
 
 const std::vector<Scheduler::WorkerStats> Scheduler::stats() const {

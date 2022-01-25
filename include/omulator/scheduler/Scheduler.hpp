@@ -37,7 +37,7 @@ public:
   /**
    * Blocks until all threads have completed their current task and stopped execution.
    */
-  ~Scheduler();
+  ~Scheduler() = default;
 
   Scheduler(const Scheduler &) = delete;
   Scheduler &operator=(const Scheduler &) = delete;
@@ -48,7 +48,7 @@ public:
    * Submit a task to the threadpool. The Worker which will receive the task is selected as follows:
    *    -Iterate through all Workers, and select the first worker found with zero jobs in its queue
    *    -Otherwise, select the worker with the least amount of work in its queue. If there is a tie,
-   *      choose the worker according to its order in the queue.
+   *      choose the worker according to its order in the Worker pool.
    *
    * LOCKS poolLock_
    *
