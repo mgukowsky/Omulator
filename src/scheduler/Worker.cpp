@@ -9,15 +9,18 @@ using namespace std::chrono_literals;
 
 namespace omulator::scheduler {
 
-Worker::Worker(Worker::WorkerGroup_t     &workerGroup,
+Worker::Worker(StartupBehavior            startupBehavior,
+               Worker::WorkerGroup_t     &workerGroup,
                IClock                    &clock,
                std::pmr::memory_resource *memRsrc)
   : startupLatch_(1),
     clock_(clock),
     workerGroup_(workerGroup),
     jobQueue_(std::pmr::polymorphic_allocator<Job_ty>(memRsrc)),
-    done_(false),
-    thread_(&Worker::thread_proc_, this) {
+    done_(false) {
+  if(startupBehavior == StartupBehavior::SPAWN_THREAD) {
+    thread_ = std::thread(&Worker::worker_proc, this);
+  }
   startupLatch_.count_down();
 }
 
@@ -102,7 +105,7 @@ void Worker::steal_job_() {
   }
 }
 
-void Worker::thread_proc_() {
+void Worker::worker_proc() {
   // Don't do anything until the parent thread is ready.
   startupLatch_.wait();
 

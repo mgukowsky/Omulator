@@ -11,7 +11,8 @@ Scheduler::Scheduler(const std::size_t          numWorkers,
                      std::pmr::memory_resource *memRsrc)
   : clock_(clock) {
   for(std::size_t i = 0; i < numWorkers; ++i) {
-    workerPool_.emplace_back(std::make_unique<Worker>(workerPool_, clock_, memRsrc));
+    workerPool_.emplace_back(std::make_unique<Worker>(
+      Worker::StartupBehavior::SPAWN_THREAD, workerPool_, clock_, memRsrc));
   }
 }
 

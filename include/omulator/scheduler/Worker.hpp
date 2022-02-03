@@ -29,8 +29,17 @@ class Worker {
 public:
   using WorkerGroup_t = std::vector<std::unique_ptr<Worker>>;
 
+  enum class StartupBehavior {
+    DONT_SPAWN_THREAD,
+    SPAWN_THREAD,
+  };
+
   /**
    * Blocks until the underlying thread has started and is ready to receive work.
+   *
+   * If the startup behavior is set to SPAWN_THREAD, then a new thread will be created to execute
+   * worker_proc. Otherwise, no thread of execution shall begin and worker_proc will have to be
+   * invoked explicitly.
    *
    * We pass in a reference to a group of other Workers from which this Worker can steal jobs. This
    * avoids us having to pass in a reference to the entire Scheduler that contains this worker.
@@ -38,7 +47,10 @@ public:
    * We choose to pass in a memory resource so that workers have the option to receive an efficient
    * allocator to use with their internal job queue data structure.
    */
-  Worker(WorkerGroup_t &workerGroup, IClock &clock, std::pmr::memory_resource *memRsrc);
+  Worker(StartupBehavior            startupBehavior,
+         WorkerGroup_t             &workerGroup,
+         IClock                    &clock,
+         std::pmr::memory_resource *memRsrc);
 
   /**
    * Blocks until the currently executing task has finished.
@@ -116,6 +128,11 @@ public:
    */
   std::thread::id thread_id() const noexcept;
 
+  /**
+   * The startup function for the Worker.
+   */
+  void worker_proc();
+
 private:
   Latch_ty startupLatch_;
 
@@ -157,10 +174,9 @@ private:
    */
   std::atomic_bool done_;
 
-  // N.B. since the thread uses the this pointer, keep this as the last member
-  // initialized in the header, such that compilers should wait to set up the thread
-  // until everthing else in the object is ready to go, and whine if we do anything
-  // to the contrary.
+  /**
+   * The underlying thread of execution, if the startup behavior is given as SPAWN_THREAD.
+   */
   std::thread thread_;
 
   /**
@@ -175,8 +191,6 @@ private:
    * asleep or because the other Worker's thread is blocked on a currently running job.
    */
   void steal_job_();
-
-  void thread_proc_();
 };
 
 } /* namespace omulator::scheduler */
