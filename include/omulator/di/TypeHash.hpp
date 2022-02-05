@@ -12,10 +12,10 @@
 namespace omulator::di {
 
 namespace detail {
-  constinit const std::uint32_t FNV_BASIS_32 = 0x811c9dc5ULL;
-  constinit const std::uint32_t FNV_PRIME_32 = 0x01000193ULL;
-  constinit const std::uint64_t FNV_BASIS_64 = 0xcbf29ce484222325ULL;
-  constinit const std::uint64_t FNV_PRIME_64 = 0x00000100000001B3ULL;
+  constinit const std::uint32_t FNV_BASIS_32 = 0x811C'9DC5;
+  constinit const std::uint32_t FNV_PRIME_32 = 0x0100'0193;
+  constinit const std::uint64_t FNV_BASIS_64 = 0xCBF2'9CE4'8422'2325;
+  constinit const std::uint64_t FNV_PRIME_64 = 0x0000'0100'0000'01B3;
 
   template<typename HashSize_t, HashSize_t fnv_basis, HashSize_t fnv_prime>
   consteval HashSize_t fnv1a_hash(const std::string_view sv) {
