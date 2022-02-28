@@ -73,6 +73,11 @@ add_unit_test(Worker
 add_unit_test(Scheduler
   ${PROJECT_SOURCE_DIR}/src/scheduler/Scheduler.cpp
   ${PROJECT_SOURCE_DIR}/src/scheduler/Worker.cpp
+  ${PROJECT_SOURCE_DIR}/src/msg/Package.cpp
+  ${PROJECT_SOURCE_DIR}/src/msg/Mailbox.cpp
+  ${PROJECT_SOURCE_DIR}/src/msg/MailboxRouter.cpp
+  ${PROJECT_SOURCE_DIR}/src/msg/MessageBuffer.cpp
+  ${PROJECT_SOURCE_DIR}/src/di/Injector.cpp
   ${PROJECT_SOURCE_DIR}/src/Latch.cpp
 )
 

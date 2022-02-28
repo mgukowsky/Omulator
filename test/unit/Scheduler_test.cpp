@@ -1,6 +1,9 @@
 #include "omulator/scheduler/Scheduler.hpp"
 
 #include "mocks/ClockMock.hpp"
+#include "mocks/LoggerMock.hpp"
+#include "mocks/PrimitiveIOMock.hpp"
+#include "mocks/exception_handler_mock.hpp"
 
 #include <gtest/gtest.h>
 
@@ -10,15 +13,31 @@
 #include <memory_resource>
 #include <thread>
 
+using omulator::di::Injector;
+using omulator::di::TypeHash;
+using omulator::msg::Mailbox;
+using omulator::msg::MailboxRouter;
+using omulator::msg::MessageBuffer;
+using omulator::msg::Package;
+using omulator::util::ObjectPool;
+
 namespace {
 auto memRsrc = std::pmr::get_default_resource();
-}
+}  // namespace
 
 TEST(Scheduler_test, jobDistribution) {
   constexpr size_t numThreads = 4;
 
+  LoggerMock logger;
+  Injector   injector;
+  injector.addRecipe<ObjectPool<MessageBuffer>>(
+    [](Injector &inj) { return inj.containerize(new ObjectPool<MessageBuffer>(0x10)); });
+  injector.addRecipe<ObjectPool<Package>>(
+    [](Injector &inj) { return inj.containerize(new ObjectPool<Package>(0x10)); });
+  MailboxRouter mailboxRouter(logger, injector);
+
   ClockMock                      clock(std::chrono::steady_clock::now());
-  omulator::scheduler::Scheduler wp(numThreads, clock, memRsrc);
+  omulator::scheduler::Scheduler wp(numThreads, clock, memRsrc, mailboxRouter);
 
   EXPECT_EQ(numThreads, wp.size());
 
