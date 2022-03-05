@@ -31,10 +31,10 @@ namespace omulator::test {
  * int main() {
  *     std::promise<void> signal1, signal2, signal3, doneSignal;
  *
- *     std::jthread t1([&]{
- *         signal1.get_future().wait();
- *         std::cout << "thread 1\n";
- *         signal2.set_value();
+ *     std::jthread t3([&]{
+ *         signal3.get_future().wait();
+ *         std::cout << "thread 3\n";
+ *         doneSignal.set_value();
  *     });
  *
  *     std::jthread t2([&]{
@@ -43,10 +43,10 @@ namespace omulator::test {
  *         signal3.set_value();
  *     });
  *
- *     std::jthread t3([&]{
- *         signal3.get_future().wait();
- *         std::cout << "thread 3\n";
- *         doneSignal.set_value();
+ *     std::jthread t1([&]{
+ *         signal1.get_future().wait();
+ *         std::cout << "thread 1\n";
+ *         signal2.set_value();
  *     });
  *
  *     std::cout << "ready\n";
