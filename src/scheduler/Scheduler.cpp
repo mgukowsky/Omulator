@@ -26,16 +26,13 @@ Scheduler::Scheduler(const std::size_t          numWorkers,
     workerPool_.emplace_back(std::make_unique<Worker>(
       Worker::StartupBehavior::SPAWN_THREAD, workerPool_, clock_, memRsrc));
   }
+  mailbox_.on(static_cast<U32>(Messages::STOP), [&](const void *) { set_done(); });
 }
 
 void Scheduler::scheduler_main() {
-  msg::ReceiverMap_t receiverMap{
-    {static_cast<U32>(Messages::STOP), [&](const void *) { set_done(); }}
-  };
-
   while(!done_) {
     std::this_thread::sleep_for(SCHEDULER_INTERVAL);
-    mailbox_.recv(receiverMap);
+    mailbox_.recv();
   }
 }
 
