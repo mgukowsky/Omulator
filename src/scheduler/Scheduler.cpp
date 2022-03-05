@@ -1,6 +1,7 @@
 #include "omulator/scheduler/Scheduler.hpp"
 
 #include "omulator/di/TypeHash.hpp"
+#include "omulator/util/to_underlying.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -10,6 +11,7 @@
 using namespace std::chrono_literals;
 
 using omulator::di::TypeHash;
+using omulator::util::to_underlying;
 
 namespace {
 constexpr auto SCHEDULER_INTERVAL = 5ms;
@@ -26,7 +28,7 @@ Scheduler::Scheduler(const std::size_t          numWorkers,
     workerPool_.emplace_back(std::make_unique<Worker>(
       Worker::StartupBehavior::SPAWN_THREAD, workerPool_, clock_, memRsrc));
   }
-  mailbox_.on(static_cast<U32>(Messages::STOP), [&](const void *) { set_done(); });
+  mailbox_.on(to_underlying(Messages::STOP), [&](const void *) { set_done(); });
 }
 
 void Scheduler::scheduler_main() {
