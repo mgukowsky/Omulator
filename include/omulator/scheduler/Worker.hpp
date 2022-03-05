@@ -1,7 +1,6 @@
 #pragma once
 
 #include "omulator/IClock.hpp"
-#include "omulator/Latch.hpp"
 #include "omulator/scheduler/jobs.hpp"
 #include "omulator/util/Pimpl.hpp"
 
@@ -9,6 +8,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <future>
+#include <latch>
 #include <list>
 #include <memory>
 #include <memory_resource>
@@ -134,7 +134,7 @@ public:
   void worker_proc();
 
 private:
-  Latch_ty startupLatch_;
+  std::latch startupLatch_;
 
   IClock &clock_;
 

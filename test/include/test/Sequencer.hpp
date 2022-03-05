@@ -1,8 +1,10 @@
 #include "omulator/PrimitiveIO.hpp"
 #include "omulator/oml_types.hpp"
 
+#include <atomic>
 #include <cstdlib>
-#include <future>
+#include <latch>
+#include <memory>
 #include <mutex>
 #include <sstream>
 #include <stdexcept>
@@ -108,9 +110,11 @@ public:
     // The +1 is necessary since totalSteps indicates the last step that will be advanced to and
     // (potentially) waited on, therefore we need signals_ to have an actual promise object at that
     // index.
-    : signals_(std::vector<std::promise<void>>(totalSteps + 1)),
-      step_(0),
-      totalSteps_(totalSteps) { }
+    : step_(0), totalSteps_(totalSteps) {
+    for(U32 i = 0; i < (totalSteps + 1); ++i) {
+      signals_.emplace_back(std::make_unique<std::latch>(1));
+    }
+  }
 
   /**
    * Forces abnormal termination of the program if the step count is not equal to the total number
@@ -145,7 +149,7 @@ public:
     }
 
     ++step_;
-    signals_.at(nextStep).set_value();
+    signals_.at(nextStep)->count_down();
   }
 
   U32 current_step() const noexcept {
@@ -168,7 +172,7 @@ public:
       }
     }
 
-    signals_.at(waitStep).get_future().wait();
+    signals_.at(waitStep)->wait();
   }
 
 private:
@@ -183,10 +187,10 @@ private:
 
   mutable std::mutex mtx_;
 
-  std::vector<std::promise<void>> signals_;
+  std::vector<std::unique_ptr<std::latch>> signals_;
 
-  U32       step_;
-  const U32 totalSteps_;
+  std::atomic<U32> step_;
+  const U32        totalSteps_;
 };
 
 }  // namespace omulator::test

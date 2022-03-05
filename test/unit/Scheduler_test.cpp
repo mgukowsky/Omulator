@@ -7,11 +7,12 @@
 
 #include <gtest/gtest.h>
 
-#include <array>
 #include <chrono>
-#include <future>
+#include <latch>
+#include <memory>
 #include <memory_resource>
 #include <thread>
+#include <vector>
 
 using omulator::di::Injector;
 using omulator::di::TypeHash;
@@ -41,17 +42,23 @@ TEST(Scheduler_test, jobDistribution) {
 
   EXPECT_EQ(numThreads, wp.size());
 
-  std::array<std::promise<void>, numThreads> startSignals, readySignals, doneSignals;
+  std::vector<std::unique_ptr<std::latch>> startSignals, readySignals, doneSignals;
+
+  for(std::size_t i = 0; i < numThreads; ++i) {
+    startSignals.emplace_back(std::make_unique<std::latch>(1));
+    readySignals.emplace_back(std::make_unique<std::latch>(1));
+    doneSignals.emplace_back(std::make_unique<std::latch>(1));
+  }
 
   for(size_t i = 0; i < numThreads; ++i) {
     wp.add_job([&, i] {
-      startSignals.at(i).set_value();
-      readySignals.at(i).get_future().wait();
+      startSignals.at(i)->count_down();
+      readySignals.at(i)->wait();
     });
   };
 
   for(size_t i = 0; i < numThreads; ++i) {
-    startSignals.at(i).get_future().wait();
+    startSignals.at(i)->wait();
   }
 
   {
@@ -63,7 +70,7 @@ TEST(Scheduler_test, jobDistribution) {
   }
 
   for(size_t i = 0; i < numThreads; ++i) {
-    wp.add_job([&, i] { doneSignals.at(i).set_value(); });
+    wp.add_job([&, i] { doneSignals.at(i)->count_down(); });
   }
 
   // We make this additional no-op job high priority so it executes before the lower priority jobs
@@ -84,11 +91,11 @@ TEST(Scheduler_test, jobDistribution) {
   }
 
   for(size_t i = 0; i < numThreads; ++i) {
-    readySignals.at(i).set_value();
+    readySignals.at(i)->count_down();
   }
 
   for(size_t i = 0; i < numThreads; ++i) {
-    doneSignals.at(i).get_future().wait();
+    doneSignals.at(i)->wait();
   }
 
   {

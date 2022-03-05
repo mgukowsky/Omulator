@@ -1,6 +1,5 @@
 set(
   OML_SOURCE_FILE_MANIFEST
-    src/Latch.cpp
     src/main.cpp
     src/di/Injector.cpp
     src/di/injector_rules.cpp

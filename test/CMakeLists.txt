@@ -48,7 +48,6 @@ add_unit_test(smoke)
 add_unit_test_with_source(exception_handler util)
 add_unit_test(ObjectPool)
 add_unit_test(ResourceWrapper)
-add_unit_test(Latch ${PROJECT_SOURCE_DIR}/src/Latch.cpp)
 add_unit_test(Spinlock)
 add_unit_test(TypeHash)
 add_unit_test(TypeString)
@@ -67,7 +66,6 @@ add_unit_test_with_source(MailboxRouter msg ${PROJECT_SOURCE_DIR}/src/msg/Messag
 
 add_unit_test(Worker
   ${PROJECT_SOURCE_DIR}/src/scheduler/Worker.cpp
-  ${PROJECT_SOURCE_DIR}/src/Latch.cpp
 )
 
 add_unit_test(Scheduler
@@ -78,6 +76,5 @@ add_unit_test(Scheduler
   ${PROJECT_SOURCE_DIR}/src/msg/MailboxRouter.cpp
   ${PROJECT_SOURCE_DIR}/src/msg/MessageBuffer.cpp
   ${PROJECT_SOURCE_DIR}/src/di/Injector.cpp
-  ${PROJECT_SOURCE_DIR}/src/Latch.cpp
 )
 
