@@ -33,8 +33,9 @@ Scheduler::Scheduler(const std::size_t          numWorkers,
 
 void Scheduler::scheduler_main() {
   while(!done_) {
-    std::this_thread::sleep_for(SCHEDULER_INTERVAL);
+    const auto nextDeadline = clock_.now() + SCHEDULER_INTERVAL;
     mailbox_.recv();
+    clock_.sleep_until(nextDeadline);
   }
 }
 
