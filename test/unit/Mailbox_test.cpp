@@ -49,10 +49,10 @@ protected:
 };
 
 TEST_F(Mailbox_test, packageLifecycle) {
-  Mailbox mailbox(*pLogger, *pPkgPool, *pMbPool);
-  U32     i = 0;
-  U64     j = 0;
-  U16     k = 0;
+  Mailbox              mailbox(*pLogger, *pPkgPool, *pMbPool);
+  U32                  i = 0;
+  U64                  j = 0;
+  [[maybe_unused]] U16 k = 0;
 
   Package *pkg = mailbox.open_pkg();
   pkg->alloc_msg(TypeHash32<U32>);
