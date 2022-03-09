@@ -3,11 +3,15 @@
 #include "omulator/IClock.hpp"
 #include "omulator/oml_types.hpp"
 
-#include <atomic>
+#include <barrier>
 
 class ClockMock : public omulator::IClock {
 public:
-  ClockMock(omulator::TimePoint_t initialTime) : now_(initialTime) { }
+  // We initialize barrier_ to the number of expected sleepers +1 so that wake_sleepers will either
+  // trigger the completion of the barrier or wait there until the other threads using the mock have
+  // called sleep_until
+  ClockMock(omulator::TimePoint_t initialTime, const std::ptrdiff_t numSleepers = 1)
+    : now_(initialTime), barrier_(numSleepers + 1, &ClockMock::null_completion_func_) { }
   ~ClockMock() override = default;
 
   omulator::TimePoint_t now() const noexcept override { return now_; }
@@ -19,19 +23,20 @@ public:
    * argument that is provided.
    */
   void sleep_until([[maybe_unused]] const omulator::TimePoint_t then) override {
-    // Use std::atomic::wait removes the need to handle spurious waits explicity. Moreover, each
-    // group of threads that might call sleep_until will wait until the counter increments to a
-    // new value, at which point a new group of threads can begin waiting.
-    const omulator::U32 oldValue = counter_;
-    counter_.wait(oldValue);
+    barrier_.arrive_and_wait();
   }
 
-  void wake_sleepers() {
-    ++counter_;
-    counter_.notify_all();
-  }
+  /**
+   * Unblocks threads that have called sleep_until, however may wait synchronously until the number
+   * of sleepers specified in the constructor call sleep_until.
+   *
+   * May be called repeatedly to wait for successive waves of sleepers.
+   */
+  void wake_sleepers() { barrier_.arrive_and_wait(); }
 
 private:
-  omulator::TimePoint_t      now_;
-  std::atomic<omulator::U32> counter_;
+  static void null_completion_func_(){};
+
+  omulator::TimePoint_t        now_;
+  std::barrier<void (*)(void)> barrier_;
 };

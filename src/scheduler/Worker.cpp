@@ -101,6 +101,7 @@ void Worker::steal_job_() {
     // itself or from another thread that stole it first). In this case the results are benign,
     // since the next line would result in the execution of a job with Job_ty::NULL_TASK.
     Job_ty job = otherWorker->pop_job();
+    // TODO: catch any exceptions that arise from the task
     job.task();
   }
 }
@@ -151,6 +152,7 @@ void Worker::worker_proc() {
 
       Job_ty currentJob = pop_job();
       if(currentJob.priority != Priority::IGNORE) {
+        // TODO: catch any exceptions that arise from the task
         currentJob.task();
       }
       // TODO: When the current task finishes executing, check to see if an exception was raised

@@ -1,8 +1,9 @@
 #pragma once
 
 #include "omulator/oml_types.hpp"
+#include "omulator/util/to_underlying.hpp"
 
-#include <future>  // for std::packaged_task
+#include <functional>
 #include <utility>
 
 /**
@@ -17,11 +18,13 @@ namespace omulator::scheduler {
 enum class Priority : U8 {
   IGNORE = 0,
   MIN    = 1,
-  LOW    = 63,
-  NORMAL = 127,
-  HIGH   = 191,
-  MAX    = 255,
+  LOW    = 4,
+  NORMAL = 7,
+  HIGH   = 10,
+  MAX    = 15,
 };
+
+using Priority_t = decltype(util::to_underlying(Priority::MAX));
 
 /**
  * A structure representing a unit of work.
@@ -42,8 +45,8 @@ struct Job_ty {
   Job_ty(Callable &&callable, Priority priorityArg)
     : task(std::forward<Callable>(callable)), priority(priorityArg) { }
 
-  std::packaged_task<void()> task;
-  Priority                   priority;
+  std::function<void()> task;
+  Priority              priority;
 };
 
 } /* namespace omulator::scheduler */

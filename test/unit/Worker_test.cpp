@@ -55,16 +55,16 @@ TEST(Worker_test, jobPriorityTest) {
   startSignal.wait();
 
   std::vector<int> v;
-  const int        normalPriority = static_cast<int>(omulator::scheduler::Priority::NORMAL);
+  const int        lowPriority = static_cast<int>(omulator::scheduler::Priority::LOW);
 
   // If priority is obeyed, the vector will be filled with 9..0. If priority is ignored,
   // then the vector will be random or filled with 0..9.
   for(int i = 0; i < 10; ++i) {
     worker.add_job([&, i] { v.push_back(i); },
-                   omulator::scheduler::Priority{static_cast<omulator::U8>(normalPriority + i)});
+                   omulator::scheduler::Priority{static_cast<omulator::U8>(lowPriority + i)});
   }
 
-  worker.add_job([&] { doneSignal.count_down(); }, omulator::scheduler::Priority::LOW);
+  worker.add_job([&] { doneSignal.count_down(); }, omulator::scheduler::Priority::MIN);
 
   readySignal.count_down();
   doneSignal.wait();
