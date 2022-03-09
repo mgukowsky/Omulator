@@ -59,7 +59,7 @@ void Scheduler::add_job_deferred(std::function<void()>               work,
                                  const omulator::TimePoint_t         deadline,
                                  const omulator::scheduler::Priority priority) {
   auto &jobQueue = impl_->jobQueues_.at(to_underlying(priority));
-  std::scoped_lock(jobQueue.second);
+  std::scoped_lock lck(jobQueue.second);
   jobQueue.first.emplace(JobQueueEntry_t{
     Job_ty{work, priority},
     deadline

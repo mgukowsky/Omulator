@@ -5,6 +5,8 @@
 
 #include <barrier>
 
+namespace omulator {
+
 class ClockMock : public omulator::IClock {
 public:
   // We initialize barrier_ to the number of expected sleepers +1 so that wake_sleepers will either
@@ -35,8 +37,10 @@ public:
   void wake_sleepers() { barrier_.arrive_and_wait(); }
 
 private:
-  static void null_completion_func_(){};
+  static void null_completion_func_() noexcept {};
 
-  omulator::TimePoint_t        now_;
-  std::barrier<void (*)(void)> barrier_;
+  omulator::TimePoint_t                 now_;
+  std::barrier<void (*)(void) noexcept> barrier_;
 };
+
+}  // namespace omulator

@@ -43,7 +43,7 @@ TEST(Scheduler_test, jobDistribution) {
     [](Injector &inj) { return inj.containerize(new ObjectPool<Package>(0x10)); });
   MailboxRouter mailboxRouter(logger, injector);
 
-  ClockMock                      clock(std::chrono::steady_clock::now());
+  omulator::ClockMock                      clock(std::chrono::steady_clock::now());
   omulator::scheduler::Scheduler wp(numThreads, clock, memRsrc, mailboxRouter);
 
   EXPECT_EQ(numThreads, wp.size());
@@ -124,7 +124,7 @@ TEST(Scheduler_test, simpleDeferredJob) {
   MailboxRouter mailboxRouter(logger, injector);
 
   omulator::TimePoint_t          now = std::chrono::steady_clock::now();
-  ClockMock                      clock(now);
+  omulator::ClockMock                      clock(now);
   omulator::scheduler::Scheduler scheduler(numThreads, clock, memRsrc, mailboxRouter);
 
   Sequencer sequencer(3);

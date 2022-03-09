@@ -21,7 +21,7 @@ using namespace std::chrono_literals;
 using omulator::scheduler::Worker::StartupBehavior::SPAWN_THREAD;
 
 TEST(Worker_test, addSingleJob) {
-  ClockMock                   clock(std::chrono::steady_clock::now());
+  omulator::ClockMock                   clock(std::chrono::steady_clock::now());
   omulator::scheduler::Worker worker(SPAWN_THREAD, workerGroup, clock, memRsrc);
 
   EXPECT_TRUE(worker.num_jobs() == 0) << "The Worker's work queue should initially be empty";
@@ -41,7 +41,7 @@ TEST(Worker_test, addSingleJob) {
 }
 
 TEST(Worker_test, jobPriorityTest) {
-  ClockMock                   clock(std::chrono::steady_clock::now());
+  omulator::ClockMock                   clock(std::chrono::steady_clock::now());
   omulator::scheduler::Worker worker(SPAWN_THREAD, workerGroup, clock, memRsrc);
 
   std::latch startSignal(1), readySignal(1), doneSignal(1);
@@ -76,7 +76,7 @@ TEST(Worker_test, jobPriorityTest) {
 }
 
 TEST(Worker_test, ignoreJobTest) {
-  ClockMock                   clock(std::chrono::steady_clock::now());
+  omulator::ClockMock                   clock(std::chrono::steady_clock::now());
   omulator::scheduler::Worker worker(SPAWN_THREAD, workerGroup, clock, memRsrc);
 
   std::latch startSignal(1), readySignal(1), doneSignal(1);
@@ -108,7 +108,7 @@ TEST(Worker_test, ignoreJobTest) {
 }
 
 TEST(Worker_test, nullJobTest) {
-  ClockMock                   clock(std::chrono::steady_clock::now());
+  omulator::ClockMock                   clock(std::chrono::steady_clock::now());
   omulator::scheduler::Worker worker(SPAWN_THREAD, workerGroup, clock, memRsrc);
 
   std::latch startSignal(1), doneSignal(1);
@@ -134,7 +134,7 @@ TEST(Worker_test, nullJobTest) {
 }
 
 TEST(Worker_test, jobStealTest) {
-  ClockMock                                  clock(std::chrono::steady_clock::now());
+  omulator::ClockMock                                  clock(std::chrono::steady_clock::now());
   omulator::scheduler::Worker::WorkerGroup_t localWorkerGroup;
 
   std::latch startSignal1(1), startSignal2(1), readySignal1(1), readySignal2(1), doneSignal1(1),
