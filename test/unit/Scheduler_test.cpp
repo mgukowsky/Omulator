@@ -153,7 +153,7 @@ TEST(Scheduler_test, simpleDeferredJob) {
 
   EXPECT_EQ(2, i) << "A deferred job should be invoked by the scheduler once its deadline expires";
 
-  Mailbox &mailbox = mailboxRouter.get_mailbox(TypeHash<Scheduler>);
+  Mailbox &mailbox = mailboxRouter.get_mailbox<Scheduler>();
 
   Package *pkg = mailbox.open_pkg();
   pkg->alloc_msg(to_underlying(Scheduler::Messages::STOP));

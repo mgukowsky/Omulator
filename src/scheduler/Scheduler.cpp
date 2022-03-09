@@ -45,7 +45,7 @@ Scheduler::Scheduler(const std::size_t          numWorkers,
                      IClock                    &clock,
                      std::pmr::memory_resource *memRsrc,
                      msg::MailboxRouter        &mailboxRouter)
-  : clock_(clock), done_(false), mailbox_(mailboxRouter.claim_mailbox(TypeHash<Scheduler>)) {
+  : clock_(clock), done_(false), mailbox_(mailboxRouter.claim_mailbox<Scheduler>()) {
   for(std::size_t i = 0; i < numWorkers; ++i) {
     workerPool_.emplace_back(std::make_unique<Worker>(
       Worker::StartupBehavior::SPAWN_THREAD, workerPool_, clock_, memRsrc));

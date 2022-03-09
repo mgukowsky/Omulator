@@ -6,10 +6,12 @@
 #include "omulator/msg/MessageBuffer.hpp"
 #include "omulator/msg/Package.hpp"
 #include "omulator/util/ObjectPool.hpp"
+#include "omulator/di/TypeHash.hpp"
 
 #include <map>
 #include <memory>
 #include <mutex>
+#include <type_traits>
 
 namespace omulator::msg {
 
@@ -27,11 +29,27 @@ public:
   Mailbox &claim_mailbox(const di::Hash_t mailbox_hsh);
 
   /**
+   * Convenience overload to use a TypeHash.
+   */
+  template<typename Raw_t, typename T = std::remove_pointer_t<std::decay_t<Raw_t>>>
+  Mailbox &claim_mailbox() {
+    return claim_mailbox(di::TypeHash<T>);
+  }
+
+  /**
    * Same as claim_mailbox, except neither claims nor checks ownership.
    *
    * LOCKS mtx_.
    */
   Mailbox &get_mailbox(const di::Hash_t mailbox_hsh);
+
+  /**
+   * Convenience overload to use a TypeHash.
+   */
+  template<typename Raw_t, typename T = std::remove_pointer_t<std::decay_t<Raw_t>>>
+  Mailbox &get_mailbox() {
+    return get_mailbox(di::TypeHash<T>);
+  }
 
 private:
   struct MailboxEntry {
