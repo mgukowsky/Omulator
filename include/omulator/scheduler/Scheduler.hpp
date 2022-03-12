@@ -11,6 +11,7 @@
 #include <array>
 #include <atomic>
 #include <cassert>
+#include <chrono>
 #include <functional>
 #include <limits>
 #include <memory>
@@ -30,9 +31,15 @@ public:
   // Messages that the scheduler responds to
   enum class Messages : U32 { STOP };
 
+  enum class SchedType : U8 { ONE_OFF, PERIODIC };
+
   struct WorkerStats {
     std::size_t numJobs;
   };
+
+  static constexpr auto MIN_DELAY          = std::chrono::milliseconds(1);
+  static constexpr auto SCHEDULER_INTERVAL = std::chrono::milliseconds(5);
+  static constexpr U64  INVALID_JOB_HANDLE = 0xFFFF'FFFF'FFFF'FFFF;
 
   /**
    * Blocks until all threads are started and ready to accept work. Creates a pool of workers
@@ -59,10 +66,16 @@ public:
   Scheduler(Scheduler &&)                 = delete;
   Scheduler &operator=(Scheduler &&) = delete;
 
-  // TODO: overload accepting an amount of time to defer
+  /**
+   * Execute a job at a given point in the future.
+   *
+   * Returns a handle to the job which can be passed to cancel_job, or INVALID_JOB_HANDLE if the job
+   * couldn't be scheduled.
+   */
   U64 add_job_deferred(std::function<void()> work,
-                       const TimePoint_t     timeToRun,
-                       const Priority        priority = Priority::NORMAL);
+                       const Duration_t      delay,
+                       const SchedType       schedType = SchedType::ONE_OFF,
+                       const Priority        priority  = Priority::NORMAL);
 
   /**
    * Submit a task to the threadpool for immediate execution. The Worker which will receive the task
@@ -84,7 +97,12 @@ public:
    */
   void add_job_immediate(std::function<void()> work, const Priority priority = Priority::NORMAL);
 
-  // void add_job_periodic(std::function<void()> work, const Priority priority = Priority::NORMAL);
+  /**
+   * Execute a job immediately and then execute it again periodically for a given interval.
+   */
+  U64 add_job_periodic(std::function<void()> work,
+                       const Duration_t      interval,
+                       const Priority        priority = Priority::NORMAL);
 
   /**
    * Stop a scheduled job from executing.
@@ -129,8 +147,20 @@ private:
   struct JobQueueEntry_t {
     Job_ty      job;
     TimePoint_t deadline;
+    Duration_t  delay;
     U64         id;
+    SchedType   schedType;
   };
+
+  /**
+   * The underlying business logic to handle deferred jobs. N.B. that this doesn't lock anything,
+   * and expects calling methods to handle locks around the jobQueue state.
+   */
+  bool add_job_deferred_with_id_(std::function<void()> work,
+                                 const Duration_t      delay,
+                                 const SchedType       schedType,
+                                 const Priority        priority,
+                                 const U64             id);
 
   U64 iota_() noexcept;
 

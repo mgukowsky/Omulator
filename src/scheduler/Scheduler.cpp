@@ -17,10 +17,6 @@ using namespace std::chrono_literals;
 using omulator::di::TypeHash;
 using omulator::util::to_underlying;
 
-namespace {
-constexpr auto SCHEDULER_INTERVAL = 5ms;
-}  // namespace
-
 namespace omulator::scheduler {
 
 /**
@@ -61,23 +57,18 @@ Scheduler::Scheduler(const std::size_t          numWorkers,
 Scheduler::~Scheduler() = default;
 
 U64 Scheduler::add_job_deferred(std::function<void()>               work,
-                                const omulator::TimePoint_t         deadline,
+                                const Duration_t                    delay,
+                                const SchedType                     schedType,
                                 const omulator::scheduler::Priority priority) {
-  auto &jobQueuePair = impl_->jobQueues_.at(to_underlying(priority));
-
-  std::scoped_lock lck(jobQueuePair.second);
-
-  Scheduler_impl::JobQueue_t &jobQueue = jobQueuePair.first;
-
   const U64 id = iota_();
 
-  jobQueue.emplace_back(JobQueueEntry_t{
-    Job_ty{work, priority},
-    deadline, id
-  });
-  std::push_heap(jobQueue.begin(), jobQueue.end(), Scheduler_impl::jobQueueComparator);
-
-  return id;
+  std::scoped_lock lck(impl_->jobQueues_.at(to_underlying(priority)).second);
+  if(add_job_deferred_with_id_(work, delay, schedType, priority, id)) {
+    return id;
+  }
+  else {
+    return INVALID_JOB_HANDLE;
+  }
 }
 
 void Scheduler::add_job_immediate(std::function<void()>               work,
@@ -165,7 +156,24 @@ void Scheduler::scheduler_main() {
         }
         else {
           add_job_immediate(jobQueueEntry.job.task, jobQueueEntry.job.priority);
+          JobQueueEntry_t oldEntry = jobQueueEntry;
           jobQueue.pop_back();
+
+          if(oldEntry.schedType == SchedType::PERIODIC) {
+            // We call this internal overload directly so that the periodic job can reuse the same
+            // ID as the original call to add_job_deferred, which allows cancel_job to still
+            // correctly cancel this job on future iterations.
+            if(!add_job_deferred_with_id_(oldEntry.job.task,
+                                          oldEntry.delay,
+                                          SchedType::PERIODIC,
+                                          oldEntry.job.priority,
+                                          oldEntry.id))
+            {
+              std::stringstream ss;
+              ss << "Failed to schedule periodic job iteration for job with id " << oldEntry.id;
+              throw std::runtime_error(ss.str());
+            }
+          }
         }
       }
     }
@@ -188,6 +196,34 @@ const std::vector<Scheduler::WorkerStats> Scheduler::stats() const {
   }
 
   return stats;
+}
+
+bool Scheduler::add_job_deferred_with_id_(std::function<void()>               work,
+                                          const Duration_t                    delay,
+                                          const SchedType                     schedType,
+                                          const omulator::scheduler::Priority priority,
+                                          const U64                           id) {
+  // We cannot allow this situation because it could quickly overload the scheduler
+  if(schedType == SchedType::PERIODIC && delay <= MIN_DELAY) {
+    std::stringstream ss;
+    ss << "Could not schedule periodic job with id " << id << " because its delay of " << delay
+       << " was less than " << MIN_DELAY;
+    logger_.error(ss.str().c_str());
+
+    return false;
+  }
+
+  auto &jobQueuePair = impl_->jobQueues_.at(to_underlying(priority));
+
+  Scheduler_impl::JobQueue_t &jobQueue = jobQueuePair.first;
+
+  jobQueue.emplace_back(JobQueueEntry_t{
+    Job_ty{work, priority},
+    clock_.now() + delay, delay, id, schedType
+  });
+  std::push_heap(jobQueue.begin(), jobQueue.end(), Scheduler_impl::jobQueueComparator);
+
+  return true;
 }
 
 U64 Scheduler::iota_() noexcept {

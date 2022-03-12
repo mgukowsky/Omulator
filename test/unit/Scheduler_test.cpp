@@ -158,7 +158,7 @@ TEST_F(Scheduler_test, simpleDeferredJob) {
       ++i;
       sequencer.advance_step(2);
     },
-    now + 1s);
+    1s);
 
   now += 2s;
   clock.set_now(now);
@@ -217,10 +217,12 @@ TEST_F(Scheduler_test, cancelJob) {
       ++i;
       sequencer.advance_step(2);
     },
-    now + 1s);
+    1s);
 
-  scheduler.add_job_deferred(
-    [&] { sequencer.advance_step(2); }, now + 1s, omulator::scheduler::Priority::LOW);
+  scheduler.add_job_deferred([&] { sequencer.advance_step(2); },
+                             1s,
+                             omulator::scheduler::Scheduler::SchedType::ONE_OFF,
+                             omulator::scheduler::Priority::LOW);
 
   scheduler.cancel_job(jobHandle);
 
@@ -286,21 +288,23 @@ TEST_F(Scheduler_test, multipleDeferredJobs) {
       nums.at(0) = 1;
       sequencer.advance_step(2);
     },
-    now + 1s);
+    // N.B. this will test if the deadline will expire if the dealine is greater
+    // than or EQUAL to the current time!
+    2s);
 
   scheduler.add_job_deferred(
     [&] {
       nums.at(1) = 2;
       sequencer.advance_step(3);
     },
-    now + 3s);
+    3s);
 
   scheduler.add_job_deferred(
     [&] {
       nums.at(2) = 3;
       sequencer.advance_step(4);
     },
-    now + 5s);
+    5s);
 
   now += 2s;
   clock.set_now(now);
@@ -354,6 +358,113 @@ TEST_F(Scheduler_test, multipleDeferredJobs) {
   clock.wake_sleepers();
 
   sequencer.wait_for_step(5);
+
+  // Ensure we trigger the EXPECT_CALL assertions by deleting the underlying object before the test
+  // function exits
+  pLogger.reset();
+}
+
+TEST_F(Scheduler_test, periodicJob) {
+  omulator::ClockMock  &clock = *pClock;
+  omulator::TimePoint_t now   = clock.now();
+
+  // For this specific test we HAVE to create a scheduler which uses a single thread. We'll be
+  // canceling a higher priority job while blocking a sequencer on a lower priority job, and if this
+  // test executes properly on a single thread then we can properly evaluate that the scheduler will
+  // cancel (and this skip) the highern priority job while still executing and syncing on the lower
+  // priority job. We also create a MailboxRouter here, since passing the one created in the SetUp()
+  // function would result in the Scheduler mailbox being claimed more than once (by the Scheduler
+  // in SetUp() and the one created here).
+  MailboxRouter                  mailboxRouter(*pLogger, *pInjector);
+  omulator::scheduler::Scheduler scheduler(1, *pClock, memRsrc, mailboxRouter, *pLogger);
+
+  Sequencer sequencer(6);
+
+  using namespace std::chrono_literals;
+
+  std::jthread t([&] {
+    sequencer.advance_step(1);
+    scheduler.scheduler_main();
+    sequencer.advance_step(6);
+  });
+
+  sequencer.wait_for_step(1);
+
+  int i = 1;
+
+  // An invalid delay should not be scheduled and should error out
+  EXPECT_CALL(*pLogger, error).Times(1);
+  const auto invalidHandle =
+    scheduler.add_job_deferred([&] { ++i; },
+                               0s,
+                               omulator::scheduler::Scheduler::SchedType::PERIODIC,
+                               omulator::scheduler::Priority::HIGH);
+
+  EXPECT_EQ(omulator::scheduler::Scheduler::INVALID_JOB_HANDLE, invalidHandle)
+    << "A Scheduler should report an attempt to schedule a periodic job withan invalid delay";
+
+  const auto jobHandle = scheduler.add_job_deferred(
+    [&] {
+      ++i;
+      sequencer.advance_step(sequencer.current_step() + 1);
+    },
+    2s,
+    omulator::scheduler::Scheduler::SchedType::PERIODIC);
+
+  now += 2s;
+  clock.set_now(now);
+  clock.wake_sleepers();
+  sequencer.wait_for_step(2);
+
+  EXPECT_EQ(2, i) << "A periodic deferred job should be invoked by the scheduler once its initial "
+                     "deadline expires";
+
+  now += 2s;
+  clock.set_now(now);
+  clock.wake_sleepers();
+  sequencer.wait_for_step(3);
+
+  EXPECT_EQ(3, i) << "A periodic deferred job should be periodically invoked by the scheduler each "
+                     "time its deadline expires";
+
+  now += 2s;
+  clock.set_now(now);
+  clock.wake_sleepers();
+  sequencer.wait_for_step(4);
+
+  EXPECT_EQ(4, i) << "A periodic deferred job should be periodically invoked by the scheduler each "
+                     "time its deadline expires";
+
+  scheduler.cancel_job(jobHandle);
+  scheduler.add_job_deferred([&] { sequencer.advance_step(5); },
+                             3s,
+                             omulator::scheduler::Scheduler::SchedType::ONE_OFF,
+                             omulator::scheduler::Priority::LOW);
+
+  // Jump way in the future to simulate a few iterations that the cancelled job might have executed
+  now += 10s;
+  clock.set_now(now);
+  clock.wake_sleepers();
+  sequencer.wait_for_step(5);
+
+  EXPECT_EQ(4, i) << "A periodic deferred job should no longer be executed once it it cancelled";
+
+  Mailbox &mailbox = mailboxRouter.get_mailbox<Scheduler>();
+
+  Package *pkg = mailbox.open_pkg();
+  pkg->alloc_msg(to_underlying(Scheduler::Messages::STOP));
+  mailbox.send(pkg);
+
+  now += 2s;
+
+  // Wake once to have the scheduler call Mailbox::recv() to send the stop message...
+  clock.wake_sleepers();
+
+  // ...and wake it up once more since the check for !done_ doesn't happen until after
+  // scheduler_main goes to sleep again after calling Mailbox::recv()
+  clock.wake_sleepers();
+
+  sequencer.wait_for_step(6);
 
   // Ensure we trigger the EXPECT_CALL assertions by deleting the underlying object before the test
   // function exits
