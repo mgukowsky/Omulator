@@ -34,7 +34,7 @@ namespace omulator::scheduler {
  */
 struct Scheduler::Scheduler_impl {
   static constexpr auto jobQueueComparator =
-    [](const JobQueueEntry_t &a, const JobQueueEntry_t &b) { return a.deadline < b.deadline; };
+    [](const JobQueueEntry_t &a, const JobQueueEntry_t &b) { return a.deadline > b.deadline; };
 
   using JobQueue_t = std::vector<JobQueueEntry_t>;
 
@@ -153,14 +153,18 @@ void Scheduler::scheduler_main() {
       Scheduler_impl::JobQueue_t &jobQueue = jobQueueIt->first;
 
       while(!jobQueue.empty()) {
-        const JobQueueEntry_t &jobQueueEntry = jobQueue.front();
+        std::pop_heap(jobQueue.begin(), jobQueue.end(), Scheduler_impl::jobQueueComparator);
+        const JobQueueEntry_t &jobQueueEntry = jobQueue.back();
 
         if(jobQueueEntry.deadline > currentTime) {
+          // Somewhat unintuitive, but pop_heap removes the last element from the heap, even
+          // though it is still part of the container. We need to re-add it to the heap to ensure
+          // that the container remains a valid heap.
+          std::push_heap(jobQueue.begin(), jobQueue.end(), Scheduler_impl::jobQueueComparator);
           break;
         }
         else {
           add_job_immediate(jobQueueEntry.job.task, jobQueueEntry.job.priority);
-          std::pop_heap(jobQueue.begin(), jobQueue.end(), Scheduler_impl::jobQueueComparator);
           jobQueue.pop_back();
         }
       }

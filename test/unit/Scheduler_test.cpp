@@ -10,6 +10,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <chrono>
 #include <latch>
 #include <memory>
@@ -255,6 +256,104 @@ TEST_F(Scheduler_test, cancelJob) {
   clock.wake_sleepers();
 
   sequencer.wait_for_step(3);
+
+  // Ensure we trigger the EXPECT_CALL assertions by deleting the underlying object before the test
+  // function exits
+  pLogger.reset();
+}
+
+TEST_F(Scheduler_test, multipleDeferredJobs) {
+  omulator::ClockMock  &clock = *pClock;
+  omulator::TimePoint_t now   = clock.now();
+
+  Sequencer sequencer(5);
+
+  Scheduler &scheduler = *pScheduler;
+
+  using namespace std::chrono_literals;
+
+  std::jthread t([&] {
+    sequencer.advance_step(1);
+    scheduler.scheduler_main();
+    sequencer.advance_step(5);
+  });
+
+  sequencer.wait_for_step(1);
+  std::array<int, 3> nums{0, 0, 0};
+
+  scheduler.add_job_deferred(
+    [&] {
+      nums.at(0) = 1;
+      sequencer.advance_step(2);
+    },
+    now + 1s);
+
+  scheduler.add_job_deferred(
+    [&] {
+      nums.at(1) = 2;
+      sequencer.advance_step(3);
+    },
+    now + 3s);
+
+  scheduler.add_job_deferred(
+    [&] {
+      nums.at(2) = 3;
+      sequencer.advance_step(4);
+    },
+    now + 5s);
+
+  now += 2s;
+  clock.set_now(now);
+  clock.wake_sleepers();
+  sequencer.wait_for_step(2);
+
+  EXPECT_EQ(1, nums.at(0))
+    << "A deferred job should be invoked by the scheduler once its deadline expires";
+  EXPECT_EQ(0, nums.at(1))
+    << "A deferred job should not be invoked by the scheduler until its deadline expires";
+  EXPECT_EQ(0, nums.at(2))
+    << "A deferred job should not be invoked by the scheduler until its deadline expires";
+
+  now += 2s;
+  clock.set_now(now);
+  clock.wake_sleepers();
+  sequencer.wait_for_step(3);
+
+  EXPECT_EQ(1, nums.at(0))
+    << "A deferred job should be invoked by the scheduler once its deadline expires";
+  EXPECT_EQ(2, nums.at(1))
+    << "A deferred job should be invoked by the scheduler once its deadline expires";
+  EXPECT_EQ(0, nums.at(2))
+    << "A deferred job should not be invoked by the scheduler until its deadline expires";
+
+  now += 2s;
+  clock.set_now(now);
+  clock.wake_sleepers();
+  sequencer.wait_for_step(4);
+
+  EXPECT_EQ(1, nums.at(0))
+    << "A deferred job should be invoked by the scheduler once its deadline expires";
+  EXPECT_EQ(2, nums.at(1))
+    << "A deferred job should be invoked by the scheduler once its deadline expires";
+  EXPECT_EQ(3, nums.at(2))
+    << "A deferred job should be invoked by the scheduler once its deadline expires";
+
+  Mailbox &mailbox = pMailboxRouter->get_mailbox<Scheduler>();
+
+  Package *pkg = mailbox.open_pkg();
+  pkg->alloc_msg(to_underlying(Scheduler::Messages::STOP));
+  mailbox.send(pkg);
+
+  now += 2s;
+
+  // Wake once to have the scheduler call Mailbox::recv() to send the stop message...
+  clock.wake_sleepers();
+
+  // ...and wake it up once more since the check for !done_ doesn't happen until after
+  // scheduler_main goes to sleep again after calling Mailbox::recv()
+  clock.wake_sleepers();
+
+  sequencer.wait_for_step(5);
 
   // Ensure we trigger the EXPECT_CALL assertions by deleting the underlying object before the test
   // function exits
