@@ -1,6 +1,7 @@
 #pragma once
 
 #include "omulator/IClock.hpp"
+#include "omulator/ILogger.hpp"
 #include "omulator/msg/MailboxRouter.hpp"
 #include "omulator/oml_types.hpp"
 #include "omulator/scheduler/Worker.hpp"
@@ -45,7 +46,8 @@ public:
   Scheduler(const std::size_t          numWorkers,
             IClock                    &clock,
             std::pmr::memory_resource *memRsrc,
-            msg::MailboxRouter        &mailboxRouter);
+            msg::MailboxRouter        &mailboxRouter,
+            ILogger                   &logger);
 
   /**
    * Blocks until all threads have completed their current task and stopped execution.
@@ -58,9 +60,9 @@ public:
   Scheduler &operator=(Scheduler &&) = delete;
 
   // TODO: overload accepting an amount of time to defer
-  void add_job_deferred(std::function<void()> work,
-                        const TimePoint_t     timeToRun,
-                        const Priority        priority = Priority::NORMAL);
+  U64 add_job_deferred(std::function<void()> work,
+                       const TimePoint_t     timeToRun,
+                       const Priority        priority = Priority::NORMAL);
 
   /**
    * Submit a task to the threadpool for immediate execution. The Worker which will receive the task
@@ -83,6 +85,11 @@ public:
   void add_job_immediate(std::function<void()> work, const Priority priority = Priority::NORMAL);
 
   // void add_job_periodic(std::function<void()> work, const Priority priority = Priority::NORMAL);
+
+  /**
+   * Stop a scheduled job from executing.
+   */
+  void cancel_job(const U64 id);
 
   /**
    * This is the main loop that the scheduler executes.
@@ -122,7 +129,10 @@ private:
   struct JobQueueEntry_t {
     Job_ty      job;
     TimePoint_t deadline;
+    U64         id;
   };
+
+  U64 iota_() noexcept;
 
   /**
    * This lock is used for the schedulers state, mainly the workerPool_, but NOT the job queues
@@ -137,8 +147,10 @@ private:
   IClock &clock_;
 
   std::atomic_bool done_;
+  std::atomic<U64> iotaVal_;
 
   msg::Mailbox &mailbox_;
+  ILogger      &logger_;
 };
 
 }  // namespace omulator::scheduler

@@ -106,11 +106,11 @@ namespace omulator::test {
  */
 class Sequencer {
 public:
-  Sequencer(const U32 totalSteps)
+  Sequencer(const U32 totalSteps, bool verbose = false)
     // The +1 is necessary since totalSteps indicates the last step that will be advanced to and
     // (potentially) waited on, therefore we need signals_ to have an actual promise object at that
     // index.
-    : step_(0), totalSteps_(totalSteps) {
+    : step_(0), totalSteps_(totalSteps), verbose_(verbose) {
     for(U32 i = 0; i < (totalSteps + 1); ++i) {
       signals_.emplace_back(std::make_unique<std::latch>(1));
     }
@@ -148,6 +148,9 @@ public:
       throw std::runtime_error(ss.str());
     }
 
+    if(verbose_) {
+      std::cout << "Sequencer: advancing to step " << nextStep << std::endl;
+    }
     ++step_;
     signals_.at(nextStep)->count_down();
   }
@@ -172,6 +175,9 @@ public:
       }
     }
 
+    if(verbose_) {
+      std::cout << "Sequencer: waiting for step " << waitStep << std::endl;
+    }
     signals_.at(waitStep)->wait();
   }
 
@@ -191,6 +197,7 @@ private:
 
   std::atomic<U32> step_;
   const U32        totalSteps_;
+  bool             verbose_;
 };
 
 }  // namespace omulator::test
