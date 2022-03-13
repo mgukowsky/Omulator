@@ -35,6 +35,10 @@ function(add_unit_test TESTNAME)
     ${TESTNAME}
     DISCOVERY_MODE
       PRE_TEST
+    # Prevent slower CI systems from timing out.
+    # See https://stackoverflow.com/questions/68706014/gtest-discover-tests-failing-in-github-actions-process-terminated-due-to-timeou
+    DISCOVERY_TIMEOUT
+      60
   )
 endfunction()
 
