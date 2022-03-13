@@ -206,8 +206,8 @@ bool Scheduler::add_job_deferred_with_id_(std::function<void()>               wo
   // We cannot allow this situation because it could quickly overload the scheduler
   if(schedType == SchedType::PERIODIC && delay <= MIN_DELAY) {
     std::stringstream ss;
-    ss << "Could not schedule periodic job with id " << id << " because its delay of " << delay
-       << " was less than " << MIN_DELAY;
+    ss << "Could not schedule periodic job with id " << id << " because its delay of "
+       << delay.count() << " was less than " << MIN_DELAY.count();
     logger_.error(ss.str().c_str());
 
     return false;
