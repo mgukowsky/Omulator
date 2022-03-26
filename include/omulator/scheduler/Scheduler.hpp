@@ -98,13 +98,6 @@ public:
   void add_job_immediate(std::function<void()> work, const Priority priority = Priority::NORMAL);
 
   /**
-   * Execute a job immediately and then execute it again periodically for a given interval.
-   */
-  U64 add_job_periodic(std::function<void()> work,
-                       const Duration_t      interval,
-                       const Priority        priority = Priority::NORMAL);
-
-  /**
    * Stop a scheduled job from executing.
    */
   void cancel_job(const U64 id);
