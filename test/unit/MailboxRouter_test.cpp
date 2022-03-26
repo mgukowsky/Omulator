@@ -15,6 +15,8 @@
 
 #include <memory>
 
+using ::testing::Exactly;
+
 using omulator::di::Injector;
 using omulator::di::TypeHash;
 using omulator::msg::Mailbox;
@@ -42,7 +44,7 @@ protected:
   }
 
   void TearDown() override {
-    // We _HAVE_ to delete the logger mock here, as mock objects need to be destroyed 
+    // We _HAVE_ to delete the logger mock here, as mock objects need to be destroyed
     // after tests end and before GoogleMock begins its global teardown, otherwise we
     // will get an exception thrown. See https://github.com/google/googletest/issues/1963
     pLogger.reset();
@@ -74,7 +76,7 @@ TEST_F(MailboxRouter_test, doubleClaim) {
 
   [[maybe_unused]] Mailbox &mailboxA = mailboxRouter.claim_mailbox(TypeHash<int>);
 
-  EXPECT_CALL(*pLogger, error).Times(1);
+  EXPECT_CALL(*pLogger, error).Times(Exactly(1));
   [[maybe_unused]] Mailbox &mailboxB = mailboxRouter.claim_mailbox(TypeHash<int>);
 
   // We have to manually destruct the mock object here in order to validate the EXPECT_CALL

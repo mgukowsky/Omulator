@@ -14,6 +14,8 @@
 
 #include <cstddef>
 
+using ::testing::Exactly;
+
 using omulator::U32;
 using omulator::di::TypeHash32;
 using omulator::msg::MessageBuffer;
@@ -41,7 +43,7 @@ TEST(Package_test, simpleAlloc) {
   ObjectPool<MessageBuffer> pool(0x10);
 
   ManagedPkg_t mpkg(&pool, &logger);
-  Package &    pkg = *mpkg;
+  Package     &pkg = *mpkg;
 
   int &buffInt = pkg.alloc_data<int>();
   buffInt      = MAGIC;
@@ -66,20 +68,22 @@ TEST(Package_test, allocMsg) {
   ObjectPool<MessageBuffer> pool(0x10);
 
   ManagedPkg_t mpkg(&pool, &logger);
-  Package &    pkg = *mpkg;
+  Package     &pkg = *mpkg;
 
   pkg.alloc_msg(MAGIC);
 
   {
     // Since we are providing no receivers, we should log that we dropped the since message in the
     // Package
-    EXPECT_CALL(logger, warn).Times(1);
+    EXPECT_CALL(logger, warn).Times(Exactly(1));
     pkg.receive_msgs({});
   }
 
   constexpr int B33F = 0xB33F;
   int           i    = 0;
-  pkg.receive_msgs({{MAGIC, [&](const void *) { i = B33F; }}});
+  pkg.receive_msgs({
+    {MAGIC, [&](const void *) { i = B33F; }}
+  });
 
   EXPECT_EQ(B33F, i)
     << "Packages should correctly invoke a receiver function for a given message ID "
@@ -91,7 +95,7 @@ TEST(Package_test, allocData) {
   ObjectPool<MessageBuffer> pool(0x10);
 
   ManagedPkg_t mpkg(&pool, &logger);
-  Package &    pkg = *mpkg;
+  Package     &pkg = *mpkg;
 
   struct MaxMsg {
     std::byte data[MessageBuffer::MAX_MSG_SIZE];
@@ -110,16 +114,18 @@ TEST(Package_test, allocData) {
 
   bool shouldFlip = false;
 
-  pkg.receive_msgs({{TypeHash32<MaxMsg>, [&](const void *data) {
-                       const MaxMsg &msg = reinterpret<const MaxMsg>(data);
+  pkg.receive_msgs({
+    {TypeHash32<MaxMsg>, [&](const void *data) {
+       const MaxMsg &msg = reinterpret<const MaxMsg>(data);
 
-                       std::byte comp = shouldFlip ? FLIPVAL : VAL;
+       std::byte comp = shouldFlip ? FLIPVAL : VAL;
 
-                       for(std::size_t i = 0; i < MessageBuffer::MAX_MSG_SIZE; ++i) {
-                         EXPECT_EQ(comp, msg.data[i])
-                           << "Data set within a Package should be properly received by clients";
-                       }
+       for(std::size_t i = 0; i < MessageBuffer::MAX_MSG_SIZE; ++i) {
+         EXPECT_EQ(comp, msg.data[i])
+           << "Data set within a Package should be properly received by clients";
+       }
 
-                       shouldFlip = true;
-                     }}});
+       shouldFlip = true;
+     }}
+  });
 }

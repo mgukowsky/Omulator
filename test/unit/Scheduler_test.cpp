@@ -18,6 +18,8 @@
 #include <thread>
 #include <vector>
 
+using ::testing::Exactly;
+
 using omulator::di::Injector;
 using omulator::di::TypeHash;
 using omulator::msg::Mailbox;
@@ -235,11 +237,11 @@ TEST_F(Scheduler_test, cancelJob) {
     << "A cancelled job should not be invoked by the scheduler once its deadline expires";
 
   // Ensure that we warn when a given job is canceled more than once...
-  EXPECT_CALL(*pLogger, warn).Times(1);
+  EXPECT_CALL(*pLogger, warn).Times(Exactly(1));
   scheduler.cancel_job(jobHandle);
 
   // ...and also when a nonexistent handle is given
-  EXPECT_CALL(*pLogger, warn).Times(1);
+  EXPECT_CALL(*pLogger, warn).Times(Exactly(1));
   scheduler.cancel_job(0xFFFF'FFFF);
 
   Mailbox &mailbox = mailboxRouter.get_mailbox<Scheduler>();
@@ -393,7 +395,7 @@ TEST_F(Scheduler_test, periodicJob) {
   int i = 1;
 
   // An invalid delay should not be scheduled and should error out
-  EXPECT_CALL(*pLogger, error).Times(1);
+  EXPECT_CALL(*pLogger, error).Times(Exactly(1));
   const auto invalidHandle =
     scheduler.add_job_deferred([&] { ++i; },
                                0s,

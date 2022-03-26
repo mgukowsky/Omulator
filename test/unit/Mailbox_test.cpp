@@ -12,6 +12,8 @@
 #include <array>
 #include <memory>
 
+using ::testing::Exactly;
+
 using omulator::U16;
 using omulator::U32;
 using omulator::U64;
@@ -151,7 +153,7 @@ TEST_F(Mailbox_test, on_off_msgs) {
   EXPECT_EQ(3, i)
     << "Mailbox::on should have the ability to re-enable callbacks for a given message";
 
-  EXPECT_CALL(*pLogger, warn).Times(1);
+  EXPECT_CALL(*pLogger, warn).Times(Exactly(1));
   mailbox.on(MSG, [&](const void *) { --i; });
   pkg = mailbox.open_pkg();
   pkg->alloc_msg(MSG);
