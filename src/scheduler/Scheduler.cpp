@@ -63,7 +63,7 @@ U64 Scheduler::add_job_deferred(std::function<void()>               work,
   const U64 id = iota_();
 
   std::scoped_lock lck(impl_->jobQueues_.at(to_underlying(priority)).second);
-  if(add_job_deferred_with_id_(work, delay, schedType, priority, id)) {
+  if(add_job_deferred_with_id_(work, clock_.now() + delay, delay, schedType, priority, id)) {
     return id;
   }
   else {
@@ -164,6 +164,11 @@ void Scheduler::scheduler_main() {
             // ID as the original call to add_job_deferred, which allows cancel_job to still
             // correctly cancel this job on future iterations.
             if(!add_job_deferred_with_id_(oldEntry.job.task,
+                                          // We make the new deadline relative to the old deadline
+                                          // to prevent the gradual drift that would accumulate
+                                          // over iterations of the periodic if we used
+                                          // clock_.now() + oldEntry.delay
+                                          oldEntry.deadline + oldEntry.delay,
                                           oldEntry.delay,
                                           SchedType::PERIODIC,
                                           oldEntry.job.priority,
@@ -199,6 +204,7 @@ const std::vector<Scheduler::WorkerStats> Scheduler::stats() const {
 }
 
 bool Scheduler::add_job_deferred_with_id_(std::function<void()>               work,
+                                          const TimePoint_t                   deadline,
                                           const Duration_t                    delay,
                                           const SchedType                     schedType,
                                           const omulator::scheduler::Priority priority,
@@ -220,7 +226,7 @@ bool Scheduler::add_job_deferred_with_id_(std::function<void()>               wo
 
   jobQueue.emplace_back(JobQueueEntry_t{
     Job_ty{work, priority},
-    clock_.now() + delay, delay, id, schedType
+    deadline, delay, id, schedType
   });
   std::push_heap(jobQueue.begin(), jobQueue.end(), Scheduler_impl::jobQueueComparator);
 

@@ -151,6 +151,7 @@ private:
    * and expects calling methods to handle locks around the jobQueue state.
    */
   bool add_job_deferred_with_id_(std::function<void()> work,
+                                 const TimePoint_t     deadline,
                                  const Duration_t      delay,
                                  const SchedType       schedType,
                                  const Priority        priority,
