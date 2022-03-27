@@ -1,6 +1,7 @@
 set(
   OML_SOURCE_FILE_MANIFEST
     src/main.cpp
+    src/Clock.cpp
     src/di/Injector.cpp
     src/di/injector_rules.cpp
     src/msg/Mailbox.cpp

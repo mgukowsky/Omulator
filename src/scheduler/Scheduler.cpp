@@ -129,7 +129,7 @@ void Scheduler::cancel_job(const U64 id) {
 void Scheduler::scheduler_main() {
   while(!done_) {
     const auto currentTime  = clock_.now();
-    const auto nextDeadline = currentTime + SCHEDULER_INTERVAL;
+    const auto nextDeadline = currentTime + SCHEDULER_PERIOD_MS;
 
     mailbox_.recv();
 
@@ -204,10 +204,11 @@ bool Scheduler::add_job_deferred_with_id_(std::function<void()>               wo
                                           const omulator::scheduler::Priority priority,
                                           const U64                           id) {
   // We cannot allow this situation because it could quickly overload the scheduler
-  if(schedType == SchedType::PERIODIC && delay <= MIN_DELAY) {
+  if(schedType == SchedType::PERIODIC && delay < SCHEDULER_PERIOD_MS) {
     std::stringstream ss;
     ss << "Could not schedule periodic job with id " << id << " because its delay of "
-       << delay.count() << " was less than " << MIN_DELAY.count();
+       << delay.count() << " was less than the Scheduler's period of "
+       << SCHEDULER_PERIOD_MS.count() << "ms";
     logger_.error(ss.str().c_str());
 
     return false;

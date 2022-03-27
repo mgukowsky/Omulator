@@ -37,9 +37,10 @@ public:
     std::size_t numJobs;
   };
 
-  static constexpr auto MIN_DELAY          = std::chrono::milliseconds(1);
-  static constexpr auto SCHEDULER_INTERVAL = std::chrono::milliseconds(5);
-  static constexpr U64  INVALID_JOB_HANDLE = 0xFFFF'FFFF'FFFF'FFFF;
+  static constexpr U32                       SCHEDULER_HZ = 120;
+  static constexpr std::chrono::milliseconds SCHEDULER_PERIOD_MS =
+    std::chrono::milliseconds(1000 / SCHEDULER_HZ);
+  static constexpr U64 INVALID_JOB_HANDLE = 0xFFFF'FFFF'FFFF'FFFF;
 
   /**
    * Blocks until all threads are started and ready to accept work. Creates a pool of workers

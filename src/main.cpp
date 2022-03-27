@@ -3,7 +3,12 @@
 #include "omulator/CPUIdentifier.hpp"
 #include "omulator/ILogger.hpp"
 #include "omulator/di/Injector.hpp"
+#include "omulator/scheduler/Scheduler.hpp"
 #include "omulator/util/exception_handler.hpp"
+
+#include <chrono>
+
+using namespace std::chrono_literals;
 
 int main([[maybe_unused]] const int argc, [[maybe_unused]] const char **argv) {
   try {
@@ -14,8 +19,13 @@ int main([[maybe_unused]] const int argc, [[maybe_unused]] const char **argv) {
     }
     omulator::di::Injector injector;
     omulator::di::Injector::installDefaultRules(injector);
-    auto &logger = injector.get<omulator::ILogger>();
-    logger.info("Hello, using spdlog!");
+    auto &scheduler = injector.get<omulator::scheduler::Scheduler>();
+    auto &logger    = injector.get<omulator::ILogger>();
+
+    scheduler.add_job_deferred(
+      [&] { logger.info("Hi!"); }, 1s, omulator::scheduler::Scheduler::SchedType::PERIODIC);
+
+    scheduler.scheduler_main();
   }
 
   // Top level exception handler
