@@ -127,11 +127,17 @@ void Scheduler::cancel_job(const U64 id) {
 }
 
 void Scheduler::scheduler_main() {
+  auto nextDeadline = clock_.now();
   while(!done_) {
-    const auto currentTime  = clock_.now();
-    const auto nextDeadline = currentTime + SCHEDULER_PERIOD_MS;
+    // Make the next deadline relative to the initial timestamp rather than clock_.now() to avoid
+    // clock drift. N.B. that this means that if an iteration of the scheduler runs past the next
+    // deadline, then the scheduler will continue to execute iterations immediately until it
+    // "catches up" with the wall clock.
+    nextDeadline += SCHEDULER_PERIOD_MS;
 
     mailbox_.recv();
+
+    const auto currentTime = clock_.now();
 
     // Run through the queues in reverse order since higher priorities will have higher indices in
     // the jobQueues_ array
@@ -168,6 +174,8 @@ void Scheduler::scheduler_main() {
                                           // to prevent the gradual drift that would accumulate
                                           // over iterations of the periodic if we used
                                           // clock_.now() + oldEntry.delay
+                                          // This also helps prevent larger drift that can be caused
+                                          // by the scheduler itself missing a deadline
                                           oldEntry.deadline + oldEntry.delay,
                                           oldEntry.delay,
                                           SchedType::PERIODIC,
