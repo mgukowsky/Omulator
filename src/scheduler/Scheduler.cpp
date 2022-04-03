@@ -56,11 +56,11 @@ Scheduler::Scheduler(const std::size_t          numWorkers,
 
 Scheduler::~Scheduler() = default;
 
-U64 Scheduler::add_job_deferred(std::function<void()>               work,
-                                const Duration_t                    delay,
-                                const SchedType                     schedType,
-                                const omulator::scheduler::Priority priority) {
-  const U64 id = iota_();
+Scheduler::JobHandle_t Scheduler::add_job_deferred(std::function<void()>               work,
+                                                   const Duration_t                    delay,
+                                                   const SchedType                     schedType,
+                                                   const omulator::scheduler::Priority priority) {
+  const JobHandle_t id = iota_();
 
   std::scoped_lock lck(impl_->jobQueues_.at(to_underlying(priority)).second);
   if(add_job_deferred_with_id_(work, clock_.now() + delay, delay, schedType, priority, id)) {
@@ -96,7 +96,7 @@ void Scheduler::add_job_immediate(std::function<void()>               work,
   bestFitWorker->add_job(std::move(work), priority);
 }
 
-void Scheduler::cancel_job(const U64 id) {
+void Scheduler::cancel_job(const Scheduler::JobHandle_t id) {
   bool found = false;
 
   for(auto &jobQueuePair : impl_->jobQueues_) {
@@ -216,7 +216,7 @@ bool Scheduler::add_job_deferred_with_id_(std::function<void()>               wo
                                           const Duration_t                    delay,
                                           const SchedType                     schedType,
                                           const omulator::scheduler::Priority priority,
-                                          const U64                           id) {
+                                          const Scheduler::JobHandle_t        id) {
   // We cannot allow this situation because it could quickly overload the scheduler
   if(schedType == SchedType::PERIODIC && delay < SCHEDULER_PERIOD_MS) {
     std::stringstream ss;
@@ -241,8 +241,8 @@ bool Scheduler::add_job_deferred_with_id_(std::function<void()>               wo
   return true;
 }
 
-U64 Scheduler::iota_() noexcept {
-  const U64 val = iotaVal_.fetch_add(1, std::memory_order_acq_rel);
+Scheduler::JobHandle_t Scheduler::iota_() noexcept {
+  const JobHandle_t val = iotaVal_.fetch_add(1, std::memory_order_acq_rel);
   return val;
 }
 

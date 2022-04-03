@@ -37,10 +37,12 @@ public:
     std::size_t numJobs;
   };
 
+  using JobHandle_t = U64;
+
   static constexpr U32                       SCHEDULER_HZ = 120;
   static constexpr std::chrono::milliseconds SCHEDULER_PERIOD_MS =
     std::chrono::milliseconds(1000 / SCHEDULER_HZ);
-  static constexpr U64 INVALID_JOB_HANDLE = 0xFFFF'FFFF'FFFF'FFFF;
+  static constexpr JobHandle_t INVALID_JOB_HANDLE = 0xFFFF'FFFF'FFFF'FFFF;
 
   /**
    * Blocks until all threads are started and ready to accept work. Creates a pool of workers
@@ -73,10 +75,10 @@ public:
    * Returns a handle to the job which can be passed to cancel_job, or INVALID_JOB_HANDLE if the job
    * couldn't be scheduled.
    */
-  U64 add_job_deferred(std::function<void()> work,
-                       const Duration_t      delay,
-                       const SchedType       schedType = SchedType::ONE_OFF,
-                       const Priority        priority  = Priority::NORMAL);
+  JobHandle_t add_job_deferred(std::function<void()> work,
+                               const Duration_t      delay,
+                               const SchedType       schedType = SchedType::ONE_OFF,
+                               const Priority        priority  = Priority::NORMAL);
 
   /**
    * Submit a task to the threadpool for immediate execution. The Worker which will receive the task
@@ -101,7 +103,7 @@ public:
   /**
    * Stop a scheduled job from executing.
    */
-  void cancel_job(const U64 id);
+  void cancel_job(const JobHandle_t id);
 
   /**
    * This is the main loop that the scheduler executes.
@@ -142,7 +144,7 @@ private:
     Job_ty      job;
     TimePoint_t deadline;
     Duration_t  delay;
-    U64         id;
+    JobHandle_t id;
     SchedType   schedType;
   };
 
@@ -155,9 +157,9 @@ private:
                                  const Duration_t      delay,
                                  const SchedType       schedType,
                                  const Priority        priority,
-                                 const U64             id);
+                                 const JobHandle_t     id);
 
-  U64 iota_() noexcept;
+  JobHandle_t iota_() noexcept;
 
   /**
    * This lock is used for the schedulers state, mainly the workerPool_, but NOT the job queues
@@ -171,8 +173,8 @@ private:
 
   IClock &clock_;
 
-  std::atomic_bool done_;
-  std::atomic<U64> iotaVal_;
+  std::atomic_bool         done_;
+  std::atomic<JobHandle_t> iotaVal_;
 
   msg::Mailbox &mailbox_;
   ILogger      &logger_;
