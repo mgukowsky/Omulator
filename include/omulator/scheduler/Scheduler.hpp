@@ -14,6 +14,7 @@
 #include <chrono>
 #include <functional>
 #include <limits>
+#include <map>
 #include <memory>
 #include <memory_resource>
 #include <mutex>
@@ -161,11 +162,16 @@ private:
 
   JobHandle_t iota_() noexcept;
 
+  void schedule_periodic_iteration_(const JobQueueEntry_t &entry);
+
   /**
    * This lock is used for the schedulers state, mainly the workerPool_, but NOT the job queues
    * managed by impl_, which have their own locks.
    */
   mutable Lock_ty poolLock_;
+
+  std::map<JobHandle_t, U32> periodicIterationTracker_;
+  mutable Lock_ty            periodicIterationTrackerLock_;
 
   // We wrap each Worker in a std::unique_ptr to prevent errors arising from the fact that Workers
   // are neither copy- nor move-constructible.

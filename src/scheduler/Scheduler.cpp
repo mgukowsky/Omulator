@@ -60,10 +60,45 @@ Scheduler::JobHandle_t Scheduler::add_job_deferred(std::function<void()>        
                                                    const Duration_t                    delay,
                                                    const SchedType                     schedType,
                                                    const omulator::scheduler::Priority priority) {
-  const JobHandle_t id = iota_();
+  const JobHandle_t     id = iota_();
+  std::function<void()> task;
+
+  if(schedType == SchedType::PERIODIC) {
+    std::scoped_lock lck(periodicIterationTrackerLock_);
+    periodicIterationTracker_.emplace(id, 0);
+
+    // Create a closure to handle to wrap the work in additional logic which tracks how many copies
+    // of the work are currently executing
+    auto workClosure = [&, work, id] {
+      {
+        std::scoped_lock innerLck(periodicIterationTrackerLock_);
+
+        auto innerIterationTrackerEntry = periodicIterationTracker_.find(id);
+        if(innerIterationTrackerEntry == periodicIterationTracker_.end()) {
+          return;
+        }
+      }
+      work();
+      {
+        std::scoped_lock innerLck(periodicIterationTrackerLock_);
+
+        auto innerIterationTrackerEntry = periodicIterationTracker_.find(id);
+        if(innerIterationTrackerEntry != periodicIterationTracker_.end()) {
+          auto &innerIterationTracker = innerIterationTrackerEntry->second;
+          --innerIterationTracker;
+        }
+      }
+    };
+    task = workClosure;
+  }
+  else {
+    // If the deferred job is a one-off, then we don't need any of the bookkeeping provided by the
+    // aforementioned closure.
+    task = work;
+  }
 
   std::scoped_lock lck(impl_->jobQueues_.at(to_underlying(priority)).second);
-  if(add_job_deferred_with_id_(work, clock_.now() + delay, delay, schedType, priority, id)) {
+  if(add_job_deferred_with_id_(task, clock_.now() + delay, delay, schedType, priority, id)) {
     return id;
   }
   else {
@@ -109,6 +144,10 @@ void Scheduler::cancel_job(const Scheduler::JobHandle_t id) {
                                 [&](const JobQueueEntry_t &entry) { return entry.id == id; });
 
     if(matchIt != jobQueue.end()) {
+      {
+        std::scoped_lock innerLck(periodicIterationTrackerLock_);
+        periodicIterationTracker_.erase(matchIt->id);
+      }
       jobQueue.erase(matchIt);
       std::make_heap(jobQueue.begin(), jobQueue.end(), Scheduler_impl::jobQueueComparator);
 
@@ -161,31 +200,21 @@ void Scheduler::scheduler_main() {
           break;
         }
         else {
-          add_job_immediate(jobQueueEntry.job.task, jobQueueEntry.job.priority);
+          // We have to remove the entry from the job queue before move forward, since certain
+          // control paths here, such as that for PERIODIC, will mutate the end of the container.
           JobQueueEntry_t oldEntry = jobQueueEntry;
           jobQueue.pop_back();
 
-          if(oldEntry.schedType == SchedType::PERIODIC) {
-            // We call this internal overload directly so that the periodic job can reuse the same
-            // ID as the original call to add_job_deferred, which allows cancel_job to still
-            // correctly cancel this job on future iterations.
-            if(!add_job_deferred_with_id_(oldEntry.job.task,
-                                          // We make the new deadline relative to the old deadline
-                                          // to prevent the gradual drift that would accumulate
-                                          // over iterations of the periodic if we used
-                                          // clock_.now() + oldEntry.delay
-                                          // This also helps prevent larger drift that can be caused
-                                          // by the scheduler itself missing a deadline
-                                          oldEntry.deadline + oldEntry.delay,
-                                          oldEntry.delay,
-                                          SchedType::PERIODIC,
-                                          oldEntry.job.priority,
-                                          oldEntry.id))
-            {
-              std::stringstream ss;
-              ss << "Failed to schedule periodic job iteration for job with id " << oldEntry.id;
-              throw std::runtime_error(ss.str());
-            }
+          switch(jobQueueEntry.schedType) {
+            case SchedType::ONE_OFF:
+              add_job_immediate(oldEntry.job.task, oldEntry.job.priority);
+              break;
+            case SchedType::PERIODIC:
+              schedule_periodic_iteration_(oldEntry);
+              break;
+            default:
+              logger_.error("Could not schedule job with invalid schedule type");
+              break;
           }
         }
       }
@@ -244,6 +273,47 @@ bool Scheduler::add_job_deferred_with_id_(std::function<void()>               wo
 Scheduler::JobHandle_t Scheduler::iota_() noexcept {
   const JobHandle_t val = iotaVal_.fetch_add(1, std::memory_order_acq_rel);
   return val;
+}
+
+void Scheduler::schedule_periodic_iteration_(const Scheduler::JobQueueEntry_t &entry) {
+  auto      &task = entry.job.task;
+  const auto id   = entry.id;
+
+  std::scoped_lock lck(periodicIterationTrackerLock_);
+  auto             iterationTrackerEntry = periodicIterationTracker_.find(id);
+
+  // Has the job been cancelled?
+  if(iterationTrackerEntry == periodicIterationTracker_.end()) {
+    return;
+  }
+
+  auto &iterationTracker = iterationTrackerEntry->second;
+
+  ++iterationTracker;
+  if(iterationTracker == 1) {
+    add_job_immediate(task, entry.job.priority);
+  }
+
+  // We call this internal overload directly so that the periodic job can reuse the same
+  // ID as the original call to add_job_deferred, which allows cancel_job to still
+  // correctly cancel this job on future iterations.
+  if(!add_job_deferred_with_id_(task,
+                                // We make the new deadline relative to the old deadline
+                                // to prevent the gradual drift that would accumulate
+                                // over iterations of the periodic if we used
+                                // clock_.now() + entry.delay
+                                // This also helps prevent larger drift that can be caused
+                                // by the scheduler itself missing a deadline
+                                entry.deadline + entry.delay,
+                                entry.delay,
+                                SchedType::PERIODIC,
+                                entry.job.priority,
+                                id))
+  {
+    std::stringstream ss;
+    ss << "Failed to schedule periodic job iteration for job with id " << id;
+    throw std::runtime_error(ss.str());
+  }
 }
 
 } /* namespace omulator::scheduler */
