@@ -472,3 +472,96 @@ TEST_F(Scheduler_test, periodicJob) {
   // function exits
   pLogger.reset();
 }
+
+TEST_F(Scheduler_test, periodicNonExclusive) {
+  omulator::ClockMock  &clock = *pClock;
+  omulator::TimePoint_t now   = clock.now();
+
+  Sequencer sequencer(7);
+
+  Scheduler &scheduler = *pScheduler;
+
+  using namespace std::chrono_literals;
+
+  std::jthread t([&] {
+    sequencer.advance_step(1);
+    scheduler.scheduler_main();
+    sequencer.advance_step(7);
+  });
+
+  sequencer.wait_for_step(1);
+
+  std::atomic_bool shouldBlock = true;
+  std::atomic_uint i           = 1;
+
+  // PERIODIC_NONEXCLUSIVE jobs should continue to recur as their periodic deadlines expire, even if
+  // there are iterations of the job still running when the deadline expires. We simulate this by
+  // blocking the initial iteration of the job while having subsequent iterations not block on
+  // anything.
+  scheduler.add_job_deferred(
+    [&] {
+      if(shouldBlock) {
+        sequencer.advance_step(2);
+        i = sequencer.current_step();
+
+        shouldBlock = false;
+        sequencer.wait_for_step(5);
+        i = 5;
+        sequencer.advance_step(6);
+      }
+      else {
+        sequencer.advance_step(sequencer.current_step() + 1);
+        i = sequencer.current_step();
+      }
+    },
+    2s,
+    omulator::scheduler::Scheduler::SchedType::PERIODIC_NONEXCLUSIVE);
+
+  now += 3s;
+  clock.set_now(now);
+  clock.wake_sleepers();
+  sequencer.wait_for_step(2);
+
+  EXPECT_EQ(2, i)
+    << "A non-exclusive periodic job should be executed once when it it initially scheduled";
+
+  now += 2s;
+  clock.set_now(now);
+  clock.wake_sleepers();
+  sequencer.wait_for_step(3);
+  EXPECT_EQ(3, i) << "An iteration of a non-exclusive periodic job should always execute when its "
+                     "timeout expires even if another iteration of the job is currently running";
+
+  now += 2s;
+  clock.set_now(now);
+  clock.wake_sleepers();
+  sequencer.wait_for_step(4);
+  EXPECT_EQ(4, i) << "An iteration of a non-exclusive periodic job should always execute when its "
+                     "timeout expires even if another iteration of the job is currently running";
+
+  sequencer.advance_step(5);
+  sequencer.wait_for_step(6);
+  EXPECT_EQ(5, i) << "A long-running iteration of a non-exclusive periodic job should continue to "
+                     "execute even if its periodic deadline recurs while it is still running";
+
+  Mailbox &mailbox = pMailboxRouter->get_mailbox<Scheduler>();
+
+  Package *pkg = mailbox.open_pkg();
+  pkg->alloc_msg(to_underlying(Scheduler::Messages::STOP));
+  mailbox.send(pkg);
+
+  now += 2s;
+
+  // Wake once to have the scheduler call Mailbox::recv() to send the stop message...
+  clock.wake_sleepers();
+
+  // ...and wake it up once more since the check for !done_ doesn't happen until after
+  // scheduler_main goes to sleep again after calling Mailbox::recv()
+  clock.wake_sleepers();
+
+  sequencer.wait_for_step(7);
+
+  // Ensure we trigger the EXPECT_CALL assertions by deleting the underlying object before the test
+  // function exits
+  pLogger.reset();
+}

@@ -29,10 +29,34 @@ namespace omulator::scheduler {
  */
 class Scheduler {
 public:
-  // Messages that the scheduler responds to
+  /**
+   * Messages that the scheduler responds to
+   */
   enum class Messages : U32 { STOP };
 
-  enum class SchedType : U8 { ONE_OFF, PERIODIC };
+  /**
+   * Determines how jobs added by add_job_deferred should behave. Also determines how tasks should
+   * be executed in the event that their deadlines are missed by the scheduler, either due to an
+   * iteration of a periodic task that is still running when its deadline next expires, or an issue
+   * with the scheduler's timing.
+   */
+  enum class SchedType : U8 {
+    // Execute the task once; does not recur.
+    // If the deadline is missed by the scheduler, will be executed as soon as possible.
+    ONE_OFF,
+    // Repeatedly execute the task until canceled; recur.
+    // If the deadline is missed by the scheduler, any missed iterations will be executed
+    // sequentially by the scheduler, i.e. the missed iterations are executed in a FIFO manner, and
+    // missed iterations of the same task CANNOT run concurrently.
+    PERIODIC,
+    // Same as PERIODIC, except that missed iterations of the same task CAN run concurrently and MAY
+    // NOT NECESSARILY execute in a FIFO manner.
+    PERIODIC_NONEXCLUSIVE,
+    // Same as PERIODIC, except that missed iterations of a task will NOT be executed if there is an
+    // iteration of the task waiting to run or currently executing.
+    // TODO: shitty name
+    PERIODIC_CONSOLIDATED,
+  };
 
   struct WorkerStats {
     std::size_t numJobs;

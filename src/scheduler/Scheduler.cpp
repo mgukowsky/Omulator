@@ -63,7 +63,7 @@ Scheduler::JobHandle_t Scheduler::add_job_deferred(std::function<void()>        
   const JobHandle_t     id = iota_();
   std::function<void()> task;
 
-  if(schedType == SchedType::PERIODIC) {
+  if(schedType != SchedType::ONE_OFF) {
     std::scoped_lock lck(periodicIterationTrackerLock_);
     periodicIterationTracker_.emplace(id, 0);
 
@@ -71,12 +71,17 @@ Scheduler::JobHandle_t Scheduler::add_job_deferred(std::function<void()>        
     // of the work are currently executing
     auto workClosure = [&, work, id] {
       {
+        // N.B. that these are NOT recursive acquisitions of the lock, as scheduler_main() and this
+        // lambda will always execute on different threads, or at the very least this lambda will
+        // not be executed until the earlier scoped_lck has been released.
         std::scoped_lock innerLck(periodicIterationTrackerLock_);
 
         auto innerIterationTrackerEntry = periodicIterationTracker_.find(id);
         if(innerIterationTrackerEntry == periodicIterationTracker_.end()) {
           return;
         }
+        auto &innerIterationTracker = innerIterationTrackerEntry->second;
+        ++innerIterationTracker;
       }
       work();
       {
@@ -145,6 +150,8 @@ void Scheduler::cancel_job(const Scheduler::JobHandle_t id) {
 
     if(matchIt != jobQueue.end()) {
       {
+        // No harm in erasing an entry for a non-periodic job; std::map::erase doesn't care if the
+        // entry isn't present in the map.
         std::scoped_lock innerLck(periodicIterationTrackerLock_);
         periodicIterationTracker_.erase(matchIt->id);
       }
@@ -210,6 +217,7 @@ void Scheduler::scheduler_main() {
               add_job_immediate(oldEntry.job.task, oldEntry.job.priority);
               break;
             case SchedType::PERIODIC:
+            case SchedType::PERIODIC_NONEXCLUSIVE:
               schedule_periodic_iteration_(oldEntry);
               break;
             default:
@@ -247,7 +255,7 @@ bool Scheduler::add_job_deferred_with_id_(std::function<void()>               wo
                                           const omulator::scheduler::Priority priority,
                                           const Scheduler::JobHandle_t        id) {
   // We cannot allow this situation because it could quickly overload the scheduler
-  if(schedType == SchedType::PERIODIC && delay < SCHEDULER_PERIOD_MS) {
+  if(schedType != SchedType::ONE_OFF && delay < SCHEDULER_PERIOD_MS) {
     std::stringstream ss;
     ss << "Could not schedule periodic job with id " << id << " because its delay of "
        << delay.count() << " was less than the Scheduler's period of "
@@ -289,8 +297,7 @@ void Scheduler::schedule_periodic_iteration_(const Scheduler::JobQueueEntry_t &e
 
   auto &iterationTracker = iterationTrackerEntry->second;
 
-  ++iterationTracker;
-  if(iterationTracker == 1) {
+  if(iterationTracker == 0 || entry.schedType == SchedType::PERIODIC_NONEXCLUSIVE) {
     add_job_immediate(task, entry.job.priority);
   }
 
@@ -306,7 +313,7 @@ void Scheduler::schedule_periodic_iteration_(const Scheduler::JobQueueEntry_t &e
                                 // by the scheduler itself missing a deadline
                                 entry.deadline + entry.delay,
                                 entry.delay,
-                                SchedType::PERIODIC,
+                                entry.schedType,
                                 entry.job.priority,
                                 id))
   {
