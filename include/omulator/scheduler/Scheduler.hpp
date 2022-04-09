@@ -47,7 +47,8 @@ public:
     // Repeatedly execute the task until canceled; recur.
     // If the deadline is missed by the scheduler, any missed iterations will be executed
     // sequentially by the scheduler, i.e. the missed iterations are executed in a FIFO manner, and
-    // missed iterations of the same task CANNOT run concurrently.
+    // missed iterations of the same task CANNOT run concurrently. Given this, periodics will
+    // attempt to "catch up" when deadlines are missed.
     PERIODIC,
     // Same as PERIODIC, except that missed iterations of the same task CAN run concurrently and MAY
     // NOT NECESSARILY execute in a FIFO manner.

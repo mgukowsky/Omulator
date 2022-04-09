@@ -473,6 +473,80 @@ TEST_F(Scheduler_test, periodicJob) {
   pLogger.reset();
 }
 
+TEST_F(Scheduler_test, periodicExclusive) {
+  omulator::ClockMock  &clock = *pClock;
+  omulator::TimePoint_t now   = clock.now();
+
+  Sequencer sequencer(5);
+
+  Scheduler &scheduler = *pScheduler;
+
+  using namespace std::chrono_literals;
+
+  std::jthread t([&] {
+    sequencer.advance_step(1);
+    scheduler.scheduler_main();
+    sequencer.advance_step(5);
+  });
+
+  sequencer.wait_for_step(1);
+
+  std::atomic_flag isFirstIteration = true;
+  std::atomic_uint i                = 1;
+
+  // PERIODIC_NONEXCLUSIVE jobs should continue to recur as their periodic deadlines expire, even if
+  // there are iterations of the job still running when the deadline expires. We simulate this by
+  // blocking the initial iteration of the job while having subsequent iterations not block on
+  // anything.
+  scheduler.add_job_deferred(
+    [&] {
+      if(!isFirstIteration.test_and_set()) {
+        sequencer.wait_for_step(2);
+        i = 2;
+      }
+      else {
+        sequencer.advance_step(sequencer.current_step() + 1);
+        i = sequencer.current_step();
+      }
+    },
+    2s,
+    omulator::scheduler::Scheduler::SchedType::PERIODIC);
+
+  now += 5s;
+  clock.set_now(now);
+  clock.wake_sleepers();
+
+  EXPECT_EQ(1, i)
+    << "An exclusive periodic job should be executed once when it is initially scheduled";
+
+  sequencer.advance_step(2);
+  sequencer.wait_for_step(4);
+  EXPECT_EQ(4, i) << "A periodic job should 'catch up' when a long-running iteration continues to "
+                     "execute past its next deadlines by executing the number of missed iterations "
+                     "when the long-running iteration completes";
+
+  Mailbox &mailbox = pMailboxRouter->get_mailbox<Scheduler>();
+
+  Package *pkg = mailbox.open_pkg();
+  pkg->alloc_msg(to_underlying(Scheduler::Messages::STOP));
+  mailbox.send(pkg);
+
+  now += 2s;
+
+  // Wake once to have the scheduler call Mailbox::recv() to send the stop message...
+  clock.wake_sleepers();
+
+  // ...and wake it up once more since the check for !done_ doesn't happen until after
+  // scheduler_main goes to sleep again after calling Mailbox::recv()
+  clock.wake_sleepers();
+
+  sequencer.wait_for_step(5);
+
+  // Ensure we trigger the EXPECT_CALL assertions by deleting the underlying object before the test
+  // function exits
+  pLogger.reset();
+}
+
 TEST_F(Scheduler_test, periodicNonExclusive) {
   omulator::ClockMock  &clock = *pClock;
   omulator::TimePoint_t now   = clock.now();

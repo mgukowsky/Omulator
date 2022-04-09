@@ -69,7 +69,7 @@ Scheduler::JobHandle_t Scheduler::add_job_deferred(std::function<void()>        
 
     // Create a closure to handle to wrap the work in additional logic which tracks how many copies
     // of the work are currently executing
-    auto workClosure = [&, work, id] {
+    auto workClosure = [&, work, id, schedType] {
       {
         // N.B. that these are NOT recursive acquisitions of the lock, as scheduler_main() and this
         // lambda will always execute on different threads, or at the very least this lambda will
@@ -83,14 +83,19 @@ Scheduler::JobHandle_t Scheduler::add_job_deferred(std::function<void()>        
         auto &innerIterationTracker = innerIterationTrackerEntry->second;
         ++innerIterationTracker;
       }
-      work();
-      {
+      while(true) {
+        work();
         std::scoped_lock innerLck(periodicIterationTrackerLock_);
 
         auto innerIterationTrackerEntry = periodicIterationTracker_.find(id);
-        if(innerIterationTrackerEntry != periodicIterationTracker_.end()) {
-          auto &innerIterationTracker = innerIterationTrackerEntry->second;
-          --innerIterationTracker;
+        if(innerIterationTrackerEntry == periodicIterationTracker_.end()) {
+          return;
+        }
+        auto &innerIterationTracker = innerIterationTrackerEntry->second;
+        --innerIterationTracker;
+
+        if(schedType != SchedType::PERIODIC || innerIterationTracker == 0) {
+          break;
         }
       }
     };
