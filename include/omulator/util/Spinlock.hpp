@@ -20,7 +20,7 @@ public:
    * all implementations seem to define ATOMIC_FLAG_INIT with {braces} in order
    * to comply with the standard.
    */
-  Spinlock() noexcept : lock_ ATOMIC_FLAG_INIT { }
+  Spinlock() noexcept = default;
 
   /**
    * Destructor. N.B. no attempt is made to unlock the spinlock; this

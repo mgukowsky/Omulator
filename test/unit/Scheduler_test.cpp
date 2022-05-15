@@ -491,10 +491,10 @@ TEST_F(Scheduler_test, periodicExclusive) {
 
   sequencer.wait_for_step(1);
 
-  std::atomic_flag isFirstIteration = true;
+  std::atomic_flag isFirstIteration;
   std::atomic_uint i                = 1;
 
-  // PERIODIC_NONEXCLUSIVE jobs should continue to recur as their periodic deadlines expire, even if
+  // PERIODIC (exclusive) jobs should continue to recur as their periodic deadlines expire, even if
   // there are iterations of the job still running when the deadline expires. We simulate this by
   // blocking the initial iteration of the job while having subsequent iterations not block on
   // anything.
@@ -512,7 +512,7 @@ TEST_F(Scheduler_test, periodicExclusive) {
     2s,
     omulator::scheduler::Scheduler::SchedType::PERIODIC);
 
-  now += 5s;
+  now += 7s;
   clock.set_now(now);
   clock.wake_sleepers();
 

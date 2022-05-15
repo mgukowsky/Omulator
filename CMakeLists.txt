@@ -107,15 +107,16 @@ endif()
 
 configure_target(${PROJECT_NAME})
 
+#TODO: Eventually want to turn this back on
 # If MSVC, specify we don't want to display a console window
-if(CMAKE_BUILD_TYPE MATCHES Release AND MSVC)
-  set_target_properties(
-    ${PROJECT_NAME}
-    PROPERTIES
-      WIN32_EXECUTABLE
-        ON
-  )
-endif()
+#if(CMAKE_BUILD_TYPE MATCHES Release AND MSVC)
+#  set_target_properties(
+#    ${PROJECT_NAME}
+#    PROPERTIES
+#      WIN32_EXECUTABLE
+#        ON
+#  )
+#endif()
 
 target_include_directories(
   ${PROJECT_NAME}

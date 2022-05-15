@@ -305,6 +305,10 @@ void Scheduler::schedule_periodic_iteration_(const Scheduler::JobQueueEntry_t &e
   if(iterationTracker == 0 || entry.schedType == SchedType::PERIODIC_NONEXCLUSIVE) {
     add_job_immediate(task, entry.job.priority);
   }
+  else if(entry.schedType == SchedType::PERIODIC) {
+    // We missed an iteration; let's note it so that the currently running iteration can play catch up
+    ++iterationTracker;
+  }
 
   // We call this internal overload directly so that the periodic job can reuse the same
   // ID as the original call to add_job_deferred, which allows cancel_job to still
