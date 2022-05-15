@@ -41,21 +41,36 @@ public:
    * with the scheduler's timing.
    */
   enum class SchedType : U8 {
-    // Execute the task once; does not recur.
-    // If the deadline is missed by the scheduler, will be executed as soon as possible.
+    /**
+     * Execute the task once; does not recur.
+     * If the deadline is missed by the scheduler, will be executed as soon as possible.
+     */
     ONE_OFF,
-    // Repeatedly execute the task until canceled; recur.
-    // If the deadline is missed by the scheduler, any missed iterations will be executed
-    // sequentially by the scheduler, i.e. the missed iterations are executed in a FIFO manner, and
-    // missed iterations of the same task CANNOT run concurrently. Given this, periodics will
-    // attempt to "catch up" when deadlines are missed.
+    /**
+     * Repeatedly execute the task until canceled; recur.
+     * If the deadline is missed by the scheduler, any missed iterations will be executed
+     * sequentially by the scheduler, i.e. the missed iterations are executed in a FIFO manner, and
+     * missed iterations of the same task CANNOT run concurrently. Given this, periodics will
+     * attempt to "catch up" when deadlines are missed.
+     *
+     * N.B. that this WILL cause the system to become overloaded in the case where the scheduler
+     * encounters massive clock drift. This is possible in a scenario where the application continues
+     * after a system resume, in which case the wall clock may be hours or days past the time of the
+     * previous iteration, which will cause the scheduler to continually execute the periodic until it
+     * it catches up to the wall clock, causing the app/system to become unreponsive. If this behavior
+     * is undesirable, the PERIODIC_CONSOLIDATED policy is recommended.
+     */
     PERIODIC,
-    // Same as PERIODIC, except that missed iterations of the same task CAN run concurrently and MAY
-    // NOT NECESSARILY execute in a FIFO manner.
+    /**
+     * Same as PERIODIC, except that missed iterations of the same task CAN run concurrently and MAY
+     * NOT NECESSARILY execute in a FIFO manner.
+     */
     PERIODIC_NONEXCLUSIVE,
-    // Same as PERIODIC, except that missed iterations of a task will NOT be executed if there is an
-    // iteration of the task waiting to run or currently executing.
-    // TODO: shitty name
+    /**
+     * Same as PERIODIC, except that missed iterations of a task will NOT be executed if there is an
+     * iteration of the task waiting to run or currently executing.
+     * TODO: shitty name
+     */
     PERIODIC_CONSOLIDATED,
   };
 
@@ -97,7 +112,11 @@ public:
 
   /**
    * Execute a job at a given point in the future.
-   *
+   * 
+   * In the case of PERIODIC* scheduling policies, the first iteration will not be executed until
+   * the the initial deadline (currentTime + delay) expires; i.e. the first iteration is NOT executed
+   * immediately.
+   * 
    * Returns a handle to the job which can be passed to cancel_job, or INVALID_JOB_HANDLE if the job
    * couldn't be scheduled.
    */
