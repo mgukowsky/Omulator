@@ -26,6 +26,10 @@ namespace omulator::scheduler {
 
 /**
  * A threadpool class which dispatches jobs to Workers.
+ *
+ * The Scheduler's responsibility is to deal with the timing of various jobs and whether or not
+ * they should recur. Workers, in contrast, have no notion of timing and simply execute jobs as
+ * quickly as possible in order of priority.
  */
 class Scheduler {
 public:

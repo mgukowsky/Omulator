@@ -124,6 +124,11 @@ public:
   Job_ty pop_job();
 
   /**
+   * Blocks until any pending tasks have completed and the underlying thread has exited.
+   */
+  void stop();
+
+  /**
    * Returns the ID of the underlying thread.
    */
   std::thread::id thread_id() const noexcept;

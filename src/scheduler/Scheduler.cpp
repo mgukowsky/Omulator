@@ -54,7 +54,16 @@ Scheduler::Scheduler(const std::size_t          numWorkers,
   mailbox_.on(to_underlying(Messages::STOP), [&](const void *) { set_done(); });
 }
 
-Scheduler::~Scheduler() = default;
+Scheduler::~Scheduler() {
+  // We have to stop each worker BEFORE actually destructing the vector. While Workers
+  // know to stop their threads as part of their destructors as a safety measure, Workers
+  // have a reference to other workers in order to enable job stealing. Without first stopping
+  // the threads here, there is a chance that a Worker will be destructed while another Worker
+  // with a still-running thread is referencing it.
+  for(auto &worker : workerPool_) {
+    worker->stop();
+  }
+}
 
 Scheduler::JobHandle_t Scheduler::add_job_deferred(std::function<void()>               work,
                                                    const Duration_t                    delay,

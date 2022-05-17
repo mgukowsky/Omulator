@@ -25,15 +25,7 @@ Worker::Worker(StartupBehavior            startupBehavior,
 }
 
 Worker::~Worker() {
-  done_ = true;
-
-  // Kick the thread to wake up and finish off anything in its queue.
-  poke();
-
-  // TODO: put in code to kill the thread if it takes more than a few secs to respond...
-  if(thread_.joinable()) {
-    thread_.join();
-  }
+  stop();
 }
 
 std::size_t Worker::num_jobs() const noexcept { return jobQueue_.size(); }
@@ -63,6 +55,18 @@ Job_ty &Worker::peek_job_() {
   assert(!jobQueue_.empty());
 
   return jobQueue_.front();
+}
+
+void Worker::stop() {
+  done_ = true;
+
+  // Kick the thread to wake up and finish off anything in its queue.
+  poke();
+
+  // TODO: put in code to kill the thread if it takes more than a few secs to respond...
+  if(thread_.joinable()) {
+    thread_.join();
+  }
 }
 
 void Worker::steal_job_() {

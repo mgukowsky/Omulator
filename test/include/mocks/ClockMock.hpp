@@ -3,17 +3,13 @@
 #include "omulator/IClock.hpp"
 #include "omulator/oml_types.hpp"
 
-#include <barrier>
+#include <atomic>
 
 namespace omulator {
 
 class ClockMock : public omulator::IClock {
 public:
-  // We initialize barrier_ to the number of expected sleepers +1 so that wake_sleepers will either
-  // trigger the completion of the barrier or wait there until the other threads using the mock have
-  // called sleep_until
-  ClockMock(omulator::TimePoint_t initialTime, const std::ptrdiff_t numSleepers = 1)
-    : now_(initialTime), barrier_(numSleepers + 1, &ClockMock::null_completion_func_) { }
+  ClockMock(omulator::TimePoint_t initialTime) : now_(initialTime), barrier_(0), shouldBlock_(true) { }
   ~ClockMock() override = default;
 
   omulator::TimePoint_t now() const noexcept override { return now_; }
@@ -21,11 +17,21 @@ public:
   void set_now(omulator::TimePoint_t newNow) { now_ = newNow; }
 
   /**
+   * If set to false, then calls to sleep_until() will return immediately.
+   */
+  void set_should_block(const bool shouldBlock) {
+    shouldBlock_.store(shouldBlock, std::memory_order_release);
+  }
+
+  /**
    * This specialization will block until wake_sleepers() is called, regardless of the time point
    * argument that is provided.
    */
   void sleep_until([[maybe_unused]] const omulator::TimePoint_t then) override {
-    barrier_.arrive_and_wait();
+    if(shouldBlock_.load(std::memory_order_acquire)) {
+      U64 old = barrier_.load(std::memory_order_acquire);
+      barrier_.wait(old);
+    }
   }
 
   /**
@@ -34,13 +40,15 @@ public:
    *
    * May be called repeatedly to wait for successive waves of sleepers.
    */
-  void wake_sleepers() { barrier_.arrive_and_wait(); }
+  void wake_sleepers() {
+    barrier_.fetch_add(1, std::memory_order_acq_rel);
+    barrier_.notify_all();
+  }
 
 private:
-  static void null_completion_func_() noexcept {};
-
-  omulator::TimePoint_t                 now_;
-  std::barrier<void (*)(void) noexcept> barrier_;
+  omulator::TimePoint_t now_;
+  std::atomic_uint64_t  barrier_;
+  std::atomic_bool      shouldBlock_;
 };
 
 }  // namespace omulator
