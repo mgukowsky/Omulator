@@ -1,5 +1,4 @@
 #include "omulator/scheduler/Scheduler.hpp"
-
 #include "omulator/util/to_underlying.hpp"
 
 #include "mocks/ClockMock.hpp"
@@ -41,13 +40,16 @@ std::unique_ptr<MailboxRouter>       pMailboxRouter;
 std::unique_ptr<Scheduler>           pScheduler;
 
 /*
- * Advances the sequencer in a manner that avoids a race condition with the scheduler. By ensuring that the scheduler
- * doesn't block on a sleep_until call while calling wake_sleepers() and wait_for_step(), we avoid a scenario where
- * the scheduler misses the wake_sleepers() notification (which can happen, for example, if wake_sleepers() is called
- * while the scheduler is executing its main body), while still ensuring that the scheduler wakes up if it is in fact
- * blocking on sleep_until().
+ * Advances the sequencer in a manner that avoids a race condition with the scheduler. By ensuring
+ * that the scheduler doesn't block on a sleep_until call while calling wake_sleepers() and
+ * wait_for_step(), we avoid a scenario where the scheduler misses the wake_sleepers() notification
+ * (which can happen, for example, if wake_sleepers() is called while the scheduler is executing its
+ * main body), while still ensuring that the scheduler wakes up if it is in fact blocking on
+ * sleep_until().
  */
-void advance_scheduler_and_sequencer(Sequencer& sequencer, omulator::ClockMock& clock, const omulator::U32 step) {
+void advance_scheduler_and_sequencer(Sequencer           &sequencer,
+                                     omulator::ClockMock &clock,
+                                     const omulator::U32  step) {
   clock.set_should_block(false);
   clock.wake_sleepers();
   sequencer.wait_for_step(step);
@@ -471,8 +473,7 @@ TEST_F(Scheduler_test, periodicJob) {
   pLogger.reset();
 }
 
-//TODO: Disabled until we can redesign this test
-TEST_F(Scheduler_test, DISABLED_periodicExclusive) {
+TEST_F(Scheduler_test, periodicExclusive) {
   omulator::ClockMock  &clock = *pClock;
   omulator::TimePoint_t now   = clock.now();
 
@@ -491,7 +492,7 @@ TEST_F(Scheduler_test, DISABLED_periodicExclusive) {
   sequencer.wait_for_step(1);
 
   std::atomic_flag isFirstIteration;
-  std::atomic_uint i                = 1;
+  std::atomic_uint i = 1;
 
   // PERIODIC (exclusive) jobs should continue to recur as their periodic deadlines expire, even if
   // there are iterations of the job still running when the deadline expires. We simulate this by

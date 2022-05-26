@@ -64,7 +64,8 @@ public:
      * it catches up to the wall clock, causing the app/system to become unreponsive. If this behavior
      * is undesirable, the PERIODIC_CONSOLIDATED policy is recommended.
      */
-    PERIODIC,
+    PERIODIC_EXCLUSIVE,
+    PERIODIC = PERIODIC_EXCLUSIVE,
     /**
      * Same as PERIODIC, except that missed iterations of the same task CAN run concurrently and MAY
      * NOT NECESSARILY execute in a FIFO manner.
