@@ -91,6 +91,13 @@ Scheduler::JobHandle_t Scheduler::add_job_deferred(std::function<void()>        
         }
         auto &innerIterationTracker = innerIterationTrackerEntry->second;
         ++innerIterationTracker;
+
+        // If the iteration tracker is greater than 1, then that means that there is a currently
+        // running iteration of this job. If it's an exclusive periodic job, then we will let
+        // that thread execute the additional iterations serially.
+        if(innerIterationTracker > 1 && schedType == SchedType::PERIODIC) {
+          return;
+        }
       }
       while(true) {
         work();
@@ -309,15 +316,7 @@ void Scheduler::schedule_periodic_iteration_(const Scheduler::JobQueueEntry_t &e
     return;
   }
 
-  auto &iterationTracker = iterationTrackerEntry->second;
-
-  if(iterationTracker == 0 || entry.schedType == SchedType::PERIODIC_NONEXCLUSIVE) {
-    add_job_immediate(task, entry.job.priority);
-  }
-  else if(entry.schedType == SchedType::PERIODIC) {
-    // We missed an iteration; let's note it so that the currently running iteration can play catch up
-    ++iterationTracker;
-  }
+  add_job_immediate(task, entry.job.priority);
 
   // We call this internal overload directly so that the periodic job can reuse the same
   // ID as the original call to add_job_deferred, which allows cancel_job to still
