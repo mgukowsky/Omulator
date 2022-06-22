@@ -50,35 +50,8 @@ endfunction()
 add_unit_test(smoke)
 
 add_unit_test_with_source(exception_handler util)
-add_unit_test(ObjectPool)
-add_unit_test(ResourceWrapper)
 add_unit_test(Spinlock)
 add_unit_test(TypeHash)
 add_unit_test(TypeString)
 add_unit_test(TypeMap)
 add_unit_test_with_source(Injector di)
-add_unit_test_with_source(MessageBuffer msg)
-add_unit_test_with_source(Package msg ${PROJECT_SOURCE_DIR}/src/msg/MessageBuffer.cpp)
-add_unit_test_with_source(Mailbox msg ${PROJECT_SOURCE_DIR}/src/msg/MessageBuffer.cpp
-  ${PROJECT_SOURCE_DIR}/src/msg/Package.cpp
-)
-add_unit_test_with_source(MailboxRouter msg ${PROJECT_SOURCE_DIR}/src/msg/MessageBuffer.cpp
-  ${PROJECT_SOURCE_DIR}/src/msg/Package.cpp
-  ${PROJECT_SOURCE_DIR}/src/msg/Mailbox.cpp
-  ${PROJECT_SOURCE_DIR}/src/di/Injector.cpp
-)
-
-add_unit_test(Worker
-  ${PROJECT_SOURCE_DIR}/src/scheduler/Worker.cpp
-)
-
-add_unit_test(Scheduler
-  ${PROJECT_SOURCE_DIR}/src/scheduler/Scheduler.cpp
-  ${PROJECT_SOURCE_DIR}/src/scheduler/Worker.cpp
-  ${PROJECT_SOURCE_DIR}/src/msg/Package.cpp
-  ${PROJECT_SOURCE_DIR}/src/msg/Mailbox.cpp
-  ${PROJECT_SOURCE_DIR}/src/msg/MailboxRouter.cpp
-  ${PROJECT_SOURCE_DIR}/src/msg/MessageBuffer.cpp
-  ${PROJECT_SOURCE_DIR}/src/di/Injector.cpp
-)
-

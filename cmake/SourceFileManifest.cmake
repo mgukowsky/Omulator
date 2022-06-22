@@ -4,15 +4,8 @@ set(
     src/Clock.cpp
     src/di/Injector.cpp
     src/di/injector_rules.cpp
-    src/msg/Mailbox.cpp
-    src/msg/MailboxRouter.cpp
-    src/msg/MessageBuffer.cpp
-    src/msg/Package.cpp
-    src/scheduler/Worker.cpp
-    src/scheduler/Scheduler.cpp
     src/SpdlogLogger.cpp
     src/util/exception_handler.cpp
-    ${PLATFORM_DIR}/CPUIdentifier.cpp
     ${PLATFORM_DIR}/PrimitiveIO.cpp
 )
 
