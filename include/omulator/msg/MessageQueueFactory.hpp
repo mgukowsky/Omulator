@@ -4,6 +4,8 @@
 #include "omulator/msg/MessageQueue.hpp"
 #include "omulator/util/Pimpl.hpp"
 
+#include <atomic>
+
 namespace omulator::msg {
 
 /**
@@ -40,6 +42,8 @@ private:
   util::Pimpl<Impl_> impl_;
 
   ILogger &logger_;
-}
 
-};  // namespace omulator::msg
+  std::atomic<U64> numActiveQueues_;
+};
+
+}  // namespace omulator::msg

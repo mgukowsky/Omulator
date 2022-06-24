@@ -16,6 +16,14 @@ function(add_unit_test TESTNAME)
       $<INSTALL_INTERFACE:test/include>
   )
 
+  target_include_directories(
+    ${TESTNAME}
+    SYSTEM
+    PUBLIC
+      $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/concurrentqueue>
+      $<INSTALL_INTERFACE:third_party/concurrentqueue>
+  )
+
   target_sources(
     ${TESTNAME}
     PRIVATE
@@ -56,3 +64,4 @@ add_unit_test(TypeString)
 add_unit_test(TypeMap)
 add_unit_test_with_source(Injector di)
 add_unit_test_with_source(MessageQueue msg)
+add_unit_test_with_source(MessageQueueFactory msg ${PROJECT_SOURCE_DIR}/src/msg/MessageQueue.cpp)
