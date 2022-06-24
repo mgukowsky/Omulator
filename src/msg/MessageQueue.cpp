@@ -39,7 +39,7 @@ void MessageQueue::reset() noexcept {
 
 void MessageQueue::push(const MessageType type) noexcept { push(type, 0); }
 
-void MessageQueue::push(const MessageType type, const U64 payload) noexcept {
+void MessageQueue::push_impl_(const MessageType type, const U64 payload) noexcept {
   // Necessary since we want the ability to have the payload for a single message point to a large
   // piece of data rather than copying it into multiple messages
   static_assert(sizeof(payload) >= sizeof(void *),

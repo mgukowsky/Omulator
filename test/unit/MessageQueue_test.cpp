@@ -101,9 +101,16 @@ TEST(MessageQueue_test, multipleMsgTypes) {
   mq.push(MessageType::DEMO_MSG_A);
   mq.push(MessageType::DEMO_MSG_A, 1);
   mq.push(MessageType::DEMO_MSG_A, 2);
-  mq.push(MessageType::DEMO_MSG_A, 3);
 
-  mq.push(MessageType::DEMO_MSG_B);
+  // push() should accepts types that can be converted to U64
+  unsigned char charVal = 3;
+  mq.push(MessageType::DEMO_MSG_A, charVal);
+
+  int  intVal = 0;
+  int *pInt   = &intVal;
+  mq.push(MessageType::DEMO_MSG_B, pInt);
+
+  mq.push(MessageType::DEMO_MSG_C);
 
   mq.seal();
 
@@ -114,6 +121,9 @@ TEST(MessageQueue_test, multipleMsgTypes) {
         vals.push_back(msg.payload);
       }
       else if(msg.type == MessageType::DEMO_MSG_B) {
+        *(reinterpret_cast<int *>(msg.payload)) = 1234;
+      }
+      else if(msg.type == MessageType::DEMO_MSG_C) {
         flag = 1;
         // ...and have the thread send a response back to the other thread
         flag.notify_all();
@@ -129,4 +139,7 @@ TEST(MessageQueue_test, multipleMsgTypes) {
       << "MessageQueues should appropriately respond to all messages in their queue";
     ++i;
   }
+
+  EXPECT_EQ(1234, intVal)
+    << "MessageQueues should appropriately respond to all messages in their queue";
 }

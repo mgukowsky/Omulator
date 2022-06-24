@@ -4,6 +4,7 @@
 #include "omulator/msg/Message.hpp"
 
 #include <functional>
+#include <type_traits>
 #include <vector>
 
 namespace omulator::msg {
@@ -50,7 +51,18 @@ public:
    * Create a new message in the queue by copying in type and payload. If the queue has already been
    * sealed, then no message is created.
    */
-  void push(const MessageType type, const U64 payload) noexcept;
+  template<typename T>
+  void push(const MessageType type, const T payload) noexcept {
+    static_assert(sizeof(T) <= sizeof(U64),
+                  "Payload type must be <= sizeof(U64) in order to prevent data loss");
+
+    if constexpr(std::is_pointer_v<T>) {
+      push_impl_(type, reinterpret_cast<const U64>(payload));
+    }
+    else {
+      push_impl_(type, static_cast<const U64>(payload));
+    }
+  }
 
   /**
    * Unseal the queue and reset its contents. Does NOT release any underlying memory.
@@ -63,6 +75,8 @@ public:
   void seal() noexcept;
 
 private:
+  void push_impl_(const MessageType type, const U64 payload) noexcept;
+
   std::vector<Message> queue_;
 
   ILogger &logger_;
