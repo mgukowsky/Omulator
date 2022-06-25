@@ -80,6 +80,10 @@ Scheduler::JobHandle_t Scheduler::add_job_deferred(std::function<void()>        
     // of the work are currently executing
     auto workClosure = [&, work, id, schedType] {
       {
+        // The logic in this lambda assumes that schedType will always be one of these
+        assert(schedType == SchedType::PERIODIC || schedType == SchedType::PERIODIC_NONEXCLUSIVE
+               || schedType == SchedType::PERIODIC_CONSOLIDATED);
+
         // N.B. that these are NOT recursive acquisitions of the lock, as scheduler_main() and this
         // lambda will always execute on different threads, or at the very least this lambda will
         // not be executed until the earlier scoped_lck has been released.
@@ -94,9 +98,16 @@ Scheduler::JobHandle_t Scheduler::add_job_deferred(std::function<void()>        
 
         // If the iteration tracker is greater than 1, then that means that there is a currently
         // running iteration of this job. If it's an exclusive periodic job, then we will let
-        // that thread execute the additional iterations serially.
-        if(innerIterationTracker > 1 && schedType == SchedType::PERIODIC) {
-          return;
+        // that thread execute the additional iterations serially. If it's a consolidated 
+        // periodic job, then we never want more than one pending iteration at any given time.
+        if(innerIterationTracker > 1) {
+          if(innerIterationTracker > 2 && schedType == SchedType::PERIODIC_CONSOLIDATED) {
+            innerIterationTracker = 2; 
+          }
+          
+          if(schedType != SchedType::PERIODIC_NONEXCLUSIVE) {
+            return; 
+          }
         }
       }
       while(true) {
@@ -110,7 +121,7 @@ Scheduler::JobHandle_t Scheduler::add_job_deferred(std::function<void()>        
         auto &innerIterationTracker = innerIterationTrackerEntry->second;
         --innerIterationTracker;
 
-        if(schedType != SchedType::PERIODIC || innerIterationTracker == 0) {
+        if(innerIterationTracker == 0 || schedType == SchedType::PERIODIC_NONEXCLUSIVE) {
           break;
         }
       }
@@ -239,6 +250,7 @@ void Scheduler::scheduler_main() {
               break;
             case SchedType::PERIODIC:
             case SchedType::PERIODIC_NONEXCLUSIVE:
+            case SchedType::PERIODIC_CONSOLIDATED:
               schedule_periodic_iteration_(oldEntry);
               break;
             default:
