@@ -64,7 +64,7 @@ TEST(MessageQueue_test, sealUnseal) {
 
   mq.push(MessageType::DEMO_MSG_A, 42);
 
-  int i = 0;
+  U64 i = 0;
   // Should not be able to pump messages on a queue that is not sealed
   EXPECT_CALL(logger, error).Times(Exactly(1));
   mq.pump_msgs([&](const Message &msg) {
