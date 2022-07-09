@@ -65,3 +65,8 @@ add_unit_test(TypeMap)
 add_unit_test_with_source(Injector di)
 add_unit_test_with_source(MessageQueue msg)
 add_unit_test_with_source(MessageQueueFactory msg ${PROJECT_SOURCE_DIR}/src/msg/MessageQueue.cpp)
+add_unit_test_with_source(MailboxEndpoint msg
+  ${PROJECT_SOURCE_DIR}/src/msg/MessageQueue.cpp
+  ${PROJECT_SOURCE_DIR}/src/msg/MessageQueueFactory.cpp
+  ${PROJECT_SOURCE_DIR}/src/msg/MailboxEndpoint.cpp
+)

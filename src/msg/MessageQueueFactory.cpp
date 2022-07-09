@@ -47,6 +47,9 @@ MessageQueue *MessageQueueFactory::get() noexcept {
   }
 }
 
-void MessageQueueFactory::submit(MessageQueue *pQueue) noexcept { impl_->cQueue.enqueue(pQueue); }
+void MessageQueueFactory::submit(MessageQueue *pQueue) noexcept {
+  pQueue->reset();
+  impl_->cQueue.enqueue(pQueue);
+}
 
 }  // namespace omulator::msg
