@@ -26,7 +26,9 @@ TEST(MailboxEndpoint_test, usageTest) {
   constexpr int LIFE = 42;
   mq->push(MessageType::DEMO_MSG_A, LIFE);
 
+  EXPECT_FALSE(mq->sealed()) << "MailboxEndpoint::send() should call MessageQueue::seal()";
   me.send(mq);
+  EXPECT_TRUE(mq->sealed()) << "MailboxEndpoint::send() should call MessageQueue::seal()";
 
   int i = 0;
 

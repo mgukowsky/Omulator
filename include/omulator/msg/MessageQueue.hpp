@@ -74,6 +74,11 @@ public:
    */
   void seal() noexcept;
 
+  /**
+   * Returns true if the queue is sealed.
+   */
+  bool sealed() const noexcept;
+
 private:
   void push_impl_(const MessageType type, const U64 payload) noexcept;
 

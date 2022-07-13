@@ -28,7 +28,10 @@ TEST(MessageQueue_test, getAndSubmit) {
   EXPECT_EQ(pmq, pmq2)
     << "MessageQueueFactory should reuse MessageQueues that have been submitted back to it";
 
+  pmq2->seal();
+  EXPECT_TRUE(pmq2->sealed()) << "MessageQueueFactory::submit() should call MessageQueue::reset()";
   mqf.submit(pmq2);
+  EXPECT_FALSE(pmq2->sealed()) << "MessageQueueFactory::submit() should call MessageQueue::reset()";
 
   // Shouldn't warn about memory leaks since we have called submit() for each MessageQueue acquired
   // through get()

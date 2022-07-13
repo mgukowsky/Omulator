@@ -59,4 +59,6 @@ void MessageQueue::push_impl_(const MessageType type, const U64 payload) noexcep
 
 void MessageQueue::seal() noexcept { sealed_ = true; }
 
+bool MessageQueue::sealed() const noexcept { return sealed_; }
+
 }  // namespace omulator::msg
