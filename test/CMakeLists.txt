@@ -70,3 +70,10 @@ add_unit_test_with_source(MailboxEndpoint msg
   ${PROJECT_SOURCE_DIR}/src/msg/MessageQueueFactory.cpp
   ${PROJECT_SOURCE_DIR}/src/msg/MailboxEndpoint.cpp
 )
+add_unit_test_with_source(MailboxRouter msg
+  ${PROJECT_SOURCE_DIR}/src/msg/MessageQueue.cpp
+  ${PROJECT_SOURCE_DIR}/src/msg/MessageQueueFactory.cpp
+  ${PROJECT_SOURCE_DIR}/src/msg/MailboxEndpoint.cpp
+  ${PROJECT_SOURCE_DIR}/src/msg/MailboxSender.cpp
+  ${PROJECT_SOURCE_DIR}/src/msg/MailboxReceiver.cpp
+)

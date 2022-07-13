@@ -22,6 +22,9 @@ public:
    */
   MailboxEndpoint(const U64 id, MessageQueueFactory &mqfactory);
 
+  /**
+   * Need dtor declared in header and defined in implementation file to make Pimpl happy.
+   */
   ~MailboxEndpoint();
 
   /**

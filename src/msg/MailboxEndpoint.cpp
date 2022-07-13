@@ -38,9 +38,8 @@ void MailboxEndpoint::recv(const MessageCallback_t &callback) {
   while(impl_->cQueue.try_dequeue(pQueue)) {
     assert(pQueue != nullptr);
     pQueue->pump_msgs(callback);
+    mqfactory_.submit(pQueue);
   }
-
-  mqfactory_.submit(pQueue);
 }
 
 }  // namespace omulator::msg
