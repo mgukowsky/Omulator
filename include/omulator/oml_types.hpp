@@ -20,4 +20,6 @@ using U64 = std::uint64_t;
 
 using TimePoint_t = decltype(std::chrono::steady_clock::now());
 using Duration_t  = std::chrono::milliseconds;
+
+using Cycle_t = U32;
 } /* namespace omulator */

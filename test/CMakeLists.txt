@@ -77,3 +77,8 @@ add_unit_test_with_source(MailboxRouter msg
   ${PROJECT_SOURCE_DIR}/src/msg/MailboxSender.cpp
   ${PROJECT_SOURCE_DIR}/src/msg/MailboxReceiver.cpp
 )
+
+# TODO: adding '.' to signify the lack of a subdirectory here works, but isn't super tidy...
+add_unit_test_with_source(System .
+  ${PROJECT_SOURCE_DIR}/src/Component.cpp
+)
