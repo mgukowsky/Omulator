@@ -22,8 +22,6 @@ public:
 
   ~System() override = default;
 
-  bool can_step() const noexcept override;
-
   /**
    * Invoke step() for each component in components_ numCycles times. Each component will receive 1
    * as its numCycles parameter. Returns the actual number of cycles taken.
@@ -33,8 +31,7 @@ public:
 private:
   /**
    * Each component in this list will have its step() method invoked during each call to
-   * System::step(). Each component in this list MUST have a step() method and should have
-   * can_step() return true!
+   * System::step().
    */
   ComponentList_t &components_;
 };

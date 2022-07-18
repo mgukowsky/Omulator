@@ -10,4 +10,9 @@ Component::Component(ILogger &logger, std::string_view name) : logger_{logger}, 
 
 std::string_view Component::name() const noexcept { return name_; }
 
+Cycle_t Component::step([[maybe_unused]] const Cycle_t numCycles) {
+  /* no-op */
+  return 0;
+}
+
 }  // namespace omulator
