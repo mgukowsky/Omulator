@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 
+using omulator::U64;
 using omulator::msg::MailboxEndpoint;
 using omulator::msg::Message;
 using omulator::msg::MessageQueueFactory;
@@ -30,7 +31,7 @@ TEST(MailboxEndpoint_test, usageTest) {
   me.send(mq);
   EXPECT_TRUE(mq->sealed()) << "MailboxEndpoint::send() should call MessageQueue::seal()";
 
-  int i = 0;
+  U64 i = 0;
 
   me.recv([&](const Message &msg) {
     if(msg.type == MessageType::DEMO_MSG_A) {
