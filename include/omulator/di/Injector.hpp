@@ -73,7 +73,9 @@ public:
   /**
    * The first thing that the Injector does upon construction is add itself to its typeMap_ as the
    * entry for the Injector type. This allows for recipes that have a dependency on the Injector
-   * itself to return an instance of this class as that dependency.
+   * itself to return an instance of this class as that dependency. Also adds a specialized recipe
+   * to return a "child" Injector (i.e. a new Injector with pUpstream_ set to the called Injector
+   * instance) when creat() is invoked.
    */
   Injector();
 
@@ -98,7 +100,9 @@ public:
       T *pT = new T(injector.ctorArgDispatcher_<Ts>(injector)...);
       return injector.containerize(pT);
     };
-    addRecipes({{TypeHash<T>, recipe}});
+    addRecipes({
+      {TypeHash<T>, recipe}
+    });
   }
 
   /**
@@ -155,7 +159,9 @@ public:
       return Container_t(nullptr);
     };
 
-    addRecipes({{TypeHash<Interface>, recipe}});
+    addRecipes({
+      {TypeHash<Interface>, recipe}
+    });
   }
 
   /**
@@ -207,12 +213,24 @@ public:
   /**
    * Retrieve an instance of type T.
    * If type T has not yet been instantiated, then an new instance is created with the proper
-   * dependencies injected. Otherwise, the instance of type T is returned.
+   * dependencies injected.
+   *
+   * If the injector is not a root injector (i.e. pUpstream_ is not null), then we will attempt to
+   * retrieve the dependency from the upstream injector. If the upstream injector does not have an
+   * instance of the dependency, then a new instance will be created and managed by this injector,
+   * NOT the upstream injector.
+   *
+   * Otherwise, the instance of type T managed by this injecor is returned.
    */
   template<typename Raw_t, typename T = InjType_t<Raw_t>>
   T &get() {
-    if(!typeMap_.has_key<T>()) {
-      makeDependency_<T>();
+    if(!has_instance<T>()) {
+      if(!is_root() && pUpstream_->has_instance<T>()) {
+        return pUpstream_->get<T>();
+      }
+      else {
+        makeDependency_<T>();
+      }
     }
     // TODO: there should be no harm in executing this code in parallel without a lock, since we
     // don't make use of any functions that invalidate typeMap_'s iterators, however it might not
@@ -222,7 +240,17 @@ public:
 
   static void installDefaultRules(Injector &injector);
 
+  template<typename Raw_t, typename T = InjType_t<Raw_t>>
+  bool has_instance() const {
+    // TODO: needs (mutable) mtx?
+    return typeMap_.has_key<T>();
+  }
+
+  bool is_root() const noexcept;
+
 private:
+  Injector(Injector *pUpstream);
+
   /**
    * Used internally by addCtorRecipe, dispatches to the appropriate behavior depending on the
    * qualifiers of Raw_t. N.B. that a new instance of T will be created if Raw_t is neither a
@@ -368,6 +396,8 @@ private:
   // recursively for dependencies, we should only lock the mutex when calling get_ with the top
   // level type of the dependency chain.
   bool isInCycleCheck_;
+
+  Injector *pUpstream_;
 };
 
 }  // namespace omulator::di

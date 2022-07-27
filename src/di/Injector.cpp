@@ -8,7 +8,14 @@
 
 namespace omulator::di {
 
-Injector::Injector() : isInCycleCheck_(false) { typeMap_.emplace_external_ptr<Injector>(this); }
+Injector::Injector() : isInCycleCheck_(false), pUpstream_(nullptr) {
+  typeMap_.emplace_external_ptr<Injector>(this);
+
+  // Special recipe to which will create a "child" Injector
+  addRecipe<Injector>([&](Injector &inj) { return inj.containerize(new Injector(this)); });
+}
+
+Injector::Injector(Injector *pUpstream) : Injector() { pUpstream_ = pUpstream; }
 
 Injector::~Injector() {
   // Delete the elements in the type map in the reverse order they were constructed
@@ -36,5 +43,7 @@ void Injector::addRecipes(RecipeMap_t &&newRecipes) {
     addRecipe(k, v);
   }
 }
+
+bool Injector::is_root() const noexcept { return pUpstream_ == nullptr; }
 
 }  // namespace omulator::di
