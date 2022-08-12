@@ -1,5 +1,6 @@
 #pragma once
 
+#include "omulator/PrimitiveIO.hpp"
 #include "omulator/di/TypeHash.hpp"
 #include "omulator/di/TypeMap.hpp"
 #include "omulator/util/TypeString.hpp"
@@ -11,6 +12,7 @@
 #include <memory>
 #include <mutex>
 #include <set>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -28,13 +30,11 @@ using util::TypeString;
  *
  * Instances of a given type are lazily created as they are requested with Injector#get, or
  * repeatedly created using Injector#creat. Type instances are creating using "recipes", which are
- * callbacks that return a type-erasing Container_t and receive the instance of the injector on
- * which the get() or creat() methods were invoked. While it is perfectly acceptible for a recipe to
- * return a Container_t directly, it is recommended to wrap the new instance of type T created by
- * the recipe using Injector#containerize and have the recipe return this wrapped value.
+ * callbacks that return a pointer to a (usually newly allocated) instance of a given type T, and
+ * receive the instance of the injector on which the get() or creat() methods were invoked.
  *
  * Injector instances contain an internal table of these recipe functions which are used to
- * instantiate type instances. If a recipe for a given type T has been added via addRecipes, that
+ * instantiate type instances. If a recipe for a given type T has been added via addRecipe, that
  * recipe will be invoked when an instance of type T is requested (either when creat() is called or
  * the first time get<T>() is invoked for type T).
  *
@@ -97,12 +97,9 @@ public:
                   "Injector#addCtorRecipe<T, ...Ts> will only accept Ts if T has a constructor "
                   "that accepts the arguments (Ts&...)");
     auto recipe = [](Injector &injector) {
-      T *pT = new T(injector.ctorArgDispatcher_<Ts>(injector)...);
-      return injector.containerize(pT);
+      return new T(injector.ctorArgDispatcher_<Ts>(injector)...);
     };
-    addRecipes({
-      {TypeHash<T>, recipe}
-    });
+    addRecipe<T>(recipe);
   }
 
   /**
@@ -110,33 +107,33 @@ public:
    * to the default injector behavior, which is to attempt to default construct an instance of the
    * requested type.
    *
-   * It is recommended that recipe callbacks make use of Injector#containerize in order to ensure
-   * the correct return type.
-   *
    * If a recipe for type T has been previously added, it will be overwritten by the argument given
    * to this function.
    */
-  void addRecipe(const Hash_t     hsh,
-                 const Recipe_t   recipe,
-                 std::string_view tname = "<type name unavailable>");
+  template<typename Raw_t, typename T = InjType_t<Raw_t>, typename RecipeFn_t>
+  void addRecipe(RecipeFn_t recipe) {
+    static_assert(std::is_invocable_r_v<T *, RecipeFn_t, Injector &>,
+                  "A recipe function passed to addRecipe<T> must return a pointer to an instance "
+                  "of T and accept a single Injector& argument");
 
-  /**
-   * Alternative API for addRecipe.
-   */
-  template<typename Raw_t, typename T = InjType_t<Raw_t>>
-  void addRecipe(const Recipe_t recipe) {
-    addRecipe(TypeHash<T>, recipe, TypeString<T>);
+    constexpr auto thash = TypeHash<T>;
+
+    if(typeMap_.contains(thash)) {
+      std::stringstream ss;
+      ss << "Overriding an existing recipe for " << TypeString<T>;
+      PrimitiveIO::log_msg(ss.str().c_str());
+    }
+
+    // TODO: it would be nice to use finer grained locking here, can we make some part of the
+    // underlying map atomic?
+    std::scoped_lock lck(mtx_);
+
+    Recipe_t recipeClosure = [this, recipe](Injector &) {
+      return this->containerize(recipe(*this));
+    };
+
+    recipeMap_.insert_or_assign(thash, recipeClosure);
   }
-
-  /**
-   * Batched version of addRecipe.
-   */
-  void addRecipes(RecipeMap_t &newRecipes);
-
-  /**
-   * Support initializer lists at the call site, etc.
-   */
-  void addRecipes(RecipeMap_t &&newRecipes);
 
   /**
    * Bind an interface to an implementation. More concretely, force Injector#get<Interface>
@@ -154,14 +151,15 @@ public:
 
       injector.typeMap_.emplace_impl<Interface, Implementation>(impl);
 
-      // Return an empty container as a hint to TypeMap#emplace to not instantiate an
-      // instance of interface T.
-      return Container_t(nullptr);
+      // Return a nullptr as a hint to Injector::inject_ to not instantiate an
+      // instance of interface T. We cannot return nullptr directly, as that would cause the return
+      // type of this lambda to be deduced as nullptr_t (or something like that), which will cause
+      // addRecipe to barf as it would have trouble translating that type into a T*
+      Interface *pInterface = nullptr;
+      return pInterface;
     };
 
-    addRecipes({
-      {TypeHash<Interface>, recipe}
-    });
+    addRecipe<Interface>(recipe);
   }
 
   /**

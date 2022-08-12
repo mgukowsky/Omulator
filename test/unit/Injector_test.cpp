@@ -107,14 +107,13 @@ TEST_F(Injector_test, defaultConstructibleTypes) {
 TEST_F(Injector_test, recipeInvocation) {
   omulator::di::Injector &injector = *pInjector;
 
-  omulator::di::Injector::RecipeMap_t recipes{
-    {omulator::di::TypeHash<Klass>, []([[maybe_unused]] omulator::di::Injector &inj) {
-       Klass *k = new Klass;
-       k->x     = DMAGIC;
-       return inj.containerize(k);
-     }}};
+  auto recipe = []([[maybe_unused]] omulator::di::Injector &inj) {
+    Klass *k = new Klass;
+    k->x     = DMAGIC;
+    return k;
+  };
 
-  injector.addRecipes(recipes);
+  injector.addRecipe<Klass>(recipe);
   auto &k1 = injector.get<Klass>();
   auto &k2 = injector.get<Klass>();
 
@@ -131,23 +130,21 @@ TEST_F(Injector_test, recipeLifetime) {
   omulator::di::Injector &injector          = *pInjector;
   std::array<int, 3>      recipeInvocations = {0, 0, 0};
 
-  omulator::di::Injector::RecipeMap_t firstRecipe{
-    {omulator::di::TypeHash<Klass>, [&]([[maybe_unused]] omulator::di::Injector &inj) {
-       recipeInvocations[0] += 1;
-       Klass *k = new Klass;
-       k->x     = 1;
-       return inj.containerize(k);
-     }}};
-  injector.addRecipes(firstRecipe);
+  auto firstRecipe = [&]([[maybe_unused]] omulator::di::Injector &inj) {
+    recipeInvocations[0] += 1;
+    Klass *k = new Klass;
+    k->x     = 1;
+    return k;
+  };
+  injector.addRecipe<Klass>(firstRecipe);
 
-  omulator::di::Injector::RecipeMap_t secondRecipe{
-    {omulator::di::TypeHash<Klass>, [&]([[maybe_unused]] omulator::di::Injector &inj) {
-       recipeInvocations[1] += 1;
-       Klass *k = new Klass;
-       k->x     = 2;
-       return inj.containerize(k);
-     }}};
-  injector.addRecipes(secondRecipe);
+  auto secondRecipe = [&]([[maybe_unused]] omulator::di::Injector &inj) {
+    recipeInvocations[1] += 1;
+    Klass *k = new Klass;
+    k->x     = 2;
+    return k;
+  };
+  injector.addRecipe<Klass>(secondRecipe);
 
   auto &k1 = injector.get<Klass>();
 
@@ -155,14 +152,13 @@ TEST_F(Injector_test, recipeLifetime) {
     << "When invoking Injector#get<T> for the first time (i.e. before an instance of T has been "
        "instantiated), the most recent recipe submitted to the injector should be used.";
 
-  omulator::di::Injector::RecipeMap_t thirdRecipe{
-    {omulator::di::TypeHash<Klass>, [&]([[maybe_unused]] omulator::di::Injector &inj) {
-       recipeInvocations[2] += 1;
-       Klass *k = new Klass;
-       k->x     = 3;
-       return inj.containerize(k);
-     }}};
-  injector.addRecipes(thirdRecipe);
+  auto thirdRecipe = [&]([[maybe_unused]] omulator::di::Injector &inj) {
+    recipeInvocations[2] += 1;
+    Klass *k = new Klass;
+    k->x     = 3;
+    return k;
+  };
+  injector.addRecipe<Klass>(thirdRecipe);
 
   auto &k2 = injector.get<Klass>();
   EXPECT_EQ(2, k2.x)
@@ -211,10 +207,10 @@ TEST_F(Injector_test, interfaceAndImplementation) {
   EXPECT_EQ(2, Impl::numCalls) << "When invoking Injector#creat, an implementation bound to an "
                                   "interface should only invoke its constructor once";
 
-  injector.addRecipe<Impl>([&](omulator::di::Injector &inj) {
+  injector.addRecipe<Impl>([&]([[maybe_unused]] omulator::di::Injector &inj) {
     Impl *pImpl = new Impl;
     ++na;
-    return inj.containerize(pImpl);
+    return pImpl;
   });
 
   [[maybe_unused]] std::unique_ptr<Impl> impl3 = injector.creat<Impl>();
@@ -262,9 +258,9 @@ TEST_F(Injector_test, addCtorRecipe) {
 
   injector.addCtorRecipe<Komposite, Klass &>();
 
-  Komposite &             komposite1 = injector.get<Komposite>();
+  Komposite              &komposite1 = injector.get<Komposite>();
   [[maybe_unused]] Klass &klass      = injector.get<Klass>();
-  Komposite &             komposite2 = injector.get<Komposite>();
+  Komposite              &komposite2 = injector.get<Komposite>();
 
   EXPECT_EQ(1, Klass::numCalls)
     << "Injector#addCtorRecipe should add a recipe to correctly instantiate a given type";
@@ -426,7 +422,7 @@ TEST_F(Injector_test, creat) {
   omulator::di::Injector &injector = *pInjector;
 
   [[maybe_unused]] std::unique_ptr<Klass> k0 = injector.creat<Klass>();
-  [[maybe_unused]] Klass &                k1 = injector.get<Klass>();
+  [[maybe_unused]] Klass                 &k1 = injector.get<Klass>();
 
   EXPECT_EQ(2, Klass::numCalls) << "Injector#creat should return a fresh instance of a given type "
                                    "and not cache it in the injector's type map";
@@ -436,23 +432,21 @@ TEST_F(Injector_test, creat) {
   EXPECT_EQ(3, Klass::numCalls)
     << "Injector#creat should return a fresh instance of a given type each time it is called";
 
-  omulator::di::Injector::RecipeMap_t recipes{
-    {omulator::di::TypeHash<Klass>, []([[maybe_unused]] omulator::di::Injector &inj) {
-       Klass *k = new Klass;
-       k->x     = DMAGIC;
-       return inj.containerize(k);
-     }}};
-  injector.addRecipes(recipes);
+  auto recipe = []([[maybe_unused]] omulator::di::Injector &inj) {
+    Klass *k = new Klass;
+    k->x     = DMAGIC;
+    return k;
+  };
+  injector.addRecipe<Klass>(recipe);
 
   std::unique_ptr<Klass> k3 = injector.creat<Klass>();
 
-  omulator::di::Injector::RecipeMap_t moreRecipes{
-    {omulator::di::TypeHash<Klass>, []([[maybe_unused]] omulator::di::Injector &inj) {
-       Klass *k = new Klass;
-       k->x     = DMAGIC * 2;
-       return inj.containerize(k);
-     }}};
-  injector.addRecipes(moreRecipes);
+  auto anotherRecipe = []([[maybe_unused]] omulator::di::Injector &inj) {
+    Klass *k = new Klass;
+    k->x     = DMAGIC * 2;
+    return k;
+  };
+  injector.addRecipe<Klass>(anotherRecipe);
 
   std::unique_ptr<Klass> k4 = injector.creat<Klass>();
 

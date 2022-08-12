@@ -15,15 +15,6 @@
 
 using omulator::di::TypeHash;
 
-namespace {
-/**
- * Custom recipes for types should be added here.
- */
-omulator::di::Injector::RecipeMap_t recipeMap{
-
-};
-}  // namespace
-
 namespace omulator::di {
 void Injector::installDefaultRules(Injector &injector) {
   /**
@@ -38,8 +29,8 @@ void Injector::installDefaultRules(Injector &injector) {
   injector.bindImpl<IClock, Clock>();
 
   /**
-   * Finally, install any custom recipes provided above.
+   * Custom recipes for types should be added here.
    */
-  injector.addRecipes(recipeMap);
+  // injector.addRecipe<T>(...)
 }
 }  // namespace omulator::di
