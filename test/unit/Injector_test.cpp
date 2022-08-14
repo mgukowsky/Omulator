@@ -562,3 +562,55 @@ TEST_F(Injector_test, dependencyOnSelf) {
     << "An class that has a dependency on an Injector should receive the instance of the managing "
        "Injector as a dependency";
 }
+
+TEST_F(Injector_test, rootAndChild) {
+  omulator::di::Injector &injector = *pInjector;
+  EXPECT_TRUE(injector.is_root())
+    << "A default constructed Injector should be constructed as a root Injector";
+
+  std::unique_ptr<omulator::di::Injector> pChildInjector = injector.creat<omulator::di::Injector>();
+  EXPECT_FALSE(pChildInjector->is_root()) << "An Injector created via Injector::creat<Injector>() "
+                                             "should be created as a child of said Injector";
+
+  struct A { };
+  int i = 0;
+  injector.addRecipe<A>([&]([[maybe_unused]] omulator::di::Injector &inj) {
+    ++i;
+    return new A;
+  });
+
+  A &rootA  = injector.get<A>();
+  A &childA = pChildInjector->get<A>();
+
+  EXPECT_EQ(&rootA, &childA) << "Injector::get() should retrieve a reference to a given dependency "
+                                "via an upstream Injector if the Injector is not a root Injector";
+  EXPECT_EQ(1, i)
+    << "Injector::get() should not invoke a recipe for a given type if the Injector is not a root "
+       "Injector and its upstream dependency has an instance of the given type";
+
+  struct B { };
+  int j = 0;
+  injector.addRecipe<B>([&]([[maybe_unused]] omulator::di::Injector &inj) {
+    ++j;
+    return new B;
+  });
+
+  B &childB = pChildInjector->get<B>();
+  B &rootB  = injector.get<B>();
+
+  EXPECT_NE(&rootB, &childB)
+    << "Injector::get() should create an instance of a given dependency if the Injector is not a "
+       "root Injector and its upstream Injector does not have an instance of the type in question; "
+       "in such a scenario this new instance should be mananged by the child Injector and not the "
+       "upstream Injector";
+
+  // N.B. the recipe will be invoked twice in this case: once by the child which will retrieve the
+  // recipe from the root injector and store the instance, and again by the root which will create
+  // its own instance
+  EXPECT_EQ(2, j)
+    << "Injector::get() should create a new instance of a given type if the Injector is a root "
+       "Injector and does not have an instance of the type in question, regardless of whether or "
+       "not a downstream Injector has created an instance of the type in question. The downstream "
+       "Injector should utilize the recipe in the upstream Injector if the upstream Injector has a "
+       "recipe for the given type, however";
+}

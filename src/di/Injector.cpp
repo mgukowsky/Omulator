@@ -6,6 +6,13 @@
 
 namespace omulator::di {
 
+namespace {
+  Injector::Recipe_t nullRecipe = []([[maybe_unused]] Injector &inj) {
+    int *pi = nullptr;
+    return inj.containerize(pi);
+  };
+}  // namespace
+
 Injector::Injector() : isInCycleCheck_(false), pUpstream_(nullptr) {
   typeMap_.emplace_external_ptr<Injector>(this);
 
@@ -23,5 +30,24 @@ Injector::~Injector() {
 }
 
 bool Injector::is_root() const noexcept { return pUpstream_ == nullptr; }
+
+std::pair<bool, Injector::Recipe_t> Injector::find_recipe_(const Hash_t hsh) {
+  auto recipeIt = std::find_if(
+    recipeMap_.begin(), recipeMap_.end(), [this, hsh](const auto &kv) { return kv.first == hsh; });
+
+  auto endIt = recipeMap_.end();
+
+  if(recipeIt == endIt) {
+    if(!is_root()) {
+      return pUpstream_->find_recipe_(hsh);
+    }
+    else {
+      return {false, nullRecipe};
+    }
+  }
+  else {
+    return {true, recipeIt->second};
+  }
+}
 
 }  // namespace omulator::di

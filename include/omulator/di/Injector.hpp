@@ -247,6 +247,9 @@ public:
   bool is_root() const noexcept;
 
 private:
+  /**
+   * Specialized constructor to create a "child" Injector.
+   */
   Injector(Injector *pUpstream);
 
   /**
@@ -270,6 +273,18 @@ private:
   }
 
   /**
+   * Find a given recipe. If the recipe is not present in recipeMap_ and the Injector is not a root
+   * Injector, then the upstream Injector will be checked for a matching recipe.
+   *
+   * @return A pair where the first element is a bool indicating whether or not the recipe was
+   * found, and the second element is either a reference to the recipe or a reference to a null
+   * recipe if no recipe was found.
+   *
+   * TODO: needs locks? Think about scenarios involving upstream/downstream injectors...
+   */
+  std::pair<bool, Recipe_t> find_recipe_(const Hash_t hsh);
+
+  /**
    * Perform the actual injection.
    *
    * N.B. that Opt_t is necessary to prevent TypeContainer from receiving an abstract interface as a
@@ -279,9 +294,7 @@ private:
   template<typename T, typename Opt_t = std::conditional_t<std::is_abstract_v<T>, int, T>>
   TypeContainer<Opt_t> inject_(const bool forwardValue = false) {
     TypeContainer<Opt_t> retval;
-    auto recipeIt = std::find_if(recipeMap_.begin(), recipeMap_.end(), [this](const auto &kv) {
-      return kv.first == TypeHash<T>;
-    });
+    auto [recipeFound, recipe] = find_recipe_(TypeHash<T>);
 
     /**
      * We need to wrap everything in an if constexpr block to keep compilers happy by preventing
@@ -289,19 +302,21 @@ private:
      */
     if constexpr(std::is_abstract_v<T>) {
       // An interface can ONLY have a recipe, hence this being the only check in this block.
-      if(recipeIt == recipeMap_.end()) {
+      if(!recipeFound) {
         std::string s("No implementation available for abstract class ");
         s += TypeString<T>;
         s += "; be sure to call Injector#bindImpl<T, Impl> before calling Injector#get<T>";
         throw std::runtime_error(s);
       }
-      recipeMap_.at(TypeHash<T>)(*this);
+
+      // Invoke the actual recipe, passing this Injector as an argument
+      recipe(*this);
     }
     else {
-      if(recipeIt != recipeMap_.end()) {
+      if(recipeFound) {
         // The container returned by a recipe need not contain a value (e.g. in the case of an
         // interface that has an associated implementation).
-        Container_t anyValue = recipeIt->second(*this);
+        Container_t anyValue = recipe(*this);
         if(anyValue.get() != nullptr) {
           auto *pCtr = reinterpret_cast<TypeContainer<T> *>(anyValue.get());
           T    *pVal = pCtr->release();
