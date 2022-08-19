@@ -4,6 +4,7 @@
 
 #include <concepts>
 #include <memory>
+#include <mutex>
 #include <string_view>
 #include <type_traits>
 #include <unordered_map>
@@ -88,9 +89,15 @@ private:
   bool hasOwnership_;
 };
 
+/**
+ * Maps a TypeHash to an instance of the corresponding type. Completely threadsafe.
+ */
 class TypeMap {
 public:
-  bool contains(const Hash_t hsh) const noexcept { return map_.contains(hsh); }
+  bool contains(const Hash_t hsh) const noexcept {
+    std::scoped_lock lck(mtx_);
+    return map_.contains(hsh);
+  }
 
   /**
    * Creates an instance of type T and places it in the map. args are passed
@@ -110,6 +117,8 @@ public:
       return true;
     }
 
+    std::scoped_lock lck(mtx_);
+
     map_.emplace(TypeHash<T>, std::make_unique<TypeContainer<T>>());
     auto pContainerBase = map_.at(TypeHash<T>).get();
     reinterpret_cast<TypeContainer<T> *>(pContainerBase)
@@ -124,6 +133,8 @@ public:
       return true;
     }
     else {
+      std::scoped_lock lck(mtx_);
+
       map_.emplace(TypeHash<Interface>, std::make_unique<TypeContainer<Interface>>());
       auto pContainerBase = map_.at(TypeHash<Interface>).get();
       reinterpret_cast<TypeContainer<Interface> *>(pContainerBase)->setref(&impl);
@@ -142,6 +153,7 @@ public:
       return true;
     }
 
+    std::scoped_lock lck(mtx_);
     map_.emplace(TypeHash<T>, std::move(ctr));
 
     return false;
@@ -161,18 +173,24 @@ public:
 
     // We don't call TypeContainer::reset() here because we DON'T want to take ownership of pT
     ctr->setref(pT);
+
+    std::scoped_lock lck(mtx_);
     map_.emplace(TypeHash<T>, std::move(ctr));
 
     return false;
   }
 
-  void erase(const Hash_t hsh) { map_.erase(hsh); }
+  void erase(const Hash_t hsh) { 
+    std::scoped_lock lck(mtx_);
+    map_.erase(hsh);
+  }
 
   /**
    * Clients should handle the possibility that at() can throw std::out_of_range!
    */
   template<typename T>
   inline T &ref() const {
+    std::scoped_lock lck(mtx_);
     auto pContainerBase = map_.at(TypeHash<T>).get();
     return reinterpret_cast<TypeContainer<T> *>(pContainerBase)->ref();
   }
@@ -181,6 +199,7 @@ public:
   inline bool has_key() const noexcept {
     // TODO: I _think_ count is slightly more efficient than find() for unordered_map in this
     // use case, since the count can only be either 0 or 1...
+    std::scoped_lock lck(mtx_);
     return map_.count(TypeHash<T>);
   }
 
@@ -192,5 +211,7 @@ private:
    * pointer as the value, then the destructor in TypeContainer would never be triggered.
    */
   std::unordered_map<Hash_t, std::unique_ptr<TypeContainerBase>> map_;
+
+  mutable std::mutex mtx_;
 };
 } /* namespace omulator::di */

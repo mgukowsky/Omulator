@@ -80,7 +80,7 @@ public:
   Injector();
 
   /**
-   * Deletes all entries in the typeMap_ in the opposite order in which they were constructed.
+   * Deletes all entries in the typeMap_ in the opposite order from which they were constructed.
    */
   ~Injector();
 
@@ -89,13 +89,25 @@ public:
    * only accept Ts if T has a constructor that accepts all of the types in Ts in
    * order. Types with other constructor requirements should create a custom recipe with
    * addRecipes().
+   *
+   * For each TDep in Ts, the injector will call get() if TDep is an lvalue reference or pointer
+   * type, otherwise creat() will be called to create a new instance of (decayed) TDep.
+   * 
+   * Example:
+   *
+   *   injector.addCtorRecipe<A, B&, C, D*>()
+   * 
+   * In this case, a recipe for A will be created which, when invoked will attempt to call a
+   * constructor for A which will receive a reference to an instance of B (retrieved via
+   * get()), a new instance of C as a value (initialized via creat()), and a pointer 
+   * to an instance of D (retrieved via get()).
    */
   template<typename Raw_t, typename... Ts>
   void addCtorRecipe() {
     using T = InjType_t<Raw_t>;
     static_assert(std::constructible_from<T, Ts...>,
                   "Injector#addCtorRecipe<T, ...Ts> will only accept Ts if T has a constructor "
-                  "that accepts the arguments (Ts&...)");
+                  "that accepts the arguments (Ts...)");
     auto recipe = [](Injector &injector) {
       return new T(injector.ctorArgDispatcher_<Ts>(injector)...);
     };
@@ -124,13 +136,11 @@ public:
       PrimitiveIO::log_msg(ss.str().c_str());
     }
 
-    // TODO: it would be nice to use finer grained locking here, can we make some part of the
-    // underlying map atomic?
-    std::scoped_lock lck(mtx_);
-
     Recipe_t recipeClosure = [this, recipe](Injector &) {
       return this->containerize(recipe(*this));
     };
+
+    std::scoped_lock lck(recipeMapMtx_);
 
     recipeMap_.insert_or_assign(thash, recipeClosure);
   }
@@ -230,9 +240,6 @@ public:
         makeDependency_<T>();
       }
     }
-    // TODO: there should be no harm in executing this code in parallel without a lock, since we
-    // don't make use of any functions that invalidate typeMap_'s iterators, however it might not
-    // hurt to make some part of typeMap_ atomic...
     return typeMap_.ref<T>();
   }
 
@@ -240,7 +247,6 @@ public:
 
   template<typename Raw_t, typename T = InjType_t<Raw_t>>
   bool has_instance() const {
-    // TODO: needs (mutable) mtx?
     return typeMap_.has_key<T>();
   }
 
@@ -279,8 +285,6 @@ private:
    * @return A pair where the first element is a bool indicating whether or not the recipe was
    * found, and the second element is either a reference to the recipe or a reference to a null
    * recipe if no recipe was found.
-   *
-   * TODO: needs locks? Think about scenarios involving upstream/downstream injectors...
    */
   std::pair<bool, Recipe_t> find_recipe_(const Hash_t hsh);
 
@@ -370,7 +374,7 @@ private:
     }
     else {
       // Lock the mutex since we're at the top level of a dependency injection
-      std::scoped_lock lck(mtx_);
+      std::scoped_lock lck(injectionMtx_);
       isInCycleCheck_ = true;
 
       // 2 line DRY violation here, but less ugly than the alternatives.
@@ -402,10 +406,13 @@ private:
   // as a stack, we choose a set since we'll be searching it frequently.
   std::set<Hash_t> typeHashStack_;
 
-  // Ensure that mutations to typeMap_ and recipeMap_ are atomic.
-  std::mutex mtx_;
+  // Ensure well as injections themselves are atomic
+  mutable std::mutex injectionMtx_;
 
-  // Used to decide whether to lock mtx_ when calling get(); i.e. since get() may call get()
+  // Ensure accesses to recipeMap_ are atomic
+  mutable std::mutex recipeMapMtx_;
+
+  // Used to decide whether to lock injectionMtx_ when calling get(); i.e. since get() may call get()
   // recursively for dependencies, we should only lock the mutex when calling get_ with the top
   // level type of the dependency chain.
   bool isInCycleCheck_;

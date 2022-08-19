@@ -32,6 +32,8 @@ Injector::~Injector() {
 bool Injector::is_root() const noexcept { return pUpstream_ == nullptr; }
 
 std::pair<bool, Injector::Recipe_t> Injector::find_recipe_(const Hash_t hsh) {
+  std::scoped_lock lck(recipeMapMtx_);
+
   auto recipeIt = std::find_if(
     recipeMap_.begin(), recipeMap_.end(), [this, hsh](const auto &kv) { return kv.first == hsh; });
 
