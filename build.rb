@@ -9,13 +9,24 @@ require 'rbconfig'
 COMPILE_COMMANDS_FILE = 'compile_commands.json'
 POSSIBLE_BUILD_TYPES = %w[Debug Release RelWithDebInfo MinSizeRel]
 
+def default_toolchain(os)
+  case os
+  when /mswin/
+    "msvc"
+  when /linux/
+    "gcc"
+  else
+    raise "Cannot infer toolchain for OS '#{os}'; please supply a --toolchain argument"
+  end
+end
+
 class OmulatorBuilder
   def initialize(**kwargs)
     @build_type = kwargs[:build_type] || POSSIBLE_BUILD_TYPES.first
     @notests    = kwargs[:notests]    || false
     @jobflag    = '-j'
     @testnames  = kwargs[:testnames]  || nil
-    @toolchain  = kwargs[:toolchain]  || default_toolchain
+    @toolchain  = kwargs[:toolchain]  || default_toolchain(RbConfig::CONFIG['host_os'])
     @verbose    = kwargs[:verbose]    || false
 
     @build_dir  = File.join OUTPUT_DIR, @toolchain, @build_type
@@ -109,18 +120,6 @@ class OmulatorBuilder
 
   OUTPUT_DIR = 'build'
 
-  def default_toolchain
-    os = RbConfig::CONFIG['host_os']
-    case os
-    when /mswin/
-      "msvc"
-    when /linux/
-      "gcc"
-    else
-      raise "Cannot infer toolchain for OS '#{os}'; please supply a --toolchain argument"
-    end
-  end
-
   def spawn_cmd(cmd)
     # spawn a subprocess with stdout and stderr merged, and block till it's done
     puts "->'#{cmd}'"
@@ -212,7 +211,7 @@ def main()
     end
 
     opts.on('-t <TOOLCHAIN>', '--toolchain <TOOLCHAIN>', POSSIBLE_TOOLCHAINS,
-            "Specify the toolchain [#{POSSIBLE_TOOLCHAINS.join('|')}]") do |toolchain|
+            "Specify the toolchain [#{POSSIBLE_TOOLCHAINS.join('|')}] (defaults to #{default_toolchain "mswin"} on Windows and #{default_toolchain "linux"} on Linux)") do |toolchain|
       options[:toolchain] = toolchain
     end
 
@@ -221,21 +220,19 @@ def main()
     end
   end.parse!
 
+  # Verify all commands are valid before executing them
   ARGV.each do |potential_action|
-    cmds << potential_action if POSSIBLE_ACTIONS.include?(potential_action)
+    if POSSIBLE_ACTIONS.include? potential_action
+      cmds << potential_action
+    else
+      puts "Unknown build command: #{potential_action}"
+      exit
+    end
   end
 
   ob = OmulatorBuilder.new(**options)
 
   cmds << 'build' if cmds.empty?
-
-  # Verify all commands are valid before executing them
-  cmds.each do |cmd|
-    unless OmulatorBuilder.method_defined? cmd.to_sym
-      puts "Unknown build command: #{cmd}"
-      exit
-    end
-  end
 
   cmds.each { |cmd| ob.send cmd.to_sym }
 
