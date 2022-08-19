@@ -8,6 +8,13 @@
 #include <memory>
 #include <vector>
 
+namespace {
+
+int aDtorCount = 0;
+int bDtorCount = 0;
+
+}  // namespace
+
 constexpr int MAGIC  = 42;
 constexpr int DMAGIC = MAGIC * 2;
 struct Klass {
@@ -613,4 +620,54 @@ TEST_F(Injector_test, rootAndChild) {
        "not a downstream Injector has created an instance of the type in question. The downstream "
        "Injector should utilize the recipe in the upstream Injector if the upstream Injector has a "
        "recipe for the given type, however";
+
+  [[maybe_unused]] std::unique_ptr<B> pub1 = pChildInjector->creat<B>();
+  EXPECT_EQ(3, j)
+    << "A child injector which does not have a recipe for a given type should utilize a recipe in "
+       "an upstream Injector, provided the upstream Injector has a recipe for the type in question";
+
+  int k = 0;
+  pChildInjector->addRecipe<B>([&]([[maybe_unused]] omulator::di::Injector &inj) {
+    ++k;
+    return new B;
+  });
+
+  [[maybe_unused]] std::unique_ptr<B> pub2 = pChildInjector->creat<B>();
+  EXPECT_EQ(1, k)
+    << "A child injector which has a recipe for a given type should utilize its own recipe to "
+       "create an instance of the type, rather than relying on the upstream Injector's recipe";
+  EXPECT_EQ(3, j)
+    << "A child injector which has a recipe for a given type should utilize its own recipe to "
+       "create an instance of the type, rather than relying on the upstream Injector's recipe";
+}
+
+TEST_F(Injector_test, childLifetime) {
+  omulator::di::Injector &parentInjector = *pInjector;
+
+  struct A {
+    ~A() { ++aDtorCount; }
+  };
+
+  struct B {
+    B(A &aarg) : a(aarg) { }
+    ~B() { ++bDtorCount; }
+    A &a;
+  };
+
+  parentInjector.addCtorRecipe<B, A &>();
+
+  [[maybe_unused]] A &a = parentInjector.get<A>();
+
+  {
+    std::unique_ptr<omulator::di::Injector> pChildInjector =
+      parentInjector.creat<omulator::di::Injector>();
+    omulator::di::Injector &childInjector = *pChildInjector;
+
+    [[maybe_unused]] B &b = childInjector.get<B>();
+  }
+
+  EXPECT_EQ(1, bDtorCount) << "Dependencies managed by a child Injector should not exceed the "
+                              "lifetime of the child Injector";
+  EXPECT_EQ(0, aDtorCount) << "Dependencies managed by a parent Injector should outlive the "
+                              "lifetime of any child Injector";
 }

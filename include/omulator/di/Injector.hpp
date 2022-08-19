@@ -49,6 +49,22 @@ using util::TypeString;
  * lvalue reference type, otherwise creat() will be called to create a new instance of (decayed)
  * TDep.
  *
+ * Injectors also have the ability to create a 'child' Injector: a parent ('upstream')
+ * Injector will create a new Injector instance (the 'downstream') instance via a call to
+ * Injector::creat<Injector>() (N.B. that a call to Injector::get<Injector>() will simply act as an
+ * identity function and return a reference to the Injector which receives the call). This changes
+ * the behavior of Injector::get and Injector::creat in the child Injector. If the child Injector
+ * does not contain a reference to the desired type when Injector::get is called, then the call will
+ * be forwarded to the parent Injector. If the parent Injector does not contain a reference to the
+ * desired type, then the child Injector will follow the same logic to obtain a reference as it
+ * would otherwise. If the parent Injector does have a reference to the desired type, then that
+ * reference (still managed by the parent Injector!) will be returned. Injector::creat is affected
+ * similarly: if the child Injector does not have a recipe for the desired type, then the parent
+ * Injector will be searched for the desired recipe. N.B. that there is a special case for
+ * Injector::get if neither the parent nor the child has an instance of the type BUT the parent has
+ * a recipe for the type and the child does not: in such a case the parent's recipe will be used to
+ * create the instance of the type, but it will be managed by the CHILD.
+ *
  * It is also possible for the type to hold a polymorphic interface bound to a specific
  * implementation using the bindImpl() method. Once bindImpl() is invoked, subsequent calls to get()
  * will return a reference to the given interface pointing to the given implementation (N.B. that
