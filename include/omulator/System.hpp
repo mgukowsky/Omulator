@@ -4,9 +4,9 @@
 #include "omulator/ILogger.hpp"
 
 #include <atomic>
+#include <functional>
 #include <memory>
 #include <string_view>
-#include <vector>
 
 namespace omulator {
 
@@ -16,7 +16,7 @@ namespace omulator {
  */
 class System : public Component {
 public:
-  using ComponentList_t = std::vector<std::unique_ptr<Component>>;
+  using ComponentList_t = std::vector<std::reference_wrapper<Component>>;
 
   System(ILogger &logger, std::string_view name, ComponentList_t &components);
 
