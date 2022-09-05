@@ -58,6 +58,7 @@ endfunction()
 add_unit_test(smoke)
 
 add_unit_test_with_source(exception_handler util)
+add_unit_test(PropertyMap)
 add_unit_test(Spinlock)
 add_unit_test(TypeHash)
 add_unit_test(TypeString)
