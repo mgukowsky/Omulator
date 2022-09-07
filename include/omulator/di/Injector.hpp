@@ -108,14 +108,14 @@ public:
    *
    * For each TDep in Ts, the injector will call get() if TDep is an lvalue reference or pointer
    * type, otherwise creat() will be called to create a new instance of (decayed) TDep.
-   * 
+   *
    * Example:
    *
    *   injector.addCtorRecipe<A, B&, C, D*>()
-   * 
+   *
    * In this case, a recipe for A will be created which, when invoked will attempt to call a
    * constructor for A which will receive a reference to an instance of B (retrieved via
-   * get()), a new instance of C as a value (initialized via creat()), and a pointer 
+   * get()), a new instance of C as a value (initialized via creat()), and a pointer
    * to an instance of D (retrieved via get()).
    */
   template<typename Raw_t, typename... Ts>
@@ -146,7 +146,7 @@ public:
 
     constexpr auto thash = TypeHash<T>;
 
-    if(typeMap_.contains(thash)) {
+    if(recipeMap_.contains(thash)) {
       std::stringstream ss;
       ss << "Overriding an existing recipe for " << TypeString<T>;
       PrimitiveIO::log_msg(ss.str().c_str());
@@ -428,9 +428,9 @@ private:
   // Ensure accesses to recipeMap_ are atomic
   mutable std::mutex recipeMapMtx_;
 
-  // Used to decide whether to lock injectionMtx_ when calling get(); i.e. since get() may call get()
-  // recursively for dependencies, we should only lock the mutex when calling get_ with the top
-  // level type of the dependency chain.
+  // Used to decide whether to lock injectionMtx_ when calling get(); i.e. since get() may call
+  // get() recursively for dependencies, we should only lock the mutex when calling get_ with the
+  // top level type of the dependency chain.
   bool isInCycleCheck_;
 
   Injector *pUpstream_;
