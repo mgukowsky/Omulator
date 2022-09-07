@@ -8,6 +8,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
@@ -36,10 +37,10 @@ public:
   ~PropertyValue() = default;
 
   // PropertyValues should only ever be created in-place within a PropertyMap
-  PropertyValue(const PropertyValue &) = delete;
+  PropertyValue(const PropertyValue &)            = delete;
   PropertyValue &operator=(const PropertyValue &) = delete;
   PropertyValue(PropertyValue &&)                 = delete;
-  PropertyValue &operator=(PropertyValue &&) = delete;
+  PropertyValue &operator=(PropertyValue &&)      = delete;
 
   /**
    * Retrieve a copy of val_, atomically.
@@ -140,6 +141,23 @@ public:
       ss << key;
       throw std::runtime_error(ss.str());
     }
+  }
+
+  /**
+   * Returns a pair consisting of a boolean indicating if the key is present and the TypeHash of the
+   * value (or 0 if the key is not present).
+   */
+  std::pair<bool, di::Hash_t> query_prop(std::string_view key) {
+    auto it = map_.find(std::string(key));
+
+    const bool found = (it != map_.end());
+    di::Hash_t hsh   = 0;
+
+    if(found) {
+      hsh = it->second.tag;
+    }
+
+    return {found, hsh};
   }
 
 private:
