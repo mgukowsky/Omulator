@@ -16,7 +16,7 @@ namespace omulator::msg {
  * thing to one class and something else to another, which could cause tough-to-debug issues when
  * the associated payload is misinterpreted as a result).
  */
-enum class MessageType : U64 {
+enum class MessageType : U32 {
   /**
    * Will not be processed if received.
    */
@@ -27,6 +27,21 @@ enum class MessageType : U64 {
   DEMO_MSG_C,
 
   MSG_MAX,
+};
+
+/**
+ * Bit flags which contain hints about the payload.
+ */
+enum class MessageFlagType : U32 {
+  FLAGS_NULL = 0,
+
+  /**
+   * If present, then the payload is a pointer which will be deleted after the callback for the
+   * MessageType (if present) is invoked.
+   */
+  MANAGED_PTR = 0x01,
+
+  FLAGS_MAX,
 };
 
 }  // namespace omulator::msg

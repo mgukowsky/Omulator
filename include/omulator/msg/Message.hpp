@@ -11,10 +11,12 @@ namespace omulator::msg {
  */
 struct Message {
   Message() : Message{MessageType::MSG_NULL} { }
-  Message(const MessageType typeArg) : Message{typeArg, 0} { }
-  Message(const MessageType typeArg, const U64 payloadArg) : type{typeArg}, payload{payloadArg} { }
+  Message(const MessageType typeArg) : Message{typeArg, MessageFlagType::FLAGS_NULL, 0} { }
+  Message(const MessageType typeArg, const MessageFlagType mflagsArg, const U64 payloadArg)
+    : type{typeArg}, mflags{mflagsArg}, payload{payloadArg} { }
 
-  const MessageType type;
+  const MessageType     type;
+  const MessageFlagType mflags;
 
   /**
    * N.B. that the payload should be large enough to hold a pointer, that way clients have the

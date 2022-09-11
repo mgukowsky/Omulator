@@ -2,6 +2,7 @@
 
 #include "omulator/util/to_underlying.hpp"
 
+#include <cassert>
 #include <sstream>
 
 namespace omulator::msg {
@@ -24,6 +25,12 @@ void MessageQueue::pump_msgs(const MessageCallback_t &callback) {
     }
     else {
       callback(msg);
+
+      if(util::to_underlying(msg.mflags) & util::to_underlying(MessageFlagType::MANAGED_PTR)) {
+        di::TypeContainerBase *pPayload = reinterpret_cast<di::TypeContainerBase *>(msg.payload);
+        assert(pPayload != nullptr);
+        delete pPayload;
+      }
     }
   }
 }
@@ -37,9 +44,13 @@ void MessageQueue::reset() noexcept {
   queue_.clear();
 }
 
-void MessageQueue::push(const MessageType type) noexcept { push(type, 0); }
+void MessageQueue::push(const MessageType type) noexcept {
+  push(type, MessageFlagType::FLAGS_NULL, 0);
+}
 
-void MessageQueue::push_impl_(const MessageType type, const U64 payload) noexcept {
+void MessageQueue::push_impl_(const MessageType     type,
+                              const MessageFlagType mflags,
+                              const U64             payload) noexcept {
   // Necessary since we want the ability to have the payload for a single message point to a large
   // piece of data rather than copying it into multiple messages
   static_assert(sizeof(payload) >= sizeof(void *),
@@ -54,7 +65,7 @@ void MessageQueue::push_impl_(const MessageType type, const U64 payload) noexcep
     return;
   }
 
-  queue_.push_back({type, payload});
+  queue_.push_back({type, mflags, payload});
 }
 
 void MessageQueue::seal() noexcept { sealed_ = true; }

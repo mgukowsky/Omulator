@@ -1,5 +1,7 @@
 #include "omulator/msg/MessageQueue.hpp"
 
+#include "omulator/di/TypeMap.hpp"
+
 #include "mocks/LoggerMock.hpp"
 
 #include <gtest/gtest.h>
@@ -9,11 +11,17 @@
 #include <vector>
 
 using omulator::U64;
+using omulator::di::TypeContainer;
 using omulator::msg::Message;
+using omulator::msg::MessageFlagType;
 using omulator::msg::MessageQueue;
 using omulator::msg::MessageType;
 
 using ::testing::Exactly;
+
+namespace {
+U64 aDtorCount = 0;
+}  // namespace
 
 TEST(MessageQueue_test, singleThreadSendRecv) {
   LoggerMock   logger;
@@ -142,4 +150,46 @@ TEST(MessageQueue_test, multipleMsgTypes) {
 
   EXPECT_EQ(1234, intVal)
     << "MessageQueues should appropriately respond to all messages in their queue";
+}
+
+TEST(MessageQueue_test, managedPayloads) {
+  LoggerMock   logger;
+  MessageQueue mq(logger);
+
+  struct A {
+    A() : val(0) { }
+    ~A() { ++aDtorCount; }
+    int val;
+  };
+
+  constexpr int MAGIC = 7;
+
+  A &ra  = mq.push_managed_payload<A>(MessageType::DEMO_MSG_A);
+  ra.val = MAGIC;
+
+  mq.seal();
+  mq.pump_msgs([&]([[maybe_unused]] const Message &msg) {
+    if(msg.type == MessageType::DEMO_MSG_A) {
+      A &a = MessageQueue::get_managed_payload<A>(msg);
+
+      EXPECT_EQ(MAGIC, a.val)
+        << "MessageQueue::push_managed_payload should return a reference that can be used to "
+           "manipulate the emplaced instance";
+    }
+  });
+  EXPECT_EQ(1, aDtorCount)
+    << "Messages with managed payloads should be properly cleaned up; unmanaged "
+       "payloads (even if the payload is a pointer) should not be cleaned up by the MessageQueue";
+
+  mq.reset();
+
+  A *paUnmanaged = new A;
+  mq.push(MessageType::DEMO_MSG_A, paUnmanaged);
+  mq.seal();
+  mq.pump_msgs([&]([[maybe_unused]] const Message &msg) {});
+
+  EXPECT_EQ(1, aDtorCount) << "Messages with unmanaged payloads (even if the payloads are "
+                              "pointers) should not be clean up by the MessageQueue";
+
+  delete paUnmanaged;
 }

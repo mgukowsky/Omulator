@@ -1,10 +1,14 @@
 #pragma once
 
 #include "omulator/ILogger.hpp"
+#include "omulator/di/TypeMap.hpp"
 #include "omulator/msg/Message.hpp"
+#include "omulator/util/to_underlying.hpp"
 
+#include <cassert>
 #include <functional>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace omulator::msg {
@@ -37,8 +41,19 @@ public:
   std::size_t num_null_msgs() const noexcept;
 
   /**
-   * Invoke a callback for each message in the queue. If the queue is not sealed, then no processing
-   * will take place.
+   * Convenience function to return a reference to a MessageQueue-managed payload.
+   */
+  template<typename T>
+  static T &get_managed_payload(const Message &msg) {
+    assert(reinterpret_cast<void *>(msg.payload) != nullptr);
+    assert(util::to_underlying(msg.mflags) & util::to_underlying(MessageFlagType::MANAGED_PTR));
+    auto *pCtr = reinterpret_cast<di::TypeContainer<T> *>(msg.payload);
+    return pCtr->ref();
+  }
+
+  /**
+   * Invoke a callback for each message in the queue. If the queue is not sealed, then no
+   * processing will take place.
    */
   void pump_msgs(const MessageCallback_t &callback);
 
@@ -48,20 +63,44 @@ public:
   void push(const MessageType type) noexcept;
 
   /**
-   * Create a new message in the queue by copying in type and payload. If the queue has already been
-   * sealed, then no message is created.
+   * Create a new message in the queue by copying in type and payload. If the queue has already
+   * been sealed, then no message is created.
    */
   template<typename T>
-  void push(const MessageType type, const T payload) noexcept {
+  void push(const MessageType type, const MessageFlagType mflags, const T payload) noexcept {
     static_assert(sizeof(T) <= sizeof(U64),
                   "Payload type must be <= sizeof(U64) in order to prevent data loss");
 
     if constexpr(std::is_pointer_v<T>) {
-      push_impl_(type, reinterpret_cast<const U64>(payload));
+      push_impl_(type, mflags, reinterpret_cast<const U64>(payload));
     }
     else {
-      push_impl_(type, static_cast<const U64>(payload));
+      push_impl_(type, mflags, static_cast<const U64>(payload));
     }
+  }
+
+  template<typename T>
+  void push(const MessageType type, const T payload) {
+    push(type, MessageFlagType::FLAGS_NULL, payload);
+  }
+
+  /**
+   * Create a new instance of type T and push it as a message. Returns a reference that can be
+   * used to manipulate the new instance. The new T instance will be entirely managed by the
+   * MessageQueue instance.
+   *
+   * N.B. that there is NO NEED to call push for this message; it will already have been pushed
+   * onto the queue by the time this function returns.
+   *
+   * Also N.B. that the new T instance will be DELETED once a call to pump_msgs dequeues this
+   * message.
+   */
+  template<typename T, typename... Args>
+  T &push_managed_payload(const MessageType type, Args &&...args) {
+    auto pCtr = new di::TypeContainer<T>();
+    pCtr->createInstance(std::forward<Args>(args)...);
+    push(type, MessageFlagType::MANAGED_PTR, pCtr);
+    return pCtr->ref();
   }
 
   /**
@@ -80,7 +119,7 @@ public:
   bool sealed() const noexcept;
 
 private:
-  void push_impl_(const MessageType type, const U64 payload) noexcept;
+  void push_impl_(const MessageType type, const MessageFlagType mflags, const U64 payload) noexcept;
 
   std::vector<Message> queue_;
 
