@@ -5,6 +5,7 @@
 #include "omulator/util/Spinlock.hpp"
 
 #include <atomic>
+#include <mutex>
 #include <sstream>
 #include <stdexcept>
 #include <string>
