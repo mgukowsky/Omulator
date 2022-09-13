@@ -1,7 +1,12 @@
 #pragma once
 
+#include "omulator/di/TypeHash.hpp"
+#include "omulator/di/TypeMap.hpp"
 #include "omulator/msg/MessageType.hpp"
 #include "omulator/oml_types.hpp"
+#include "omulator/util/to_underlying.hpp"
+
+#include <cassert>
 
 namespace omulator::msg {
 
@@ -24,6 +29,26 @@ struct Message {
    * smaller messages.
    */
   const U64 payload;
+
+  /**
+   * Convenience function to return a read-only reference to a MessageQueue-managed payload.
+   */
+  template<typename T>
+  const T &get_managed_payload() const {
+    assert(reinterpret_cast<void *>(payload) != nullptr);
+    assert(util::to_underlying(mflags) & util::to_underlying(MessageFlagType::MANAGED_PTR));
+
+    auto *pCtr = reinterpret_cast<di::TypeContainer<const T> *>(payload);
+
+    // Type safety assertion for the otherwise blind reinterpret_case we're doing here.
+    // TypeContainerBase::identity() will return the TypeHash that was set upon the container's
+    // creation, and should match the type T that we're casting to provided that the message is
+    // being interpreted correctly.
+    // TODO: maybe should throw instead of just assert?
+    assert(di::TypeHash<std::decay_t<T>> == pCtr->identity());
+
+    return pCtr->ref();
+  }
 };
 
 }  // namespace omulator::msg

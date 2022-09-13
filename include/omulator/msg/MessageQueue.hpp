@@ -41,17 +41,6 @@ public:
   std::size_t num_null_msgs() const noexcept;
 
   /**
-   * Convenience function to return a reference to a MessageQueue-managed payload.
-   */
-  template<typename T>
-  static T &get_managed_payload(const Message &msg) {
-    assert(reinterpret_cast<void *>(msg.payload) != nullptr);
-    assert(util::to_underlying(msg.mflags) & util::to_underlying(MessageFlagType::MANAGED_PTR));
-    auto *pCtr = reinterpret_cast<di::TypeContainer<T> *>(msg.payload);
-    return pCtr->ref();
-  }
-
-  /**
    * Invoke a callback for each message in the queue. If the queue is not sealed, then no
    * processing will take place.
    */

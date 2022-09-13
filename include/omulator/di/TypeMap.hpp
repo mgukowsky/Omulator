@@ -15,23 +15,37 @@ namespace omulator::di {
 // Container providing type erasure
 class TypeContainerBase {
 public:
+  TypeContainerBase(const Hash_t hsh) : hsh_(hsh) { }
   virtual ~TypeContainerBase() = default;
+
+  /**
+   * Return the TypeHash of the contained instance; used for a degree of type safety.
+   */
+  inline Hash_t identity() const noexcept { return hsh_; }
+
+protected:
+  Hash_t hsh_;
 };
 
 template<typename T>
 class TypeContainer : public TypeContainerBase {
 public:
-  TypeContainer() : ptr_(nullptr), hasOwnership_(false) { }
+  TypeContainer()
+    : TypeContainerBase(TypeHash<std::decay_t<T>>), ptr_(nullptr), hasOwnership_(false) { }
 
   ~TypeContainer() override { release_(); }
 
-  TypeContainer(TypeContainer &) = delete;
+  TypeContainer(TypeContainer &)            = delete;
   TypeContainer &operator=(TypeContainer &) = delete;
 
   // We have to define custom move operations for this type. Without this, the default move ops
   // would keep hasOwnership_ true in the moved-from instance, leading to a double-free error.
-  TypeContainer(TypeContainer &&rhs) noexcept { *this = std::move(rhs); }
+  TypeContainer(TypeContainer &&rhs) noexcept : TypeContainerBase(rhs.hsh_) {
+    *this = std::move(rhs);
+  }
+
   TypeContainer &operator=(TypeContainer &&rhs) noexcept {
+    this->hsh_          = rhs.hsh_;
     this->ptr_          = rhs.ptr_;
     this->hasOwnership_ = rhs.hasOwnership_;
     rhs.hasOwnership_   = false;
@@ -180,7 +194,7 @@ public:
     return false;
   }
 
-  void erase(const Hash_t hsh) { 
+  void erase(const Hash_t hsh) {
     std::scoped_lock lck(mtx_);
     map_.erase(hsh);
   }
@@ -191,7 +205,7 @@ public:
   template<typename T>
   inline T &ref() const {
     std::scoped_lock lck(mtx_);
-    auto pContainerBase = map_.at(TypeHash<T>).get();
+    auto             pContainerBase = map_.at(TypeHash<T>).get();
     return reinterpret_cast<TypeContainer<T> *>(pContainerBase)->ref();
   }
 

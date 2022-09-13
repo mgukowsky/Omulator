@@ -170,7 +170,7 @@ TEST(MessageQueue_test, managedPayloads) {
   mq.seal();
   mq.pump_msgs([&]([[maybe_unused]] const Message &msg) {
     if(msg.type == MessageType::DEMO_MSG_A) {
-      A &a = MessageQueue::get_managed_payload<A>(msg);
+      const A &a = msg.get_managed_payload<A>();
 
       EXPECT_EQ(MAGIC, a.val)
         << "MessageQueue::push_managed_payload should return a reference that can be used to "
