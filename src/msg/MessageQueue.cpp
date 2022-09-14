@@ -19,17 +19,18 @@ void MessageQueue::pump_msgs(const MessageCallback_t &callback) {
     return;
   }
 
-  for(const auto &msg : queue_) {
+  for(auto &msg : queue_) {
     if(msg.type == MessageType::MSG_NULL) {
       ++numNulls_;
     }
     else {
       callback(msg);
 
-      if(util::to_underlying(msg.mflags) & util::to_underlying(MessageFlagType::MANAGED_PTR)) {
+      if(msg.has_managed_payload()) {
         di::TypeContainerBase *pPayload = reinterpret_cast<di::TypeContainerBase *>(msg.payload);
         assert(pPayload != nullptr);
         delete pPayload;
+        msg.payload = 0;
       }
     }
   }
@@ -39,8 +40,19 @@ void MessageQueue::reset() noexcept {
   sealed_   = false;
   numNulls_ = 0;
 
-  // N.B. that std::vector::clear() won't free any of the underlying storage, which is what we want,
-  // since we can call reset() on a MessageQueue and submit it back to a pool
+#ifndef NDEBUG
+  // Check for memory leaks; a message with a managed payload which is not a nullptr is probably a
+  // memory leak (MessageQueue::pump_msgs() should delete the payload and set the pointer to it to a
+  // nullptr once the message is processed)!
+  for(const auto &msg : queue_) {
+    if(msg.has_managed_payload()) {
+      assert(reinterpret_cast<void *>(msg.payload) == nullptr);
+    }
+  }
+#endif
+
+  // N.B. that std::vector::clear() won't free any of the underlying storage, which is what we
+  // want, since we can call reset() on a MessageQueue and submit it back to a pool
   queue_.clear();
 }
 
