@@ -1,25 +1,11 @@
 #include "omulator/msg/MailboxEndpoint.hpp"
 
-#include "concurrentqueue/concurrentqueue.h"
-
 #include <cassert>
-
-using moodycamel::ConcurrentQueue;
 
 namespace omulator::msg {
 
-struct MailboxEndpoint::Impl_ {
-  Impl_()  = default;
-  ~Impl_() = default;
-
-  ConcurrentQueue<MessageQueue *> cQueue;
-};
-
 MailboxEndpoint::MailboxEndpoint(const U64 id, MessageQueueFactory &mqfactory)
   : id_(id), claimed_(false), mqfactory_(mqfactory) { }
-
-// Need dtor declared in header and defined here to make Pimpl happy
-MailboxEndpoint::~MailboxEndpoint() { }
 
 void MailboxEndpoint::claim() noexcept { claimed_ = true; }
 
@@ -29,16 +15,44 @@ MessageQueue *MailboxEndpoint::get_mq() noexcept { return mqfactory_.get(); }
 
 void MailboxEndpoint::send(MessageQueue *pQueue) {
   pQueue->seal();
-  impl_->cQueue.enqueue(pQueue);
+  {
+    std::scoped_lock lck{mtx_};
+    queue_.push(pQueue);
+    cv_.notify_all();
+  }
 }
 
 void MailboxEndpoint::recv(const MessageCallback_t &callback) {
+  {
+    std::unique_lock lck{mtx_};
+    cv_.wait(lck, [this] { return !(queue_.empty()); });
+  }
+
   MessageQueue *pQueue = nullptr;
 
-  while(impl_->cQueue.try_dequeue(pQueue)) {
-    assert(pQueue != nullptr);
+  while(true) {
+    pQueue = pop_next_();
+
+    if(pQueue == nullptr) {
+      break;
+    }
+
     pQueue->pump_msgs(callback);
     mqfactory_.submit(pQueue);
+  }
+}
+
+MessageQueue *MailboxEndpoint::pop_next_() {
+  std::scoped_lock lck{mtx_};
+
+  if(queue_.empty()) {
+    return nullptr;
+  }
+  else {
+    MessageQueue *retval = queue_.front();
+    queue_.pop();
+
+    return retval;
   }
 }
 

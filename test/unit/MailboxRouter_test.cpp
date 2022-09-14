@@ -1,10 +1,13 @@
 #include "omulator/msg/MailboxRouter.hpp"
 
 #include "mocks/LoggerMock.hpp"
+#include "mocks/PrimitiveIOMock.hpp"
+#include "test/Sequencer.hpp"
 
 #include <gtest/gtest.h>
 
 #include <stdexcept>
+#include <thread>
 #include <vector>
 
 using omulator::U64;
@@ -15,6 +18,7 @@ using omulator::msg::Message;
 using omulator::msg::MessageQueue;
 using omulator::msg::MessageQueueFactory;
 using omulator::msg::MessageType;
+using omulator::test::Sequencer;
 
 TEST(MailboxRouter_test, usageTest) {
   constexpr U64 LIFE        = 42;
@@ -72,4 +76,35 @@ TEST(MailboxRouter_test, doubleClaimTest) {
   EXPECT_THROW(mr.claim_mailbox<int>(), std::runtime_error)
     << "MailboxRouters should only allow a MailboxReceiver corresponding to a given endpoint to be "
        "claimed once";
+}
+
+TEST(MailboxRouter_test, multithreaded) {
+  Sequencer           sequencer(2);
+  LoggerMock          logger;
+  MessageQueueFactory mqf(logger);
+  MailboxRouter       mr(logger, mqf);
+
+  MailboxReceiver mrecv = mr.claim_mailbox<int>();
+  MailboxSender   msend = mr.get_mailbox<int>();
+
+  U64 i = 0;
+
+  std::jthread thrd([&] {
+    sequencer.advance_step(1);
+    mrecv.recv([&](const Message &msg) {
+      if(msg.type == MessageType::DEMO_MSG_A) {
+        i = msg.payload;
+      }
+    });
+    sequencer.advance_step(2);
+  });
+
+  sequencer.wait_for_step(1);
+
+  MessageQueue *pmq = msend.get_mq();
+  pmq->push(MessageType::DEMO_MSG_A, 1);
+  msend.send(pmq);
+
+  sequencer.wait_for_step(2);
+  EXPECT_EQ(1, i) << "MailboxEndpoint::recv should block until messages are received";
 }
