@@ -13,15 +13,6 @@ bool MailboxEndpoint::claimed() const noexcept { return claimed_; }
 
 MessageQueue *MailboxEndpoint::get_mq() noexcept { return mqfactory_.get(); }
 
-void MailboxEndpoint::send(MessageQueue *pQueue) {
-  pQueue->seal();
-  {
-    std::scoped_lock lck{mtx_};
-    queue_.push(pQueue);
-    cv_.notify_all();
-  }
-}
-
 void MailboxEndpoint::recv(const MessageCallback_t &callback) {
   {
     std::unique_lock lck{mtx_};
@@ -39,6 +30,15 @@ void MailboxEndpoint::recv(const MessageCallback_t &callback) {
 
     pQueue->pump_msgs(callback);
     mqfactory_.submit(pQueue);
+  }
+}
+
+void MailboxEndpoint::send(MessageQueue *pQueue) {
+  pQueue->seal();
+  {
+    std::scoped_lock lck{mtx_};
+    queue_.push(pQueue);
+    cv_.notify_all();
   }
 }
 

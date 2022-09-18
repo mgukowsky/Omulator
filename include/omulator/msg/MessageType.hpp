@@ -22,6 +22,12 @@ enum class MessageType : U32 {
    */
   MSG_NULL = 0,
 
+  /**
+   * Intended as a no-op message which serves no purpose other than to wake a thread that is waiting
+   * on a recv call.
+   */
+  POKE,
+
   DEMO_MSG_A,
   DEMO_MSG_B,
   DEMO_MSG_C,

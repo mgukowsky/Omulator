@@ -43,12 +43,6 @@ public:
   MessageQueue *get_mq() noexcept;
 
   /**
-   * Submit a MessageQueue to this endpoint, which can then be serviced via a call to recv(). seal()
-   * will be called on the MessageQueue prior to submission.
-   */
-  void send(MessageQueue *mq);
-
-  /**
    * Invokes the provided callback for each MessageQueue the endpoint has been provided via calls to
    * send(), in the order they were sent. Once all messages in a MessageQueue have been responded
    * to, the MessageQueue will be returned back to the MessageQueueFactory instance.
@@ -56,6 +50,12 @@ public:
    * BLOCKS until messages are sent via a call to send().
    */
   void recv(const MessageCallback_t &callback);
+
+  /**
+   * Submit a MessageQueue to this endpoint, which can then be serviced via a call to recv(). seal()
+   * will be called on the MessageQueue prior to submission.
+   */
+  void send(MessageQueue *mq);
 
 private:
   const U64        id_;

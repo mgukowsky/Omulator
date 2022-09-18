@@ -83,3 +83,13 @@ add_unit_test_with_source(MailboxRouter msg
 add_unit_test_with_source(System .
   ${PROJECT_SOURCE_DIR}/src/Component.cpp
 )
+
+add_unit_test_with_source(Subsystem .
+  ${PROJECT_SOURCE_DIR}/src/Subsystem.cpp
+  ${PROJECT_SOURCE_DIR}/src/msg/MessageQueue.cpp
+  ${PROJECT_SOURCE_DIR}/src/msg/MessageQueueFactory.cpp
+  ${PROJECT_SOURCE_DIR}/src/msg/MailboxEndpoint.cpp
+  ${PROJECT_SOURCE_DIR}/src/msg/MailboxRouter.cpp
+  ${PROJECT_SOURCE_DIR}/src/msg/MailboxSender.cpp
+  ${PROJECT_SOURCE_DIR}/src/msg/MailboxReceiver.cpp
+)
