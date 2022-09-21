@@ -19,12 +19,9 @@ Subsystem::Subsystem(ILogger             &logger,
 }
 
 Subsystem::~Subsystem() {
-  thrd_.request_stop();
+  stop();
 
-  auto mq = sender_.get_mq();
-  mq->push(msg::MessageType::POKE);
-  mq->seal();
-  sender_.send(mq);
+  sender_.send_single_message(msg::MessageType::POKE);
 }
 
 std::string_view Subsystem::name() const noexcept { return name_; }
@@ -34,6 +31,8 @@ void Subsystem::message_proc(const msg::Message &msg) {
     /* no-op */
   }
 }
+
+void Subsystem::stop() { thrd_.request_stop(); }
 
 void Subsystem::thrd_proc_() {
   auto stoken = thrd_.get_stop_token();

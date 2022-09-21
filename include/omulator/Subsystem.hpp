@@ -42,6 +42,11 @@ public:
    */
   virtual void message_proc(const msg::Message &msg);
 
+  /**
+   * Request that the underlying thread return exit its message loop and return.
+   */
+  void stop();
+
 protected:
   ILogger &logger_;
 
