@@ -39,6 +39,11 @@ public:
   /**
    * The function that will be called when messages are sent to the Mailbox. The default
    * implementation is a no-op.
+   *
+   * While not required, classes which override this method should pass any messages which they do
+   * not process to the default implementation by explicitly calling Subsystem::message_proc(msg).
+   * This will give the message one last chance at being processed, and ensures that a message which
+   * would otherwise be dropped will be appropriately logged.
    */
   virtual void message_proc(const msg::Message &msg);
 

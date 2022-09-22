@@ -1,5 +1,8 @@
 #include "omulator/Subsystem.hpp"
 
+#include "omulator/util/to_underlying.hpp"
+
+#include <sstream>
 #include <string>
 
 namespace omulator {
@@ -29,6 +32,12 @@ std::string_view Subsystem::name() const noexcept { return name_; }
 void Subsystem::message_proc(const msg::Message &msg) {
   if(msg.type == msg::MessageType::POKE) {
     /* no-op */
+  }
+  else {
+    std::stringstream ss;
+    ss << "Unprocessed message: ";
+    ss << util::to_underlying(msg.type);
+    logger_.warn(ss.str().c_str());
   }
 }
 

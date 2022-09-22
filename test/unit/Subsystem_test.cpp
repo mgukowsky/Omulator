@@ -8,6 +8,10 @@
 
 #include <gtest/gtest.h>
 
+using ::testing::_;
+using ::testing::Exactly;
+using ::testing::HasSubstr;
+
 using omulator::ILogger;
 using omulator::Subsystem;
 using omulator::U64;
@@ -31,6 +35,9 @@ public:
       i_ = msg.payload;
       sequencer_.advance_step(1);
     }
+    else {
+      Subsystem::message_proc(msg);
+    }
   }
 
   U64       &i_;
@@ -52,7 +59,12 @@ TEST(Subsystem_test, simpleSubsystem) {
 
   auto mq = msend.get_mq();
   mq->push(MessageType::DEMO_MSG_A, 42);
+  mq->push(MessageType::DEMO_MSG_B, 43);
   mq->seal();
+
+  // Ensure that calling Subsystem::message_proc on messages not processed by derived Subsystems
+  // produces the appropriate warning.
+  EXPECT_CALL(logger, warn(HasSubstr("Unprocessed message: "), _)).Times(Exactly(1));
   msend.send(mq);
 
   sequencer.wait_for_step(1);
