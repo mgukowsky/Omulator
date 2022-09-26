@@ -7,14 +7,14 @@
 
 namespace omulator {
 
-Subsystem::Subsystem(ILogger             &logger,
-                     std::string_view     name,
-                     msg::MailboxReceiver receiver,
-                     msg::MailboxSender   sender)
+Subsystem::Subsystem(ILogger                  &logger,
+                     std::string_view          name,
+                     msg::MailboxRouter       &mbrouter,
+                     const msg::MailboxToken_t mailboxToken)
   : logger_{logger},
     name_{name},
-    receiver_{receiver},
-    sender_{sender},
+    receiver_{mbrouter.claim_mailbox(mailboxToken)},
+    sender_{mbrouter.get_mailbox(mailboxToken)},
     thrd_{&Subsystem::thrd_proc_, this} {
   std::string str("Creating subsystem: ");
   str += name_;

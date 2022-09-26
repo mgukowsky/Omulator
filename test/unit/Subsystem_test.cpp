@@ -15,6 +15,7 @@ using ::testing::HasSubstr;
 using omulator::ILogger;
 using omulator::Subsystem;
 using omulator::U64;
+using omulator::di::TypeHash;
 using omulator::msg::MailboxReceiver;
 using omulator::msg::MailboxRouter;
 using omulator::msg::MailboxSender;
@@ -25,9 +26,10 @@ using omulator::test::Sequencer;
 
 class TestSubsys : public Subsystem {
 public:
-  TestSubsys(
-    ILogger &logger, MailboxReceiver receiver, MailboxSender sender, U64 &i, Sequencer &sequencer)
-    : Subsystem(logger, "TestSubsys", receiver, sender), i_{i}, sequencer_{sequencer} { }
+  TestSubsys(ILogger &logger, MailboxRouter &mbrouter, U64 &i, Sequencer &sequencer)
+    : Subsystem(logger, "TestSubsys", mbrouter, TypeHash<TestSubsys>),
+      i_{i},
+      sequencer_{sequencer} { }
   ~TestSubsys() override = default;
 
   void message_proc(const Message &msg) override {
@@ -51,11 +53,10 @@ TEST(Subsystem_test, simpleSubsystem) {
   MessageQueueFactory mqf(logger);
   MailboxRouter       mr(logger, mqf);
 
-  MailboxReceiver mrecv = mr.claim_mailbox<int>();
-  MailboxSender   msend = mr.get_mailbox<int>();
+  MailboxSender msend = mr.get_mailbox<TestSubsys>();
 
   U64        i = 0;
-  TestSubsys subsys(logger, mrecv, msend, i, sequencer);
+  TestSubsys subsys(logger, mr, i, sequencer);
 
   auto mq = msend.get_mq();
   mq->push(MessageType::DEMO_MSG_A, 42);

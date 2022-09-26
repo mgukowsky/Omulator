@@ -222,7 +222,7 @@ public:
       "already bound to an implementation with bindImpl<T, implementation>, as this would require "
       "instantiating an abstract type. As an alternative, use Injector#get<T>, or create an "
       "instance of the implementation type with Injector#creat<implementation>");
-    TypeContainer<T> ctr = makeDependency_<T>(true);
+    TypeContainer<T> ctr = makeDependency_<T>(DepType_t::NEW_VALUE);
     if(!ctr.has_value()) {
       std::string s("Failed to create value of type ");
       s += util::TypeString<T>;
@@ -253,7 +253,7 @@ public:
         return pUpstream_->get<T>();
       }
       else {
-        makeDependency_<T>();
+        makeDependency_<T>(DepType_t::REFERENCE);
       }
     }
     return typeMap_.ref<T>();
@@ -269,6 +269,22 @@ public:
   bool is_root() const noexcept;
 
 private:
+  /**
+   * A tag for the type of dependency being requested.
+   */
+  enum class DepType_t : bool {
+    /**
+     * Return a reference to an existing instance of a dependency (or create one if one doesn't
+     * exist).
+     */
+    REFERENCE,
+
+    /**
+     * Create a fresh instance of the requested dependency.
+     */
+    NEW_VALUE
+  };
+
   /**
    * Specialized constructor to create a "child" Injector.
    */
@@ -312,7 +328,7 @@ private:
    * interface in the TypeContainer instance.
    */
   template<typename T, typename Opt_t = std::conditional_t<std::is_abstract_v<T>, int, T>>
-  TypeContainer<Opt_t> inject_(const bool forwardValue = false) {
+  TypeContainer<Opt_t> inject_(const DepType_t depType) {
     TypeContainer<Opt_t> retval;
     auto [recipeFound, recipe] = find_recipe_(TypeHash<T>);
 
@@ -333,6 +349,8 @@ private:
       recipe(*this);
     }
     else {
+      // Do we have a recipe available for the type? N.B. that this clause means that a recipe will
+      // take precedence over any special cases which follow for various types.
       if(recipeFound) {
         // The container returned by a recipe need not contain a value (e.g. in the case of an
         // interface that has an associated implementation).
@@ -340,7 +358,7 @@ private:
         if(anyValue.get() != nullptr) {
           auto *pCtr = reinterpret_cast<TypeContainer<T> *>(anyValue.get());
           T    *pVal = pCtr->release();
-          if(forwardValue) {
+          if(depType == DepType_t::NEW_VALUE) {
             retval.reset(pVal);
           }
           else {
@@ -353,7 +371,7 @@ private:
       // generating code that calls emplace<T> with no arguments for types that aren't default
       // constructible.
       else if constexpr(std::default_initializable<T>) {
-        if(forwardValue) {
+        if(depType == DepType_t::NEW_VALUE) {
           retval.createInstance();
         }
         else {
@@ -361,9 +379,11 @@ private:
         }
       }
       else {
-        throw std::runtime_error(
-          "Could not create instance of type because it was not default initializable and there "
-          "was no recipe available. Perhaps use Injector#addCtorRecipe");
+        std::stringstream ss;
+        ss << "Could not create instance of type "
+           << TypeString<T> << " because it was not default initializable and there was no recipe "
+           << "available. Perhaps use Injector#addCtorRecipe";
+        throw std::runtime_error(ss.str());
       }
     }
 
@@ -375,7 +395,7 @@ private:
    * to the TypeMap instance.
    */
   template<typename T, typename Opt_t = std::conditional_t<std::is_abstract_v<T>, int, T>>
-  TypeContainer<Opt_t> makeDependency_(const bool forwardValue = false) {
+  TypeContainer<Opt_t> makeDependency_(const DepType_t depType) {
     TypeContainer<Opt_t> retval;
 
     const auto thash = TypeHash<T>;
@@ -386,7 +406,7 @@ private:
         throw std::runtime_error(s);
       }
       typeHashStack_.insert(thash);
-      retval = inject_<T>(forwardValue);
+      retval = inject_<T>(depType);
     }
     else {
       // Lock the mutex since we're at the top level of a dependency injection
@@ -395,7 +415,7 @@ private:
 
       // 2 line DRY violation here, but less ugly than the alternatives.
       typeHashStack_.insert(thash);
-      retval          = inject_<T>(forwardValue);
+      retval          = inject_<T>(depType);
       isInCycleCheck_ = false;
     }
 
@@ -403,7 +423,7 @@ private:
 
     // If we're not calling with creat(), then we're creating the instance being placed in the type
     // map, so record when it was instantiated.
-    if(!forwardValue) {
+    if(depType != DepType_t::NEW_VALUE) {
       invocationList_.push_back(thash);
     }
 

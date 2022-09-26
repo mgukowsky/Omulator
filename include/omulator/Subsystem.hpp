@@ -1,8 +1,7 @@
 #pragma once
 
 #include "omulator/ILogger.hpp"
-#include "omulator/msg/MailboxReceiver.hpp"
-#include "omulator/msg/MailboxSender.hpp"
+#include "omulator/msg/MailboxRouter.hpp"
 
 #include <string_view>
 #include <thread>
@@ -17,13 +16,12 @@ public:
 
   /**
    * Starts the underlying thread. The thread will wake to service messages send to the mailbox
-   * corresponding to the receiver argument. N.B. that the receiver and sender MUST refer to the
-   * same mailbox, otherwise the thread may not exit (see the send() call in the destructor).
+   * retrieved from mbrouter using mailboxToken.
    */
-  Subsystem(ILogger             &logger,
-            std::string_view     name,
-            msg::MailboxReceiver receiver,
-            msg::MailboxSender   sender);
+  Subsystem(ILogger                  &logger,
+            std::string_view          name,
+            msg::MailboxRouter       &mbrouter,
+            const msg::MailboxToken_t mailboxToken);
 
   /**
    * Sends a message to wake the underlying thread, in case it is waiting on a recv() call, and
