@@ -4,25 +4,27 @@
 
 namespace omulator {
 
-System::System(ILogger         &logger,
-               std::string_view name,
-               ComponentList_t  components,
-               SubsystemList_t  subsystems)
-  : Component(logger, name), components_(components), subsystems_(subsystems) {
+System::System(ILogger &logger, std::string_view name, di::Injector &parentInjector)
+  : Component(logger, name),
+    pInjector_(parentInjector.creat<di::Injector>()),
+    componentsCreated_(false),
+    subsystemsCreated_(false) { }
+
+di::Injector &System::get_injector() noexcept { return *pInjector_; }
+
+Cycle_t System::step(const Cycle_t numCycles) {
   if(components_.empty()) {
     std::stringstream ss;
-    ss << "System " << name << " created with no components!" << std::endl;
+    ss << "System " << name() << " has no components!" << std::endl;
     logger_.warn(ss);
   }
 
   if(subsystems_.empty()) {
     std::stringstream ss;
-    ss << "System " << name << " created with no subsystems!" << std::endl;
+    ss << "System " << name() << " has no subsystems!" << std::endl;
     logger_.warn(ss);
   }
-}
 
-Cycle_t System::step(const Cycle_t numCycles) {
   Cycle_t cyclesLeft = numCycles;
 
   while(cyclesLeft > 0) {
