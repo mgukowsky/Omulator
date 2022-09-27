@@ -11,7 +11,7 @@ class MailboxReceiver {
 public:
   MailboxReceiver(MailboxEndpoint &endpoint);
 
-  void recv(const MessageCallback_t &callback);
+  void recv(const MessageCallback_t &callback, RecvBehavior recvBehavior = RecvBehavior::BLOCK);
 
 private:
   MailboxEndpoint &endpoint_;

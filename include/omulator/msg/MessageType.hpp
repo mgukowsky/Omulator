@@ -28,6 +28,11 @@ enum class MessageType : U32 {
    */
   POKE,
 
+  /**
+   * A request to stop the application
+   */
+  APP_QUIT,
+
   DEMO_MSG_A,
   DEMO_MSG_B,
   DEMO_MSG_C,

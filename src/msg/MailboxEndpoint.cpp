@@ -13,8 +13,8 @@ bool MailboxEndpoint::claimed() const noexcept { return claimed_; }
 
 MessageQueue *MailboxEndpoint::get_mq() noexcept { return mqfactory_.get(); }
 
-void MailboxEndpoint::recv(const MessageCallback_t &callback) {
-  {
+void MailboxEndpoint::recv(const MessageCallback_t &callback, RecvBehavior recvBehavior) {
+  if(recvBehavior == RecvBehavior::BLOCK) {
     std::unique_lock lck{mtx_};
     cv_.wait(lck, [this] { return !(queue_.empty()); });
   }

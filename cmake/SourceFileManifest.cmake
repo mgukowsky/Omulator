@@ -2,11 +2,21 @@ set(
   OML_SOURCE_FILE_MANIFEST
     src/main.cpp
     src/Clock.cpp
+    src/Component.cpp
+    src/InputHandler.cpp
+    src/SpdlogLogger.cpp
+    src/Subsystem.cpp
     src/di/Injector.cpp
     src/di/injector_rules.cpp
-    src/SpdlogLogger.cpp
+    src/msg/MessageQueue.cpp
+    src/msg/MessageQueueFactory.cpp
+    src/msg/MailboxEndpoint.cpp
+    src/msg/MailboxRouter.cpp
+    src/msg/MailboxSender.cpp
+    src/msg/MailboxReceiver.cpp
     src/util/exception_handler.cpp
     ${PLATFORM_DIR}/PrimitiveIO.cpp
+    ${PLATFORM_DIR}/SystemWindow.cpp
 )
 
 if(MSVC)

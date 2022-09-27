@@ -11,6 +11,8 @@
 
 namespace omulator::msg {
 
+enum class RecvBehavior : bool { BLOCK, NONBLOCK };
+
 /**
  * An endpoint which acts as a sink for MessageQueues delivered to a given ID, which can then be
  * read by a consumer. Entirely threadsafe.
@@ -47,9 +49,10 @@ public:
    * send(), in the order they were sent. Once all messages in a MessageQueue have been responded
    * to, the MessageQueue will be returned back to the MessageQueueFactory instance.
    *
-   * BLOCKS until messages are sent via a call to send().
+   * BLOCKS until messages are sent via a call to send(), unless RecvBehavior::NONBLOCK is provided
+   * as the recvBehavior.
    */
-  void recv(const MessageCallback_t &callback);
+  void recv(const MessageCallback_t &callback, RecvBehavior recvBehavior = RecvBehavior::BLOCK);
 
   /**
    * Submit a MessageQueue to this endpoint, which can then be serviced via a call to recv(). seal()
