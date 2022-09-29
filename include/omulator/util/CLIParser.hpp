@@ -13,7 +13,7 @@ public:
   using ArgMap_t =
     std::map<std::string, std::variant<const omulator::S64, const bool, const std::string>>;
 
-  CLIParser(ILogger &logger);
+  explicit CLIParser(ILogger &logger);
 
   ArgMap_t parse_args(const int argc, const char **argv);
 

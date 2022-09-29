@@ -12,7 +12,7 @@ namespace omulator::msg {
  */
 class MailboxSender {
 public:
-  MailboxSender(MailboxEndpoint &endpoint);
+  explicit MailboxSender(MailboxEndpoint &endpoint);
 
   MessageQueue *get_mq() noexcept;
   void          send(MessageQueue *pmq);

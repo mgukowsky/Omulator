@@ -42,7 +42,7 @@ public:
   /**
    * Initialized the queue in an unsealed state.
    */
-  MessageQueue(ILogger &logger);
+  explicit MessageQueue(ILogger &logger);
 
   /**
    * The number of MSG_NULL messages received since the queue was last unsealed.

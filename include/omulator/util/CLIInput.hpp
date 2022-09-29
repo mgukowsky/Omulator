@@ -9,7 +9,7 @@
 namespace omulator::util {
 class CLIInput {
 public:
-  CLIInput(msg::MailboxRouter &mbrouter);
+  explicit CLIInput(msg::MailboxRouter &mbrouter);
 
   void input_loop();
 

@@ -16,7 +16,7 @@ namespace omulator::msg {
  */
 class MessageQueueFactory {
 public:
-  MessageQueueFactory(ILogger &logger);
+  explicit MessageQueueFactory(ILogger &logger);
 
   /**
    * Iterate and free each MessageQueue in an unsynchronized manner, meaning that this destructor

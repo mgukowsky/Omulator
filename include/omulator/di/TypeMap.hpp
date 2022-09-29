@@ -15,7 +15,7 @@ namespace omulator::di {
 // Container providing type erasure
 class TypeContainerBase {
 public:
-  TypeContainerBase(const Hash_t hsh) : hsh_(hsh) { }
+  explicit TypeContainerBase(const Hash_t hsh) : hsh_(hsh) { }
   virtual ~TypeContainerBase() = default;
 
   /**

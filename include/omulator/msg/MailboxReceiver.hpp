@@ -9,7 +9,7 @@ namespace omulator::msg {
  */
 class MailboxReceiver {
 public:
-  MailboxReceiver(MailboxEndpoint &endpoint);
+  explicit MailboxReceiver(MailboxEndpoint &endpoint);
 
   void recv(const MessageCallback_t &callback, RecvBehavior recvBehavior = RecvBehavior::BLOCK);
 

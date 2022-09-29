@@ -7,7 +7,7 @@ class InputHandler {
 public:
   enum class InputEvent { QUIT };
 
-  InputHandler(msg::MailboxRouter &mbrouter);
+  explicit InputHandler(msg::MailboxRouter &mbrouter);
 
   void handle_input(const InputEvent input);
 

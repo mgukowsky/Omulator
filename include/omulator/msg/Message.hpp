@@ -16,7 +16,7 @@ namespace omulator::msg {
  */
 struct Message {
   Message() : Message{MessageType::MSG_NULL} { }
-  Message(const MessageType typeArg) : Message{typeArg, MessageFlagType::FLAGS_NULL, 0} { }
+  explicit Message(const MessageType typeArg) : Message{typeArg, MessageFlagType::FLAGS_NULL, 0} { }
   Message(const MessageType typeArg, const MessageFlagType mflagsArg, const U64 payloadArg)
     : type{typeArg}, mflags{mflagsArg}, payload{payloadArg} { }
 
