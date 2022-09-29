@@ -12,6 +12,8 @@
 #include "omulator/di/TypeHash.hpp"
 #include "omulator/msg/MailboxRouter.hpp"
 #include "omulator/msg/MessageQueueFactory.hpp"
+#include "omulator/util/CLIInput.hpp"
+#include "omulator/util/CLIParser.hpp"
 
 #include <map>
 #include <memory_resource>
@@ -29,6 +31,8 @@ void Injector::installDefaultRules(Injector &injector) {
   injector.addCtorRecipe<msg::MailboxRouter, ILogger &, msg::MessageQueueFactory &>();
   injector.addCtorRecipe<SystemWindow, ILogger &, InputHandler &>();
   injector.addCtorRecipe<InputHandler, msg::MailboxRouter &>();
+  injector.addCtorRecipe<util::CLIInput, msg::MailboxRouter &>();
+  injector.addCtorRecipe<util::CLIParser, ILogger &>();
 
   /**
    * Implementations should be bound to interfaces here.

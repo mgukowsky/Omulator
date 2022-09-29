@@ -34,7 +34,8 @@ using omulator::test::Sequencer;
 
 namespace {
 
-auto pass = []([[maybe_unused]] const Message &msg) {};
+// Pythonic way to take no action for a particular message in a message_proc
+[[maybe_unused]] auto pass = []([[maybe_unused]] const Message &msg) {};
 
 class A : public Component {
 public:

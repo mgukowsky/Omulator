@@ -15,6 +15,9 @@ set(
     src/msg/MailboxSender.cpp
     src/msg/MailboxReceiver.cpp
     src/util/exception_handler.cpp
+    src/util/CLIInput.cpp
+    src/util/CLIParser.cpp
+    ${PLATFORM_DIR}/KillableThread.cpp
     ${PLATFORM_DIR}/PrimitiveIO.cpp
     ${PLATFORM_DIR}/SystemWindow.cpp
 )

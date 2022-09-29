@@ -33,6 +33,11 @@ enum class MessageType : U32 {
    */
   APP_QUIT,
 
+  /**
+   * A string received on STDIN
+   */
+  STDIN_STRING,
+
   DEMO_MSG_A,
   DEMO_MSG_B,
   DEMO_MSG_C,

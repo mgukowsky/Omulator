@@ -78,10 +78,14 @@ find_package(
   Threads
     REQUIRED
 )
+
+add_subdirectory("third_party/docopt.cpp")
+
 target_link_libraries(
   ${PROJECT_NAME}
   PUBLIC
     Threads::Threads
+    docopt
 )
 
 if(NOT MSVC)
@@ -135,6 +139,8 @@ target_include_directories(
     $<INSTALL_INTERFACE:third_party/spdlog/include>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/concurrentqueue>
     $<INSTALL_INTERFACE:third_party/concurrentqueue>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/docopt.cpp>
+    $<INSTALL_INTERFACE:third_party/docopt.cpp>
 )
 
 # Select which platform folder to use
