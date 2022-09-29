@@ -23,6 +23,10 @@ void MessageQueue::pump_msgs(const MessageCallback_t &callback) {
     if(msg.type == MessageType::MSG_NULL) {
       ++numNulls_;
     }
+    else if(util::to_underlying(msg.type) > util::to_underlying(MessageType::MSG_MAX)) {
+      logger_.error("Message with type exceeding MSG_MAX detected by MessageQueue::pump_msgs; this "
+                    "message will be dropped");
+    }
     else {
       callback(msg);
 

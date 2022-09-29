@@ -29,19 +29,25 @@ enum class MessageType : U32 {
   POKE,
 
   /**
-   * A request to stop the application
+   * A request to stop the application.
    */
   APP_QUIT,
 
   /**
-   * A string received on STDIN
+   * A string received on STDIN.
    */
   STDIN_STRING,
 
+  /**
+   * Placeholder messages used for testing and diagnostic purposes.
+   */
   DEMO_MSG_A,
   DEMO_MSG_B,
   DEMO_MSG_C,
 
+  /**
+   * Message types which exceed this value should be ignored.
+   */
   MSG_MAX,
 };
 

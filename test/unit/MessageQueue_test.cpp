@@ -1,6 +1,7 @@
 #include "omulator/msg/MessageQueue.hpp"
 
 #include "omulator/di/TypeMap.hpp"
+#include "omulator/util/to_underlying.hpp"
 
 #include "mocks/LoggerMock.hpp"
 
@@ -10,14 +11,17 @@
 #include <thread>
 #include <vector>
 
+using ::testing::_;
+using ::testing::Exactly;
+using ::testing::HasSubstr;
+
 using omulator::U64;
 using omulator::di::TypeContainer;
 using omulator::msg::Message;
 using omulator::msg::MessageFlagType;
 using omulator::msg::MessageQueue;
 using omulator::msg::MessageType;
-
-using ::testing::Exactly;
+using omulator::util::to_underlying;
 
 namespace {
 U64 aDtorCount = 0;
@@ -192,4 +196,20 @@ TEST(MessageQueue_test, managedPayloads) {
                               "pointers) should not be clean up by the MessageQueue";
 
   delete paUnmanaged;
+}
+
+// Make sure that we get a warning when we drop messages with types > MessageType::MSG_MAX
+TEST(MessageQueue_test, msgMaxTest) {
+  LoggerMock   logger;
+  MessageQueue mq(logger);
+
+  mq.push(static_cast<MessageType>(to_underlying(MessageType::MSG_MAX) + 1));
+  mq.seal();
+
+  EXPECT_CALL(logger,
+              error(HasSubstr("Message with type exceeding MSG_MAX detected by "
+                              "MessageQueue::pump_msgs; this message will be dropped"),
+                    _))
+    .Times(Exactly(1));
+  mq.pump_msgs([]([[maybe_unused]] const Message &msg) {});
 }

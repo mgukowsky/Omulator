@@ -17,6 +17,8 @@ struct SystemWindow::Impl_ {
   }
 
   static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
+    // Win32 magic to retrieve a pointer to the SystemWindow instance associated with the Win32
+    // window.
     [[maybe_unused]] SystemWindow &context =
       *(reinterpret_cast<SystemWindow *>(GetWindowLongPtr(hwnd, GWLP_USERDATA)));
 
@@ -57,7 +59,7 @@ struct SystemWindow::Impl_ {
 };
 
 SystemWindow::SystemWindow(ILogger &logger, InputHandler &inputHandler)
-  : logger_(logger), inputHandler_(inputHandler) { }
+  : logger_(logger), inputHandler_(inputHandler), shown_(false) { }
 
 SystemWindow::~SystemWindow() { }
 
@@ -70,6 +72,10 @@ void SystemWindow::pump_msgs() {
 }
 
 void SystemWindow::show() {
+  if(shown_) {
+    return;
+  }
+
   WNDCLASSEX wcex = {};
 
   wcex.cbSize        = sizeof(WNDCLASSEX);
@@ -98,9 +104,12 @@ void SystemWindow::show() {
                                NULL);
   impl_->check_win32_return(logger_, impl_->hwnd, "CreateWindowEx");
 
+  // Win32 magic to associate this Win32 window with this particular instance of SystemWindow.
   SetWindowLongPtr(impl_->hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
 
   ShowWindow(impl_->hwnd, SW_SHOW);
+
+  shown_ = true;
 }
 
 }  // namespace omulator

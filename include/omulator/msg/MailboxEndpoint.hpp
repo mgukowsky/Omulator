@@ -11,6 +11,12 @@
 
 namespace omulator::msg {
 
+/**
+ * Used to determine how MailboxEndpoint::recv() should behave. If BLOCK, then recv will block
+ * (potentially forever) until a message is sent to the associated MailboxEndpoint. Otherwise, if
+ * NONBLOCK, then recv will not block and will simply return if no messages have been sent. Pending
+ * messages are always processed in either case.
+ */
 enum class RecvBehavior : bool { BLOCK, NONBLOCK };
 
 /**

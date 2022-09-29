@@ -41,7 +41,8 @@ struct SystemWindow::Impl_ {
 };
 
 SystemWindow::SystemWindow(ILogger &logger, InputHandler &inputHandler)
-  : logger_(logger), inputHandler_(inputHandler) {
+  : logger_(logger), inputHandler_(inputHandler), shown_(false) {
+  // Unlike Win32, SDL needs explicit initialization (and deinitalization in the destructor)
   impl_->check_sdl_return(logger_, SDL_Init(SDL_INIT_EVERYTHING));
 }
 
@@ -66,6 +67,10 @@ void SystemWindow::pump_msgs() {
 }
 
 void SystemWindow::show() {
+  if(shown_) {
+    return;
+  }
+
   impl_->pwnd = SDL_CreateWindow(
     WINDOW_TITLE,
     SDL_WINDOWPOS_UNDEFINED,
@@ -74,6 +79,8 @@ void SystemWindow::show() {
     480,
     SDL_WINDOW_VULKAN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
   impl_->check_sdl_return(logger_, impl_->pwnd);
+
+  shown_ = true;
 }
 
 }  // namespace omulator

@@ -5,6 +5,7 @@
 #include <csignal>
 
 namespace {
+// Debuggers may still freak out when SIGUSR1 is sent...
 constexpr auto THRDKILLSIGNAL = SIGUSR1;
 }  // namespace
 

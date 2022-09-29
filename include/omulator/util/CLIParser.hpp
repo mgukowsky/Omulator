@@ -7,6 +7,9 @@
 #include <string>
 #include <variant>
 
+/**
+ * Class which parses out command line args.
+ */
 namespace omulator::util {
 class CLIParser {
 public:
@@ -15,6 +18,10 @@ public:
 
   explicit CLIParser(ILogger &logger);
 
+  /**
+   * Parses command line args and returns the parsed values as a man of command line args mapped to
+   * associated values.
+   */
   ArgMap_t parse_args(const int argc, const char **argv);
 
 private:
