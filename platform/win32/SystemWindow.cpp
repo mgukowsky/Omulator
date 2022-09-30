@@ -7,9 +7,10 @@
 
 namespace omulator {
 struct SystemWindow::Impl_ {
-  HWND hwnd;
+  HWND    hwnd;
+  HMODULE hinstance;
 
-  Impl_() : hwnd(nullptr) { }
+  Impl_() : hwnd(nullptr), hinstance(GetModuleHandle(NULL)) { }
   ~Impl_() {
     if(hwnd != nullptr) {
       DestroyWindow(hwnd);
@@ -19,7 +20,7 @@ struct SystemWindow::Impl_ {
   static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
     // Win32 magic to retrieve a pointer to the SystemWindow instance associated with the Win32
     // window.
-    [[maybe_unused]] SystemWindow &context =
+    SystemWindow &context =
       *(reinterpret_cast<SystemWindow *>(GetWindowLongPtr(hwnd, GWLP_USERDATA)));
 
     LRESULT retval = 0;
@@ -76,17 +77,20 @@ void SystemWindow::show() {
     return;
   }
 
-  WNDCLASSEX wcex = {};
-
-  wcex.cbSize        = sizeof(WNDCLASSEX);
-  wcex.style         = CS_HREDRAW | CS_VREDRAW;
-  wcex.hInstance     = GetModuleHandle(NULL);
-  wcex.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
-  wcex.hIconSm       = LoadIcon(NULL, IDI_APPLICATION);
-  wcex.hCursor       = LoadCursor(NULL, IDC_ARROW);
-  wcex.lpszClassName = WINDOW_TITLE;
-  wcex.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
-  wcex.lpfnWndProc   = Impl_::wnd_proc;
+  WNDCLASSEX wcex = {
+    .cbSize        = sizeof(WNDCLASSEX),
+    .style         = CS_HREDRAW | CS_VREDRAW,
+    .lpfnWndProc   = Impl_::wnd_proc,
+    .cbClsExtra    = NULL,
+    .cbWndExtra    = NULL,
+    .hInstance     = impl_->hinstance,
+    .hIcon         = LoadIcon(NULL, IDI_APPLICATION),
+    .hCursor       = LoadCursor(NULL, IDC_ARROW),
+    .hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH),
+    .lpszMenuName  = NULL,
+    .lpszClassName = WINDOW_TITLE,
+    .hIconSm       = LoadIcon(NULL, IDI_APPLICATION),
+  };
 
   impl_->check_win32_return(logger_, RegisterClassEx(&wcex), "RegisterClassEx");
 
@@ -100,7 +104,7 @@ void SystemWindow::show() {
                                480,
                                NULL,
                                NULL,
-                               GetModuleHandle(NULL),
+                               impl_->hinstance,
                                NULL);
   impl_->check_win32_return(logger_, impl_->hwnd, "CreateWindowEx");
 
