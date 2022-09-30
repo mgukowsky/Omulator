@@ -1,5 +1,7 @@
 #pragma once
 
-#include <cstdlib>
+#include <exception>
 
-[[noreturn]] void omulator::util::exception_handler() noexcept { std::exit(EXIT_FAILURE); }
+namespace omulator::util {
+void exception_handler() noexcept { std::rethrow_exception(std::current_exception()); }
+}  // namespace omulator::util

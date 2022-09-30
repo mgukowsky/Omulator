@@ -80,12 +80,15 @@ find_package(
 )
 
 add_subdirectory("third_party/docopt.cpp")
+add_subdirectory("third_party/pybind11")
 
 target_link_libraries(
   ${PROJECT_NAME}
   PUBLIC
     Threads::Threads
     docopt
+  PRIVATE
+    pybind11::embed
 )
 
 if(NOT MSVC)

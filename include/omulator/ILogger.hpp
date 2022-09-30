@@ -24,6 +24,12 @@ public:
     DEBUG,
     TRACE,
   };
+
+  enum class Verbosity {
+    CONCISE,
+    VERBOSE,
+  };
+
   ILogger()          = default;
   virtual ~ILogger() = default;
 

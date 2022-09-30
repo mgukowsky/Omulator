@@ -6,6 +6,7 @@
 #include "omulator/Clock.hpp"
 #include "omulator/ILogger.hpp"
 #include "omulator/InputHandler.hpp"
+#include "omulator/Interpreter.hpp"
 #include "omulator/SpdlogLogger.hpp"
 #include "omulator/SystemWindow.hpp"
 #include "omulator/di/Injector.hpp"
@@ -31,6 +32,7 @@ void Injector::installDefaultRules(Injector &injector) {
   injector.addCtorRecipe<msg::MailboxRouter, ILogger &, msg::MessageQueueFactory &>();
   injector.addCtorRecipe<SystemWindow, ILogger &, InputHandler &>();
   injector.addCtorRecipe<InputHandler, msg::MailboxRouter &>();
+  injector.addCtorRecipe<Interpreter, di::Injector &>();
   injector.addCtorRecipe<util::CLIInput, msg::MailboxRouter &>();
   injector.addCtorRecipe<util::CLIParser, ILogger &>();
 

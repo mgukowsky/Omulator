@@ -2,6 +2,8 @@
 
 #include "omulator/PrimitiveIO.hpp"
 
+#include "pybind11/pytypes.h"
+
 #include <cstdlib>
 #include <exception>
 #include <new>
@@ -26,6 +28,12 @@ void omulator::util::exception_handler() noexcept {
         "Memory allocation failed. This indicates that there is either not "
         "enough RAM installed on your system, or there are too many other programs "
         "running in the background.\n");
+    }
+    catch(pybind11::error_already_set &e) {
+      e.discard_as_unraisable("omulator::util::exception_handler");
+      std::string msgText = "Unhandled Python exception: ";
+      msgText += e.what();
+      omulator::PrimitiveIO::alert_err(msgText.c_str());
     }
     catch([[maybe_unused]] const std::exception &e) {
       std::string msgText = "An unexpected exception occurred; Details:\n";

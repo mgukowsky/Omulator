@@ -100,7 +100,6 @@ function(config_for_msvc target_name)
 
       # Warnings and additional output
       /diagnostics:classic
-      /Fa${CMAKE_CURRENT_BINARY_DIR}/
       /WX
 
       # Prefer UTF-8 throughout the project
@@ -144,6 +143,7 @@ function(config_for_msvc target_name)
       # We leave this commented out since MSVC seems to occasionally runs into issues working
       # with these files (.cod) in parallel
       #$<$<CXX_COMPILER_ID:MSVC>:/FAcs>
+      #/Fa${CMAKE_CURRENT_BINARY_DIR}/
 
       # ISO compliancy
       $<$<CXX_COMPILER_ID:MSVC>:/Zc:referenceBinding /Zc:throwingNew>

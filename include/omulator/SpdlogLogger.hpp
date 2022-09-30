@@ -6,13 +6,14 @@
 namespace omulator {
 class SpdlogLogger : public ILogger {
 public:
-  explicit SpdlogLogger(const LogLevel initialLevel = LogLevel::INFO);
+  explicit SpdlogLogger(const LogLevel initialLevel = LogLevel::INFO,
+                        const Verbosity             = Verbosity::CONCISE);
   ~SpdlogLogger() override;
 
-  SpdlogLogger(const SpdlogLogger &) = delete;
+  SpdlogLogger(const SpdlogLogger &)            = delete;
   SpdlogLogger &operator=(const SpdlogLogger &) = delete;
   SpdlogLogger(SpdlogLogger &&)                 = default;
-  SpdlogLogger &operator=(SpdlogLogger &&) = default;
+  SpdlogLogger &operator=(SpdlogLogger &&)      = default;
 
   void critical(const char * const msg, const util::SourceLocation location) override;
   void error(const char * const msg, const util::SourceLocation location) override;
@@ -27,5 +28,7 @@ private:
   // spdlog.h seems to take a while to compile; using pimpl here helps to address that.
   struct Impl_;
   util::Pimpl<Impl_> impl_;
+
+  Verbosity verbosity_;
 };
 }  // namespace omulator

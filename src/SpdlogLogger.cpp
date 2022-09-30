@@ -14,7 +14,8 @@
 #include <memory>
 
 namespace {
-constexpr const char * const FMTSTR = "{}:{} ({}): {}";
+constexpr const char * const CONCISE_FMTSTR = "{}";
+constexpr const char * const VERBOSE_FMTSTR = "{}:{} ({}): {}";
 }  // namespace
 
 namespace omulator {
@@ -25,7 +26,8 @@ struct SpdlogLogger::Impl_ {
   std::shared_ptr<spdlog::logger> logger;
 };
 
-SpdlogLogger::SpdlogLogger(const ILogger::LogLevel initialLevel) {
+SpdlogLogger::SpdlogLogger(const ILogger::LogLevel initialLevel, const ILogger::Verbosity verbosity)
+  : verbosity_(verbosity) {
   impl_->logger->set_pattern("%D:%H:%M:%S:%f [TID: %t][%l]: %v");
   set_level(initialLevel);
 }
@@ -33,26 +35,58 @@ SpdlogLogger::SpdlogLogger(const ILogger::LogLevel initialLevel) {
 SpdlogLogger::~SpdlogLogger() { impl_->logger->flush(); }
 
 void SpdlogLogger::critical(const char * const msg, const util::SourceLocation location) {
-  impl_->logger->critical(
-    FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
+  if(verbosity_ == Verbosity::VERBOSE) {
+    impl_->logger->critical(
+      VERBOSE_FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
+  }
+  else {
+    impl_->logger->critical(CONCISE_FMTSTR, msg);
+  }
 }
 void SpdlogLogger::error(const char * const msg, const util::SourceLocation location) {
-  impl_->logger->error(
-    FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
+  if(verbosity_ == Verbosity::VERBOSE) {
+    impl_->logger->error(
+      VERBOSE_FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
+  }
+  else {
+    impl_->logger->error(CONCISE_FMTSTR, msg);
+  }
 }
 void SpdlogLogger::warn(const char * const msg, const util::SourceLocation location) {
-  impl_->logger->warn(FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
+  if(verbosity_ == Verbosity::VERBOSE) {
+    impl_->logger->warn(
+      VERBOSE_FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
+  }
+  else {
+    impl_->logger->warn(CONCISE_FMTSTR, msg);
+  }
 }
 void SpdlogLogger::info(const char * const msg, const util::SourceLocation location) {
-  impl_->logger->info(FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
+  if(verbosity_ == Verbosity::VERBOSE) {
+    impl_->logger->info(
+      VERBOSE_FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
+  }
+  else {
+    impl_->logger->info(CONCISE_FMTSTR, msg);
+  }
 }
 void SpdlogLogger::debug(const char * const msg, const util::SourceLocation location) {
-  impl_->logger->debug(
-    FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
+  if(verbosity_ == Verbosity::VERBOSE) {
+    impl_->logger->debug(
+      VERBOSE_FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
+  }
+  else {
+    impl_->logger->debug(CONCISE_FMTSTR, msg);
+  }
 }
 void SpdlogLogger::trace(const char * const msg, const util::SourceLocation location) {
-  impl_->logger->trace(
-    FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
+  if(verbosity_ == Verbosity::VERBOSE) {
+    impl_->logger->trace(
+      VERBOSE_FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
+  }
+  else {
+    impl_->logger->trace(CONCISE_FMTSTR, msg);
+  }
 }
 
 void SpdlogLogger::set_level(ILogger::LogLevel level) {

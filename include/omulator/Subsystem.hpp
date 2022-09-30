@@ -3,6 +3,7 @@
 #include "omulator/ILogger.hpp"
 #include "omulator/msg/MailboxRouter.hpp"
 
+#include <functional>
 #include <string_view>
 #include <thread>
 
@@ -17,11 +18,18 @@ public:
   /**
    * Starts the underlying thread. The thread will wake to service messages send to the mailbox
    * retrieved from mbrouter using mailboxToken.
+   *
+   * Also allows for two lifecycle hook callbacks: onStart will be invoked when the thread starts
+   * prior to the execution of thrd_proc_, and onEnd will be invoked prior to the thread's exit
+   * after thrd_proc_ returns. These callbacks are useful for thread-specific init/deinit, such as
+   * for thread-specific variables.
    */
   Subsystem(ILogger                  &logger,
             std::string_view          name,
             msg::MailboxRouter       &mbrouter,
-            const msg::MailboxToken_t mailboxToken);
+            const msg::MailboxToken_t mailboxToken,
+            std::function<void()>     onStart = PASS_,
+            std::function<void()>     onEnd   = PASS_);
 
   /**
    * Sends a message to wake the underlying thread, in case it is waiting on a recv() call, and
@@ -54,7 +62,9 @@ protected:
   ILogger &logger_;
 
 private:
-  void thrd_proc_();
+  static constexpr auto PASS_ = [] {};
+
+  void thrd_proc_(std::function<void()> onStart, std::function<void()> onEnd);
 
   std::string_view name_;
 

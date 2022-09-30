@@ -4,6 +4,7 @@
 
 #include "mocks/LoggerMock.hpp"
 #include "mocks/PrimitiveIOMock.hpp"
+#include "mocks/exception_handler_mock.hpp"
 #include "test/Sequencer.hpp"
 
 #include <gtest/gtest.h>

@@ -1,6 +1,6 @@
 #include "omulator/util/CLIInput.hpp"
 
-#include "omulator/App.hpp"
+#include "omulator/Interpreter.hpp"
 #include "omulator/msg/Message.hpp"
 #include "omulator/msg/MessageType.hpp"
 
@@ -11,7 +11,7 @@
 namespace omulator::util {
 
 CLIInput::CLIInput(msg::MailboxRouter &mbrouter)
-  : msgSender_(mbrouter.get_mailbox<App>()), thrd_([this] { input_loop(); }) { }
+  : msgSender_(mbrouter.get_mailbox<Interpreter>()), thrd_([this] { input_loop(); }) { }
 
 void CLIInput::input_loop() {
   while(true) {

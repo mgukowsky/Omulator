@@ -4,6 +4,7 @@ set(
     src/Clock.cpp
     src/Component.cpp
     src/InputHandler.cpp
+    src/Interpreter.cpp
     src/SpdlogLogger.cpp
     src/Subsystem.cpp
     src/di/Injector.cpp
