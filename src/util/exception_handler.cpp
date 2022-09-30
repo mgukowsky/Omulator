@@ -30,9 +30,11 @@ void omulator::util::exception_handler() noexcept {
         "running in the background.\n");
     }
     catch(pybind11::error_already_set &e) {
+      // Errors should never escape the Interpreter class; if one does, then it's best to terminate
+      // the program and not interact witht the Python interpreter any further, since we have no
+      // idea what thread we're on and if it will play nicely with the GIL.
       e.discard_as_unraisable("omulator::util::exception_handler");
-      std::string msgText = "Unhandled Python exception: ";
-      msgText += e.what();
+      std::string msgText = "Unhandled Python exception!";
       omulator::PrimitiveIO::alert_err(msgText.c_str());
     }
     catch([[maybe_unused]] const std::exception &e) {

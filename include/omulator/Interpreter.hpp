@@ -4,6 +4,7 @@
 #include "omulator/di/Injector.hpp"
 #include "omulator/msg/Message.hpp"
 
+#include <mutex>
 #include <string>
 
 /**
@@ -24,5 +25,11 @@ public:
 
 private:
   di::Injector &injector_;
+
+  /**
+   * Used to enforce having only a single instance of the Interpreter at any given time.
+   */
+  static bool       instanceFlag_;
+  static std::mutex instanceLock_;
 };
 }  // namespace omulator
