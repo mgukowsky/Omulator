@@ -19,5 +19,10 @@ KillableThread::KillableThread(std::function<void()> thrdProc)
       thrdProc();
     }} { }
 
-KillableThread::~KillableThread() { pthread_kill(thrd_.native_handle(), THRDKILLSIGNAL); }
+KillableThread::~KillableThread() {
+  if(thrd_.joinable()) {
+    pthread_kill(thrd_.native_handle(), THRDKILLSIGNAL);
+  }
+}
+
 }  // namespace omulator::util

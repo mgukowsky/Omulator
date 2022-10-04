@@ -1,5 +1,6 @@
 #include "omulator/Interpreter.hpp"
 
+#include "omulator/App.hpp"
 #include "omulator/ILogger.hpp"
 #include "omulator/di/TypeHash.hpp"
 #include "omulator/msg/MailboxRouter.hpp"
@@ -7,11 +8,13 @@
 #include "omulator/msg/MessageType.hpp"
 #include "omulator/util/TypeString.hpp"
 
+#include <pybind11/attr.h>
 #include <pybind11/embed.h>
 #include <pybind11/iostream.h>
 
 #include <cassert>
 #include <memory>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 
@@ -32,11 +35,57 @@ namespace {
  */
 thread_local std::unique_ptr<pybind11::scoped_interpreter> pGuard    = nullptr;
 thread_local omulator::di::Injector                       *gInjector = nullptr;
+
+/**
+ * The code which the Python interpreter will execute upon startup.
+ */
+constexpr auto STARTUP_STR = R"(
+import io
+import sys
+import omulator as oml
+
+# Redirect Python's stdio to strings.
+# To reset, do `setattr(sys, "stdout"|"stderr", sys.__stdout__|sys.__stderr)`
+STDOUT_SINK = io.StringIO()
+STDERR_SINK = io.StringIO()
+
+setattr(sys, "stdout", STDOUT_SINK)
+setattr(sys, "stderr", STDERR_SINK)
+)";
+
+/**
+ * Incantation to extract and reset stdio streams.
+ *
+ * From https://stackoverflow.com/a/4330829
+ */
+constexpr auto RESET_STDIO_STR = R"(
+stdout_capture = STDOUT_SINK.getvalue()
+STDOUT_SINK.truncate(0)
+STDOUT_SINK.seek(0)
+
+stderr_capture = STDERR_SINK.getvalue()
+STDERR_SINK.truncate(0)
+STDERR_SINK.seek(0)
+)";
+
 }  // namespace
 
 PYBIND11_EMBEDDED_MODULE(omulator, m) {
-  // `m` is a `py::module_` which is used to bind functions and classes
-  m.def("log", [&](std::string msg) { gInjector->get<omulator::ILogger>().info(msg); });
+  omulator::ILogger            &logger   = gInjector->get<omulator::ILogger>();
+  omulator::msg::MailboxRouter &mbrouter = gInjector->get<omulator::msg::MailboxRouter>();
+
+  m.def(
+    "log",
+    [&](std::string msg) { logger.info(msg); },
+    pybind11::doc{"log a string using Omulator's main logger"});
+
+  m.def(
+    "shutdown",
+    [&]() {
+      mbrouter.get_mailbox<omulator::App>().send_single_message(
+        omulator::msg::MessageType::APP_QUIT);
+    },
+    pybind11::doc{"Gracefully shutdown the Omulator application"});
 }
 
 namespace omulator {
@@ -67,9 +116,8 @@ Interpreter::Interpreter(di::Injector &injector)
       gInjector = &injector;
       pGuard.reset(new pybind11::scoped_interpreter);
 
-      // The Python interpreter is stateful across exec calls, so we perform our initial import of
-      // our custom module here.
-      exec("import omulator as oml");
+      // The Python interpreter is stateful across exec calls, so we perform our initial setup here.
+      exec(STARTUP_STR);
 
       Interpreter::instanceFlag_ = true;
     },
@@ -79,9 +127,23 @@ Interpreter::Interpreter(di::Injector &injector)
       pGuard.reset();
       Interpreter::instanceFlag_ = false;
     }),
-    injector_(injector) { }
+    injector_(injector),
+    logger_(injector_.get<ILogger>()) { }
 
-void Interpreter::exec(std::string str) { pybind11::exec(str); }
+void Interpreter::exec(std::string str) {
+  pybind11::exec(str);
+  auto iocaptures = reset_stdio_();
+  if(!(iocaptures.first.empty())) {
+    std::string outmsg = "Python stdout capture: ";
+    outmsg += iocaptures.first;
+    logger_.info(outmsg);
+  }
+  if(!(iocaptures.second.empty())) {
+    std::string errmsg = "Python stderr capture: ";
+    errmsg += iocaptures.second;
+    logger_.info(errmsg);
+  }
+}
 
 void Interpreter::message_proc(const msg::Message &msg) {
   if(msg.type == msg::MessageType::STDIN_STRING) {
@@ -91,10 +153,18 @@ void Interpreter::message_proc(const msg::Message &msg) {
       exec(execstr);
     }
     catch(pybind11::error_already_set &e) {
-      // N.B. that calling e.what from another thread is a bad idea, since it needs the GIL.
-      injector_.get<ILogger>().error(e.what());
+      // N.B. that calling e.what() from another thread is a bad idea, since it needs the GIL.
+      logger_.error(e.what());
     }
   }
+}
+
+std::pair<std::string, std::string> Interpreter::reset_stdio_() {
+  auto locals = pybind11::dict();
+  pybind11::exec(RESET_STDIO_STR, pybind11::globals(), locals);
+
+  return {locals["stdout_capture"].cast<std::string>(),
+          locals["stderr_capture"].cast<std::string>()};
 }
 
 }  // namespace omulator

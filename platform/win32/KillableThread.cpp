@@ -7,5 +7,10 @@ namespace omulator::util {
 KillableThread::KillableThread(std::function<void()> thrdProc)
   : thrd_{[thrdProc] { thrdProc(); }} { }
 
-KillableThread::~KillableThread() { TerminateThread(thrd_.native_handle(), 0); }
+KillableThread::~KillableThread() {
+  if(thrd_.joinable()) {
+    TerminateThread(thrd_.native_handle(), 0);
+  }
+}
+
 }  // namespace omulator::util
