@@ -1,9 +1,11 @@
 #pragma once
 
+#include "omulator/ILogger.hpp"
 #include "omulator/msg/MailboxRouter.hpp"
 #include "omulator/msg/MailboxSender.hpp"
 #include "omulator/util/KillableThread.hpp"
 
+#include <string>
 #include <thread>
 
 /**
@@ -18,7 +20,7 @@
 namespace omulator::util {
 class CLIInput {
 public:
-  explicit CLIInput(msg::MailboxRouter &mbrouter);
+  explicit CLIInput(ILogger &logger, msg::MailboxRouter &mbrouter);
 
   /**
    * Monitors stdin and sends a message each time a string is received; does not return.
@@ -26,7 +28,13 @@ public:
   void input_loop();
 
 private:
+  ILogger           &logger_;
   msg::MailboxSender msgSender_;
   KillableThread     thrd_;
+
+  /**
+   * Return a copy of a string with leading and trailing whitespace removed.
+   */
+  std::string trim_string_(const std::string &str);
 };
 }  // namespace omulator::util

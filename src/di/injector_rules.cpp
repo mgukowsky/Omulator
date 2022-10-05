@@ -4,11 +4,13 @@
  */
 
 #include "omulator/Clock.hpp"
+#include "omulator/IGraphicsBackend.hpp"
 #include "omulator/ILogger.hpp"
 #include "omulator/InputHandler.hpp"
 #include "omulator/Interpreter.hpp"
 #include "omulator/SpdlogLogger.hpp"
 #include "omulator/SystemWindow.hpp"
+#include "omulator/VulkanBackend.hpp"
 #include "omulator/di/Injector.hpp"
 #include "omulator/di/TypeHash.hpp"
 #include "omulator/msg/MailboxRouter.hpp"
@@ -33,7 +35,8 @@ void Injector::installDefaultRules(Injector &injector) {
   injector.addCtorRecipe<SystemWindow, ILogger &, InputHandler &>();
   injector.addCtorRecipe<InputHandler, msg::MailboxRouter &>();
   injector.addCtorRecipe<Interpreter, di::Injector &>();
-  injector.addCtorRecipe<util::CLIInput, msg::MailboxRouter &>();
+  injector.addCtorRecipe<VulkanBackend, ILogger &>();
+  injector.addCtorRecipe<util::CLIInput, ILogger &, msg::MailboxRouter &>();
   injector.addCtorRecipe<util::CLIParser, ILogger &>();
 
   /**
@@ -41,6 +44,7 @@ void Injector::installDefaultRules(Injector &injector) {
    */
   injector.bindImpl<ILogger, SpdlogLogger>();
   injector.bindImpl<IClock, Clock>();
+  injector.bindImpl<IGraphicsBackend, VulkanBackend>();
   injector.bindImpl<IWindow, SystemWindow>();
 
   /**

@@ -7,6 +7,7 @@ set(
     src/Interpreter.cpp
     src/SpdlogLogger.cpp
     src/Subsystem.cpp
+    src/VulkanBackend.cpp
     src/di/Injector.cpp
     src/di/injector_rules.cpp
     src/msg/MessageQueue.cpp

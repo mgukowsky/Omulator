@@ -20,6 +20,8 @@
 
 using namespace pybind11::literals;
 
+using pybind11::doc;
+
 using omulator::di::TypeHash;
 using omulator::util::TypeString;
 
@@ -77,7 +79,7 @@ PYBIND11_EMBEDDED_MODULE(omulator, m) {
   m.def(
     "log",
     [&](std::string msg) { logger.info(msg); },
-    pybind11::doc{"log a string using Omulator's main logger"});
+    doc{"log a string using Omulator's main logger"});
 
   m.def(
     "shutdown",
@@ -85,7 +87,7 @@ PYBIND11_EMBEDDED_MODULE(omulator, m) {
       mbrouter.get_mailbox<omulator::App>().send_single_message(
         omulator::msg::MessageType::APP_QUIT);
     },
-    pybind11::doc{"Gracefully shutdown the Omulator application"});
+    doc{"Gracefully shutdown the Omulator application"});
 }
 
 namespace omulator {

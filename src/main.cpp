@@ -1,6 +1,7 @@
 #include "omulator/main.hpp"
 
 #include "omulator/App.hpp"
+#include "omulator/IGraphicsBackend.hpp"
 #include "omulator/ILogger.hpp"
 #include "omulator/IWindow.hpp"
 #include "omulator/InputHandler.hpp"
@@ -24,8 +25,9 @@ int oml_main(const int argc, const char **argv) {
 
     auto &cliparser = injector.get<util::CLIParser>();
     cliparser.parse_args(argc, argv);
-    [[maybe_unused]] auto &cliinput    = injector.get<util::CLIInput>();
-    [[maybe_unused]] auto &interpreter = injector.get<Interpreter>();
+    [[maybe_unused]] auto &cliinput        = injector.get<util::CLIInput>();
+    [[maybe_unused]] auto &interpreter     = injector.get<Interpreter>();
+    [[maybe_unused]] auto &graphicsBackend = injector.get<IGraphicsBackend>();
 
     msg::MailboxReceiver mbrecv = injector.get<msg::MailboxRouter>().claim_mailbox<App>();
 

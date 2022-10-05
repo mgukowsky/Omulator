@@ -79,6 +79,11 @@ find_package(
     REQUIRED
 )
 
+find_package(
+  Vulkan
+    REQUIRED
+)
+
 add_subdirectory("third_party/docopt.cpp")
 add_subdirectory("third_party/pybind11")
 
@@ -86,6 +91,7 @@ target_link_libraries(
   ${PROJECT_NAME}
   PUBLIC
     Threads::Threads
+    Vulkan::Vulkan
     docopt
   PRIVATE
     pybind11::embed
@@ -109,6 +115,7 @@ if(NOT MSVC)
     ${PROJECT_NAME}
     PUBLIC
       ${SDL2_LIBRARY}
+      readline
   )
 endif()
 
