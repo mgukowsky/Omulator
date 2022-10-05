@@ -4,6 +4,7 @@
 
 using omulator::PropertyMap;
 using omulator::PropertyValue;
+using omulator::S64;
 using omulator::U64;
 using omulator::di::TypeHash;
 
@@ -21,6 +22,11 @@ TEST(PropertyMap_test, usageTest) {
   PropertyValue<U64> &pvu = propertyMap.get_prop<U64>("u64key");
   pvu.set(123);
   EXPECT_EQ(123, pvu.get()) << "PropertyValues should be able to get and set their internal value";
+
+  PropertyValue<S64> &pvs64 = propertyMap.get_prop<S64>("s64key");
+  pvs64.set(456);
+  EXPECT_EQ(456, pvs64.get())
+    << "PropertyValues should be able to get and set their internal value";
 
   // I don't feel like writing the code to compare doubles; let's just assume they work :)
 

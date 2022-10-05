@@ -1,11 +1,11 @@
 #pragma once
 
 #include "omulator/ILogger.hpp"
+#include "omulator/PropertyMap.hpp"
 #include "omulator/oml_types.hpp"
 
 #include <map>
 #include <string>
-#include <variant>
 
 /**
  * Class which parses out command line args.
@@ -13,18 +13,15 @@
 namespace omulator::util {
 class CLIParser {
 public:
-  using ArgMap_t =
-    std::map<std::string, std::variant<const omulator::S64, const bool, const std::string>>;
-
-  explicit CLIParser(ILogger &logger);
+  explicit CLIParser(ILogger &logger, PropertyMap &propertyMap);
 
   /**
-   * Parses command line args and returns the parsed values as a man of command line args mapped to
-   * associated values.
+   * Parses command line args and stores the parsed arguments into propertyMap.
    */
-  ArgMap_t parse_args(const int argc, const char **argv);
+  void parse_args(const int argc, const char **argv);
 
 private:
-  ILogger &logger_;
+  ILogger     &logger_;
+  PropertyMap &propertyMap_;
 };
 }  // namespace omulator::util

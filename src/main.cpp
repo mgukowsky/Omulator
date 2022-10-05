@@ -6,8 +6,10 @@
 #include "omulator/IWindow.hpp"
 #include "omulator/InputHandler.hpp"
 #include "omulator/Interpreter.hpp"
+#include "omulator/PropertyMap.hpp"
 #include "omulator/di/Injector.hpp"
 #include "omulator/msg/MailboxRouter.hpp"
+#include "omulator/props.hpp"
 #include "omulator/util/CLIInput.hpp"
 #include "omulator/util/CLIParser.hpp"
 #include "omulator/util/exception_handler.hpp"
@@ -21,12 +23,17 @@ namespace omulator {
 int oml_main(const int argc, const char **argv) {
   try {
     di::Injector injector;
-    di::Injector::installDefaultRules(injector);
+    di::Injector::installMinimalRules(injector);
 
     auto &cliparser = injector.get<util::CLIParser>();
     cliparser.parse_args(argc, argv);
-    [[maybe_unused]] auto &cliinput        = injector.get<util::CLIInput>();
-    [[maybe_unused]] auto &interpreter     = injector.get<Interpreter>();
+
+    di::Injector::installDefaultRules(injector);
+
+    if(injector.get<PropertyMap>().get_prop<bool>(props::INTERACTIVE).get()) {
+      [[maybe_unused]] auto &cliinput    = injector.get<util::CLIInput>();
+      [[maybe_unused]] auto &interpreter = injector.get<Interpreter>();
+    }
     [[maybe_unused]] auto &graphicsBackend = injector.get<IGraphicsBackend>();
 
     msg::MailboxReceiver mbrecv = injector.get<msg::MailboxRouter>().claim_mailbox<App>();

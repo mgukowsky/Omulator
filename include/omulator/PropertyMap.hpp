@@ -20,9 +20,8 @@ namespace omulator {
  * Used to restrict entries in PropertyMap to a given set of types.
  */
 template<typename T>
-concept prop_map_type =
-  std::same_as<U64, T> || std::same_as<bool, T> || std::same_as<double,
-                                                                T> || std::same_as<std::string, T>;
+concept prop_map_type = std::same_as<S64, T> || std::same_as<U64, T> || std::
+  same_as<bool, T> || std::same_as<double, T> || std::same_as<std::string, T>;
 
 /**
  * Wrapper for a property value of a given type. The underlying value will be atomic if T is
@@ -59,7 +58,7 @@ public:
   /**
    * Set val_ atomically.
    */
-  void set(T &newVal) noexcept {
+  void set(const T &newVal) noexcept {
     if constexpr(std::is_trivial_v<T>) {
       val_.store(newVal, std::memory_order_release);
     }
@@ -124,6 +123,9 @@ public:
 
     // We need if constexpr here to prevent the compiler from emitting code that would return a
     // PropertyValue with a different type argument than what the return value is expecting.
+    if constexpr(typeHash == di::TypeHash<S64>) {
+      return entry.s64Val;
+    }
     if constexpr(typeHash == di::TypeHash<U64>) {
       return entry.u64Val;
     }
@@ -180,6 +182,7 @@ private:
     // std::variant doesn't play well with the atomics in PropertyValue, so we have to roll our own
     // here
     union {
+      PropertyValue<S64>         s64Val;
       PropertyValue<U64>         u64Val;
       PropertyValue<bool>        boolVal;
       PropertyValue<double>      doubleVal;

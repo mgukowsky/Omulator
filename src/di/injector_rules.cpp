@@ -8,6 +8,8 @@
 #include "omulator/ILogger.hpp"
 #include "omulator/InputHandler.hpp"
 #include "omulator/Interpreter.hpp"
+#include "omulator/NullWindow.hpp"
+#include "omulator/PropertyMap.hpp"
 #include "omulator/SpdlogLogger.hpp"
 #include "omulator/SystemWindow.hpp"
 #include "omulator/VulkanBackend.hpp"
@@ -15,6 +17,7 @@
 #include "omulator/di/TypeHash.hpp"
 #include "omulator/msg/MailboxRouter.hpp"
 #include "omulator/msg/MessageQueueFactory.hpp"
+#include "omulator/props.hpp"
 #include "omulator/util/CLIInput.hpp"
 #include "omulator/util/CLIParser.hpp"
 
@@ -37,19 +40,30 @@ void Injector::installDefaultRules(Injector &injector) {
   injector.addCtorRecipe<Interpreter, di::Injector &>();
   injector.addCtorRecipe<VulkanBackend, ILogger &>();
   injector.addCtorRecipe<util::CLIInput, ILogger &, msg::MailboxRouter &>();
-  injector.addCtorRecipe<util::CLIParser, ILogger &>();
 
   /**
    * Implementations should be bound to interfaces here.
    */
-  injector.bindImpl<ILogger, SpdlogLogger>();
   injector.bindImpl<IClock, Clock>();
   injector.bindImpl<IGraphicsBackend, VulkanBackend>();
-  injector.bindImpl<IWindow, SystemWindow>();
+
+  if(injector.get<PropertyMap>().get_prop<bool>(props::HEADLESS).get()) {
+    injector.bindImpl<IWindow, NullWindow>();
+  }
+  else {
+    injector.bindImpl<IWindow, SystemWindow>();
+  }
 
   /**
    * Custom recipes for types should be added here.
    */
   // injector.addRecipe<T>(...)
 }
+
+void Injector::installMinimalRules(Injector &injector) {
+  // Only need what is necessary to parse the command line before we call installDefaultRules
+  injector.bindImpl<ILogger, SpdlogLogger>();
+  injector.addCtorRecipe<util::CLIParser, ILogger &, PropertyMap &>();
+}
+
 }  // namespace omulator::di

@@ -5,6 +5,7 @@ set(
     src/Component.cpp
     src/InputHandler.cpp
     src/Interpreter.cpp
+    src/NullWindow.cpp
     src/SpdlogLogger.cpp
     src/Subsystem.cpp
     src/VulkanBackend.cpp

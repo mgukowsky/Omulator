@@ -259,7 +259,19 @@ public:
     return typeMap_.ref<T>();
   }
 
+  /**
+   * Setup rules for the Injector by making the requisite calls to addRecipe, addCtorRecipe,
+   * bindImpl, etc.
+   */
   static void installDefaultRules(Injector &injector);
+
+  /**
+   * Same as installdefaultRules, except only installs the rules needed to run a subset of the
+   * application's functionality before installDefaultRules is called. Should be called prior to
+   * installDefaultRules in any case, as installDefaultRules may rely on rules that are first set up
+   * in this function.
+   */
+  static void installMinimalRules(Injector &injector);
 
   template<typename Raw_t, typename T = InjType_t<Raw_t>>
   bool has_instance() const {
