@@ -97,6 +97,8 @@ public:
    * Returns a reference to the underlying PropertyValue which can be used to access the property
    * from then on; it is an anti-pattern to repeatedly call get_prop in order to access a property.
    */
+#pragma warning(push)
+#pragma warning(disable : 4702)
   template<typename Raw_t, typename T = std::decay_t<Raw_t>>
   requires prop_map_type<T> PropertyValue<T>
   &get_prop(std::string key) {
@@ -145,6 +147,7 @@ public:
       throw std::runtime_error(ss.str());
     }
   }
+#pragma warning(pop)
 
   /**
    * Returns a pair consisting of a boolean indicating if the key is present and the TypeHash of the
