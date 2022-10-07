@@ -106,7 +106,7 @@ function(config_for_msvc target_name)
       /utf-8
 
       # ISO C++20 coroutines support
-      /await:strict
+      $<$<CXX_COMPILER_ID:MSVC>:/await:strict>
 
       # Additional optimizations for x64, off for now...
       #/favor:INTEL64
@@ -157,8 +157,6 @@ function(config_for_msvc target_name)
 
       $<$<CXX_COMPILER_ID:Clang>:-Wno-unused-lambda-capture -Wno-unused-private-field>
 
-      $<$<CXX_COMPILER_ID:Clang>:-flto=thin>
-
       # Make a PDB, don't inline and don't optimize, use buffer overflow canaries, and add
       # security and runtime checks
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:/Zi /Ob0 /Od /GS /sdl /RTC1>
@@ -205,22 +203,28 @@ function(config_for_msvc target_name)
       # OPT:REF: remove unreferenced functions and data
       # OPT:ICF: merge identical functions and data
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:$<$<CXX_COMPILER_ID:MSVC>:/LTCG> /OPT:REF /OPT:ICF>
-
-      # lld-link seems to not understand /LTCG nor -flto ¯\_(ツ)_/¯
-      # especially weird, since clang-cl can accept -flto=thin (although not /GL)...
   )
 
-  if(CMAKE_BUILD_TYPE MATCHES Release AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+  if(CMAKE_BUILD_TYPE MATCHES Release)
     target_compile_options(
       ${target_name}
       PUBLIC
         # Whole program optimization
-        /GL
+        $<$<CXX_COMPILER_ID:MSVC>:/GL>
+        
+        $<$<CXX_COMPILER_ID:Clang>:-flto=thin>
 
         # Fast transcendentals
-        /Qfast_transcendentals
+        $<$<CXX_COMPILER_ID:MSVC>:/Qfast_transcendentals>
+    )
+
+    target_link_options(
+      ${target_name}
+      PUBLIC
+        $<$<CXX_COMPILER_ID:Clang>:/LTCG -flto=thin>
     )
   endif()
+
 endfunction()
 
 function(config_for_gcc target_name)

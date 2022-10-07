@@ -46,9 +46,9 @@ namespace detail {
    */
   template<typename T>
   consteval std::string_view metastring() {
-#if defined(OML_COMPILER_MSVC) || defined(OML_COMPILER_CLANG_CL)
+#if defined(OML_COMPILER_MSVC)
     return msvcTypeString(__FUNCSIG__);
-#elif defined(OML_COMPILER_CLANG)
+#elif defined(OML_COMPILER_CLANG) || defined(OML_COMPILER_CLANG_CL)
     return gccTypeString(std::string_view(__PRETTY_FUNCTION__), ']');
 #elif defined(OML_COMPILER_GCC)
     return gccTypeString(std::string_view(__PRETTY_FUNCTION__));

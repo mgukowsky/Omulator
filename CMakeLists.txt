@@ -85,6 +85,11 @@ find_package(
 )
 
 add_subdirectory("third_party/docopt.cpp")
+# Add exception handling to docopt to make MSVC happy
+if(MSVC)
+  configure_target(docopt)
+endif()
+
 add_subdirectory("third_party/pybind11")
 
 target_link_libraries(
