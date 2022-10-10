@@ -22,6 +22,6 @@ jobs:
           vulkan-components: Vulkan-Headers, Vulkan-Loader
           vulkan-use-cache: true
       - name: Init submodules
-        run: git submodule update --init --recursive
+        run: git submodule update --init --recursive --depth 1
       - name: build.rb
         run: ruby.exe build.rb -t msvc -b ${{ matrix.build_type }} -v build test
