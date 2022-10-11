@@ -1,5 +1,8 @@
 #include "omulator/SystemWindow.hpp"
 
+#define VK_USE_PLATFORM_WIN32_KHR
+#include <vulkan/vulkan.h>
+
 #include <Windows.h>
 
 #include <sstream>
@@ -63,6 +66,26 @@ SystemWindow::SystemWindow(ILogger &logger, InputHandler &inputHandler)
   : logger_(logger), inputHandler_(inputHandler), shown_(false) { }
 
 SystemWindow::~SystemWindow() { }
+
+void SystemWindow::connect_to_graphics_api(IGraphicsBackend::GraphicsAPI graphicsApi,
+                                           void                         *pDataA,
+                                           void                         *pDataB) {
+  if(graphicsApi == IGraphicsBackend::GraphicsAPI::VULKAN) {
+    VkWin32SurfaceCreateInfoKHR createInfo{};
+    createInfo.sType     = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+    createInfo.hwnd      = impl_->hwnd;
+    createInfo.hinstance = impl_->hinstance;
+
+    if(vkCreateWin32SurfaceKHR(*(reinterpret_cast<VkInstance *>(pDataA)),
+                               &createInfo,
+                               nullptr,
+                               reinterpret_cast<VkSurfaceKHR *>(pDataB))
+       != VK_SUCCESS)
+    {
+      throw std::runtime_error("Failed to create Win32 Vulkan surface");
+    }
+  }
+}
 
 void SystemWindow::pump_msgs() {
   MSG msg = {};

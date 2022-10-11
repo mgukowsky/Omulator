@@ -15,4 +15,9 @@ constexpr auto HEADLESS = "sys.headless";
  */
 constexpr auto INTERACTIVE = "sys.interactive";
 
+/**
+ * If true, turn on Vulkan debugging and validation.
+ */
+constexpr auto VKDEBUG = "sys.vkdebug";
+
 }  // namespace omulator::props

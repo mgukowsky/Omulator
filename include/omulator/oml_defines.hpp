@@ -1,5 +1,14 @@
 #pragma once
 
+namespace omulator {
+constinit const inline bool OML_DEBUGBUILD =
+#ifdef NDEBUG
+  false;
+#else
+  true;
+#endif
+}  // namespace omulator
+
 #if defined(OML_COMPILER_GCC) || defined(OML_COMPILER_CLANG) || defined(OML_COMPILER_CLANG_CL)
 #define OML_FORCEINLINE inline __attribute__((always_inline))
 #define OML_RESTRICT    __restrict__

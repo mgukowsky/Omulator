@@ -9,6 +9,8 @@ namespace omulator {
  */
 class IGraphicsBackend {
 public:
+  enum class GraphicsAPI { VULKAN };
+
   IGraphicsBackend(ILogger &logger) : logger_(logger) { }
   virtual ~IGraphicsBackend() = default;
 

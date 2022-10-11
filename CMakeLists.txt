@@ -91,6 +91,7 @@ if(MSVC)
 endif()
 
 add_subdirectory("third_party/pybind11")
+add_subdirectory("third_party/vk-bootstrap")
 
 target_link_libraries(
   ${PROJECT_NAME}
@@ -98,6 +99,8 @@ target_link_libraries(
     Threads::Threads
     Vulkan::Vulkan
     docopt
+    vk-bootstrap::vk-bootstrap
+    ${CMAKE_DL_LIBS}
   PRIVATE
     pybind11::embed
 )
@@ -156,6 +159,8 @@ target_include_directories(
     $<INSTALL_INTERFACE:third_party/concurrentqueue>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/docopt.cpp>
     $<INSTALL_INTERFACE:third_party/docopt.cpp>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/vk-bootstrap/src>
+    $<INSTALL_INTERFACE:third_party/vk-bootstrap/src>
 )
 
 # Select which platform folder to use

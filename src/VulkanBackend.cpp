@@ -1,6 +1,10 @@
 #include "omulator/VulkanBackend.hpp"
 
-#include <vulkan/vulkan_raii.hpp>
+#include "omulator/props.hpp"
+#include "omulator/util/TypeString.hpp"
+#include "omulator/util/reinterpret.hpp"
+
+#include <VkBootstrap.h>
 
 #include <cassert>
 #include <memory>
@@ -12,75 +16,117 @@ namespace { }  // namespace
 
 namespace omulator {
 
-// N.B. we make heavy use of vk::raii here, which is a level of abstraction above the core C API
-// which provides a cleaner interface to Vulkan and handles API resource management.
 struct VulkanBackend::Impl_ {
-  Impl_() : pDevice(nullptr), pVkInstance(nullptr), pPhysicalDevice(nullptr) { }
-  ~Impl_() { }
-
-  void create_instance() {
-    // Create the Vulkan context. N.B. that the VK C++ wrappers will just throw if any of these
-    // fail, hence the absence of any error checking.
-    vk::ApplicationInfo    applicationInfo("app", 1, "eng", 1, VK_API_VERSION_1_1);
-    vk::InstanceCreateInfo instanceCreateInfo({}, &applicationInfo);
-    pVkInstance = std::make_unique<vk::raii::Instance>(vctx, instanceCreateInfo);
+  Impl_() : pDevice(nullptr), pInstance(nullptr), pSystemInfo(nullptr), hasValidSurface(false) { }
+  ~Impl_() {
+    if(pDevice.get() != nullptr) {
+      vkb::destroy_device(*pDevice);
+    }
+    if(hasValidSurface) {
+      vkb::destroy_surface(*pInstance, surface);
+    }
+    if(pInstance.get() != nullptr) {
+      vkb::destroy_instance(*pInstance);
+    }
   }
 
-  void select_device(ILogger &logger) {
-    vk::raii::PhysicalDevices physicalDevices(*pVkInstance);
+  void create_device(VulkanBackend &context) {
+    context.window_.connect_to_graphics_api(
+      IGraphicsBackend::GraphicsAPI::VULKAN, &(pInstance->instance), &surface);
+    hasValidSurface = true;
 
-    std::size_t deviceIdx = 0;
-    std::size_t maxScore  = 0;
+    vkb::PhysicalDeviceSelector physicalDeviceSelector(*pInstance);
 
-    if(physicalDevices.empty()) {
-      throw std::runtime_error("Found 0 Vulkan physical devices");
-    }
-    else if(physicalDevices.size() > 1) {
-      // Pick the best fit device; from
-      // https://vulkan-tutorial.com/Drawing_a_triangle/Setup/Physical_devices_and_queue_families
-      std::size_t idx = 0;
+    // TODO: any other criteria we care about? Any required features/extensions?
+    auto selection = physicalDeviceSelector.set_surface(surface).set_minimum_version(1, 1).select();
+    validate_vkb_return(context, selection);
 
-      for(const auto &device : physicalDevices) {
-        std::size_t score      = 0;
-        const auto  properties = device.getProperties();
-        if(properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu) {
-          score += 10000;
-        }
-        score += static_cast<std::size_t>(properties.limits.maxImageDimension2D);
+    vkb::DeviceBuilder deviceBuilder(selection.value());
+    auto               deviceBuildResult = deviceBuilder.build();
+    validate_vkb_return(context, deviceBuildResult);
 
-        if(maxScore == 0 || score > maxScore) {
-          deviceIdx = idx;
-        }
+    pDevice = std::make_unique<vkb::Device>(deviceBuildResult.value());
+  }
 
-        std::stringstream ss;
-        ss << "Score for Vulkan physical device " << properties.deviceName << ": " << score;
-        logger.info(ss);
+  void create_instance(VulkanBackend &context) {
+    vkb::InstanceBuilder instanceBuilder;
 
-        ++idx;
+    instanceBuilder.set_app_name("Omulator").require_api_version(1, 1, 0);
+
+    if(context.propertyMap_.get_prop<bool>(props::VKDEBUG).get()) {
+      instanceBuilder.request_validation_layers();
+      if(pSystemInfo->is_extension_available(VK_EXT_DEBUG_UTILS_EXTENSION_NAME)) {
+        instanceBuilder.enable_extension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME)
+          .set_debug_callback(&Impl_::debug_callback)
+          .set_debug_callback_user_data_pointer(&context);
       }
     }
 
-    assert(deviceIdx <= physicalDevices.size());
-    pPhysicalDevice =
-      std::make_unique<vk::raii::PhysicalDevice>(std::move(physicalDevices.at(deviceIdx)));
+    auto instanceBuildResult = instanceBuilder.build();
+    validate_vkb_return(context, instanceBuildResult);
 
-    std::stringstream ss;
-    ss << physicalDevices.size() << " Vulkan physical devices found; using device " << deviceIdx
-       << " (" << pPhysicalDevice->getProperties().deviceName << ")";
-    logger.info(ss);
+    pInstance = std::make_unique<vkb::Instance>(instanceBuildResult.value());
   }
 
-  // Many vk::raii objects don't have default constructors, so we need to wrap them in unique_ptrs
-  // to support delayed intialization.
-  vk::raii::Context                         vctx;
-  std::unique_ptr<vk::raii::Device>         pDevice;
-  std::unique_ptr<vk::raii::Instance>       pVkInstance;
-  std::unique_ptr<vk::raii::PhysicalDevice> pPhysicalDevice;
+  static VkBool32 debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
+                                 VkDebugUtilsMessageTypeFlagsEXT             messageType,
+                                 const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+                                 void                                       *pUserData) {
+    auto      &context  = util::reinterpret<VulkanBackend>(pUserData);
+    const auto severity = vkb::to_string_message_severity(messageSeverity);
+    const auto type     = vkb::to_string_message_type(messageType);
+
+    std::stringstream ss;
+    ss << "Vulkan debug message [severity: " << severity << "; type: " << type
+       << "] : " << pCallbackData->pMessage;
+    context.logger_.warn(ss);
+
+    // Must return this value per the standard
+    return VK_FALSE;
+  }
+
+  void query_system_info(VulkanBackend &context) {
+    auto systemInfoRet = vkb::SystemInfo::get_system_info();
+    validate_vkb_return(context, systemInfoRet);
+    pSystemInfo = std::make_unique<vkb::SystemInfo>(systemInfoRet.value());
+  }
+
+  template<typename T>
+  // TODO: constrain me
+  void validate_vkb_return(VulkanBackend &context, T &retval) {
+    if(!retval) {
+      std::stringstream ss;
+      ss << "vk-bootstrap return failure for type "
+         << util::TypeString<T> << "; reason: " << retval.error().message();
+      vk_fatal(context, ss.str());
+    }
+  }
+
+  void vk_fatal(VulkanBackend &context, const char *msg) {
+    std::string errmsg = "Fatal Vulkan error: ";
+    errmsg += msg;
+    context.logger_.error(errmsg);
+    throw std::runtime_error(errmsg);
+  }
+
+  void vk_fatal(VulkanBackend &context, const std::string &msg) { vk_fatal(context, msg.c_str()); }
+
+  VkSurfaceKHR                     surface;
+  std::unique_ptr<vkb::Device>     pDevice;
+  std::unique_ptr<vkb::Instance>   pInstance;
+  std::unique_ptr<vkb::SystemInfo> pSystemInfo;
+  bool                             hasValidSurface;
 };
 
-VulkanBackend::VulkanBackend(ILogger &logger) : IGraphicsBackend(logger) {
-  impl_->create_instance();
-  impl_->select_device(logger_);
+VulkanBackend::VulkanBackend(ILogger &logger, PropertyMap &propertyMap, IWindow &window)
+  : IGraphicsBackend(logger), propertyMap_(propertyMap), window_(window) {
+  logger_.info("Initializing Vulkan, this may take a moment...");
+
+  impl_->query_system_info(*this);
+  impl_->create_instance(*this);
+  impl_->create_device(*this);
+
+  logger_.info("Vulkan initialization completed");
 }
 
 VulkanBackend::~VulkanBackend() { }

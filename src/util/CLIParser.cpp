@@ -15,6 +15,7 @@ namespace {
 const std::map<std::string_view, std::string_view> cliArgToProp{
   {"--headless",    omulator::props::HEADLESS   },
   {"--interactive", omulator::props::INTERACTIVE},
+  {"--vkdebug",     omulator::props::VKDEBUG    },
 };
 
 /**
@@ -24,11 +25,12 @@ const std::map<std::string_view, std::string_view> cliArgToProp{
  * prematurely and print the help message if either flag is provided.
  */
 constexpr auto USAGE = R"(
-Usage: omulator [--help] [--headless] [--interactive]
+Usage: omulator [--help] [--headless] [--interactive] [--vkdebug]
 
 --help         Show this help
 --headless     Run without a GUI window
 --interactive  Accept input from stdin, which will be interpreted as Python code   
+--vkdebug      Perform additional Vulkan validation (will cause application slowdown)
 )";
 }  // namespace
 

@@ -11,6 +11,9 @@ public:
   SystemWindow(ILogger &logger, InputHandler &inputHandler);
   ~SystemWindow() override;
 
+  void connect_to_graphics_api(IGraphicsBackend::GraphicsAPI graphicsApi,
+                               void                         *pDataA,
+                               void                         *pDataB) override;
   void pump_msgs() override;
   void show() override;
 

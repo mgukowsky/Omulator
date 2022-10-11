@@ -38,7 +38,7 @@ void Injector::installDefaultRules(Injector &injector) {
   injector.addCtorRecipe<SystemWindow, ILogger &, InputHandler &>();
   injector.addCtorRecipe<InputHandler, msg::MailboxRouter &>();
   injector.addCtorRecipe<Interpreter, di::Injector &>();
-  injector.addCtorRecipe<VulkanBackend, ILogger &>();
+  injector.addCtorRecipe<VulkanBackend, ILogger &, PropertyMap &, IWindow &>();
   injector.addCtorRecipe<util::CLIInput, ILogger &, msg::MailboxRouter &>();
 
   /**

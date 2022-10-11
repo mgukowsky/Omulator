@@ -1,6 +1,7 @@
 #include "omulator/SystemWindow.hpp"
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_vulkan.h>
 
 #include <sstream>
 #include <stdexcept>
@@ -20,7 +21,13 @@ struct SystemWindow::Impl_ {
     throw(std::runtime_error(ss.str()));
   }
 
-  void check_sdl_return(ILogger &logger, int val) {
+  void check_sdl_return(ILogger &logger, const bool val) {
+    if(!val) {
+      sdl_fatal(logger);
+    }
+  }
+
+  void check_sdl_return(ILogger &logger, const int val) {
     if(val < 0) {
       sdl_fatal(logger);
     }
@@ -51,6 +58,17 @@ SystemWindow::~SystemWindow() {
     SDL_DestroyWindow(impl_->pwnd);
   }
   SDL_Quit();
+}
+
+void SystemWindow::connect_to_graphics_api(IGraphicsBackend::GraphicsAPI graphicsApi,
+                                           void                         *pDataA,
+                                           void                         *pDataB) {
+  if(graphicsApi == IGraphicsBackend::GraphicsAPI::VULKAN) {
+    impl_->check_sdl_return(logger_,
+                            SDL_Vulkan_CreateSurface(impl_->pwnd,
+                                                     *(reinterpret_cast<VkInstance *>(pDataA)),
+                                                     reinterpret_cast<VkSurfaceKHR *>(pDataB)));
+  }
 }
 
 void SystemWindow::pump_msgs() {

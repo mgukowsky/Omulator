@@ -30,16 +30,18 @@ int oml_main(const int argc, const char **argv) {
 
     di::Injector::installDefaultRules(injector);
 
+    IWindow &wnd = injector.get<IWindow>();
+    // The window MUST be shown prior to creating the graphics backend, otherwise we may not be able
+    // to associate the window with the graphics API.
+    wnd.show();
+
+    [[maybe_unused]] auto &graphicsBackend = injector.get<IGraphicsBackend>();
     if(injector.get<PropertyMap>().get_prop<bool>(props::INTERACTIVE).get()) {
       [[maybe_unused]] auto &cliinput    = injector.get<util::CLIInput>();
       [[maybe_unused]] auto &interpreter = injector.get<Interpreter>();
     }
-    [[maybe_unused]] auto &graphicsBackend = injector.get<IGraphicsBackend>();
 
     msg::MailboxReceiver mbrecv = injector.get<msg::MailboxRouter>().claim_mailbox<App>();
-
-    IWindow &wnd = injector.get<IWindow>();
-    wnd.show();
 
     bool done = false;
 
