@@ -7,5 +7,5 @@ void NullWindow::connect_to_graphics_api([[maybe_unused]] IGraphicsBackend::Grap
 
 void NullWindow::pump_msgs() { }
 
-void NullWindow::show() { }
+void NullWindow::show() { set_shown_(true); }
 };  // namespace omulator

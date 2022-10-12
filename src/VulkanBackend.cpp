@@ -31,6 +31,9 @@ struct VulkanBackend::Impl_ {
   }
 
   void create_device(VulkanBackend &context) {
+    // The app will likely crash if the window is not shown at this point, since this is typically
+    // necessary in order to acquire a surface for Vulkan
+    assert(context.window_.shown());
     context.window_.connect_to_graphics_api(
       IGraphicsBackend::GraphicsAPI::VULKAN, &(pInstance->instance), &surface);
     hasValidSurface = true;

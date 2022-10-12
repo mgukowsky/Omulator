@@ -63,7 +63,7 @@ struct SystemWindow::Impl_ {
 };
 
 SystemWindow::SystemWindow(ILogger &logger, InputHandler &inputHandler)
-  : logger_(logger), inputHandler_(inputHandler), shown_(false) { }
+  : logger_(logger), inputHandler_(inputHandler) { }
 
 SystemWindow::~SystemWindow() { }
 
@@ -96,7 +96,7 @@ void SystemWindow::pump_msgs() {
 }
 
 void SystemWindow::show() {
-  if(shown_) {
+  if(shown()) {
     return;
   }
 
@@ -136,7 +136,7 @@ void SystemWindow::show() {
 
   ShowWindow(impl_->hwnd, SW_SHOW);
 
-  shown_ = true;
+  set_shown_(true);
 }
 
 }  // namespace omulator

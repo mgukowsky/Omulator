@@ -25,7 +25,5 @@ private:
   InputHandler &inputHandler_;
 
   static constexpr auto WINDOW_TITLE = "Omulator: the omnibus emulator";
-
-  bool shown_;
 };
 }  // namespace omulator

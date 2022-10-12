@@ -2,6 +2,8 @@
 
 #include "omulator/IGraphicsBackend.hpp"
 
+#include <atomic>
+
 namespace omulator {
 
 /**
@@ -9,6 +11,7 @@ namespace omulator {
  */
 class IWindow {
 public:
+  IWindow() : shown_(false) { }
   virtual ~IWindow() = default;
 
   /**
@@ -28,5 +31,16 @@ public:
    * return and perform no action if called more than once.
    */
   virtual void show() = 0;
+
+  /**
+   * Returns true if the window is currently being displayed. Threadsafe.
+   */
+  bool shown() const noexcept { return shown_.load(std::memory_order_acquire); }
+
+protected:
+  void set_shown_(const bool newVal) noexcept { shown_.store(newVal, std::memory_order_release); }
+
+private:
+  std::atomic_bool shown_;
 };
 }  // namespace omulator
