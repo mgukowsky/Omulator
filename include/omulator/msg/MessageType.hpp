@@ -34,6 +34,16 @@ enum class MessageType : U32 {
   APP_QUIT,
 
   /**
+   * The main window has changed size
+   */
+  HANDLE_RESIZE,
+
+  /**
+   * Tell the GPU to render a frame.
+   */
+  RENDER_FRAME,
+
+  /**
    * A fence (std::atomic_bool*) which should be signaled by the receiver; the sender is likely
    * waiting on this to be signaled
    */

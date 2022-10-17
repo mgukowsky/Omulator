@@ -3,6 +3,7 @@
 #include "omulator/ILogger.hpp"
 #include "omulator/msg/MailboxRouter.hpp"
 
+#include <atomic>
 #include <functional>
 #include <string_view>
 #include <thread>
@@ -23,6 +24,12 @@ public:
    * prior to the execution of thrd_proc_, and onEnd will be invoked prior to the thread's exit
    * after thrd_proc_ returns. These callbacks are useful for thread-specific init/deinit, such as
    * for thread-specific variables.
+   *
+   * N.B. that ALL derived classes should call start_() at the end of their constructors in order to
+   * begin execution of the underlying thread and receive messages! This is necessary in order to
+   * ensure that the underlying thread (which will start before the child class is fully
+   * constructed) doesn't start running and receiving messages until the derived class is fully
+   * constructed!
    */
   Subsystem(ILogger                  &logger,
             std::string_view          name,
@@ -59,6 +66,11 @@ public:
   void stop();
 
 protected:
+  /**
+   * Begin execution of the underlying thread. Has no effect if called more than once.
+   */
+  void start_();
+
   ILogger &logger_;
 
 private:
@@ -79,7 +91,8 @@ private:
    */
   msg::MailboxSender sender_;
 
-  std::jthread thrd_;
+  std::atomic_bool startSignal_;
+  std::jthread     thrd_;
 };
 
 }  // namespace omulator

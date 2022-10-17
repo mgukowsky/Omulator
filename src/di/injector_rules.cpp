@@ -12,6 +12,7 @@
 #include "omulator/PropertyMap.hpp"
 #include "omulator/SpdlogLogger.hpp"
 #include "omulator/SystemWindow.hpp"
+#include "omulator/TestGraphicsEngine.hpp"
 #include "omulator/VulkanBackend.hpp"
 #include "omulator/di/Injector.hpp"
 #include "omulator/di/TypeHash.hpp"
@@ -38,6 +39,7 @@ void Injector::installDefaultRules(Injector &injector) {
   injector.addCtorRecipe<SystemWindow, ILogger &, InputHandler &>();
   injector.addCtorRecipe<InputHandler, msg::MailboxRouter &>();
   injector.addCtorRecipe<Interpreter, di::Injector &>();
+  injector.addCtorRecipe<TestGraphicsEngine, di::Injector &>();
   injector.addCtorRecipe<VulkanBackend, ILogger &, PropertyMap &, IWindow &>();
   injector.addCtorRecipe<util::CLIInput, ILogger &, msg::MailboxRouter &>();
 

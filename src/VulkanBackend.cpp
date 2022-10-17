@@ -10,6 +10,7 @@
 
 #include <VkBootstrap.h>
 
+#include <array>
 #include <cassert>
 #include <functional>
 #include <memory>
@@ -66,6 +67,11 @@ std::string_view vkErrorString(const VkResult errorCode) {
  */
 constexpr omulator::U64 GPU_MAX_TIMEOUT_NS = 1'000'000'000;
 
+/**
+ * Default RGBA clear color for the surface.
+ */
+constexpr std::array CLEAR_COLOR{0.0f, 1.0f, 0.0f, 1.0f};
+
 }  // namespace
 
 namespace omulator {
@@ -116,6 +122,8 @@ struct VulkanBackend::Impl_ {
       pInstance(nullptr),
       pSwapchain(nullptr),
       pSystemInfo(nullptr),
+      surfaceWidth(0),
+      surfaceHeight(0),
       numFrames(0) { }
   ~Impl_() {
     device.waitIdle();
@@ -228,22 +236,24 @@ struct VulkanBackend::Impl_ {
     // TODO: any other queues we want to retrieve?
   }
 
-  void step5_create_swapchain(VulkanBackend &context) {
+  void step5_create_swapchain(VulkanBackend &context, bool trackDeletion = true) {
     vkb::SwapchainBuilder swapchainBuilder(*pDevice);
-    // TODO: VK_PRESENT_MODE_FIFO_KHR is a vsync mode; we want to use VK_PRESENT_MODE_MAILBOX_KHR
-    // + triple buffering when not using vsync (there is also another present mode with 'softer'
-    // vsync); at the very least this should be tied to a config setting
-    //
-    // TODO: We will need to destroy and rebuild the swapchain when the window resizes!
-    const auto dims = context.window_.dimensions();
 
+    const auto dims = context.window_.dimensions();
+    surfaceWidth    = dims.first;
+    surfaceHeight   = dims.second;
+
+    // TODO: ensure triple buffering is setup with MAILBOX_KHR and/or allow an option for vsync via
+    // FIFO_KHR
     swapchainBuilder.use_default_format_selection()
-      .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
-      .set_desired_extent(dims.first, dims.second);
+      .set_desired_present_mode(VK_PRESENT_MODE_MAILBOX_KHR)
+      .set_desired_extent(surfaceWidth, surfaceHeight);
     const auto swapchainBuildRet = swapchainBuilder.build();
     validate_vkb_return(context, swapchainBuildRet);
     pSwapchain = std::make_unique<vkb::Swapchain>(swapchainBuildRet.value());
-    deleterFIFO.emplace_back([this]() { vkb::destroy_swapchain(*pSwapchain); });
+    if(trackDeletion) {
+      deleterFIFO.emplace_back([this]() { vkb::destroy_swapchain(*pSwapchain); });
+    }
 
     swapchain = *pSwapchain;
   }
@@ -313,13 +323,13 @@ struct VulkanBackend::Impl_ {
       context, renderPass, [&]() { return device.createRenderPassUnique(renderPassCreateInfo); });
   }
 
-  void step8_create_framebuffers([[maybe_unused]] VulkanBackend &context) {
-    const auto                windowDims = context.window_.dimensions();
+  void step8_create_framebuffers([[maybe_unused]] VulkanBackend &context,
+                                 bool                            trackDeletion = true) {
     vk::FramebufferCreateInfo framebufferCreateInfo;
     framebufferCreateInfo.renderPass      = renderPass.get();
     framebufferCreateInfo.attachmentCount = 1;
-    framebufferCreateInfo.width           = windowDims.first;
-    framebufferCreateInfo.height          = windowDims.second;
+    framebufferCreateInfo.width           = surfaceWidth;
+    framebufferCreateInfo.height          = surfaceHeight;
     framebufferCreateInfo.layers          = 1;
 
     const auto swapchainImagesReturn = pSwapchain->get_images();
@@ -337,21 +347,29 @@ struct VulkanBackend::Impl_ {
     // vk::Device::CreateImageViewUnique, however that requires us to perform the full intialization
     // for the ImageView and would be redundant with the work that vk-bootstrap already did to get
     // us the swapchainImageViews.
-    deleterFIFO.emplace_back([this]() {
-      for(auto &swapchainImageView : swapchainImageViews) {
-        vkDestroyImageView(pDevice->device, swapchainImageView, nullptr);
-      }
-    });
+    if(trackDeletion) {
+      deleterFIFO.emplace_back([this]() {
+        for(auto &swapchainImageView : swapchainImageViews) {
+          vkDestroyImageView(pDevice->device, swapchainImageView, nullptr);
+        }
+      });
+    }
 
-    init_with_deleter_range<std::vector<vk::UniqueFramebuffer>>(context, framebuffers, [&]() {
-      std::vector<vk::UniqueFramebuffer> retval;
-      for(auto &rawImageView : swapchainImageViews) {
-        vk::ImageView imageView{rawImageView};
-        framebufferCreateInfo.pAttachments = &imageView;
-        retval.emplace_back(device.createFramebufferUnique(framebufferCreateInfo));
-      }
-      return retval;
-    });
+    std::vector<vk::UniqueFramebuffer> newFramebuffers;
+    for(auto &rawImageView : swapchainImageViews) {
+      vk::ImageView imageView{rawImageView};
+      framebufferCreateInfo.pAttachments = &imageView;
+      newFramebuffers.emplace_back(device.createFramebufferUnique(framebufferCreateInfo));
+    }
+    framebuffers = std::move(newFramebuffers);
+
+    if(trackDeletion) {
+      deleterFIFO.emplace_back([this]() {
+        for(auto &fb : framebuffers) {
+          fb.reset(nullptr);
+        }
+      });
+    }
   }
 
   void step9_create_sync_structrues(VulkanBackend &context) {
@@ -446,11 +464,17 @@ struct VulkanBackend::Impl_ {
   // N.B. we are currently creating only a single command buffer
   static constexpr auto NUM_MAIN_CMD_BUFFERS = 1;
 
+  U32 surfaceWidth;
+  U32 surfaceHeight;
   U64 numFrames;
 };
 
 VulkanBackend::VulkanBackend(ILogger &logger, PropertyMap &propertyMap, IWindow &window)
-  : IGraphicsBackend(logger), propertyMap_(propertyMap), window_(window) {
+  : IGraphicsBackend(logger),
+    propertyMap_(propertyMap),
+    window_(window),
+    needsResizing_(false),
+    shouldRender_(true) {
   logger_.info("Initializing Vulkan, this may take a moment...");
 
   impl_->step1_query_system_info(*this);
@@ -468,7 +492,23 @@ VulkanBackend::VulkanBackend(ILogger &logger, PropertyMap &propertyMap, IWindow 
 
 VulkanBackend::~VulkanBackend() { }
 
+void VulkanBackend::handle_resize() {
+  const auto windowDims = window_.dimensions();
+  // The window is minimized or otherwise not visible; don't resize and don't render
+  if(windowDims.first <= 0 || windowDims.second <= 0) {
+    shouldRender_ = false;
+  }
+  else {
+    shouldRender_  = true;
+    needsResizing_ = true;
+  }
+}
+
 void VulkanBackend::render_frame() {
+  if(!shouldRender_) {
+    return;
+  }
+
   auto waitForFencesResult =
     impl_->device.waitForFences(impl_->renderFence.get(), true, GPU_MAX_TIMEOUT_NS);
   impl_->validate_vk_return(*this, "waitForFences", waitForFencesResult);
@@ -480,6 +520,13 @@ void VulkanBackend::render_frame() {
   // the fences!
 
   impl_->device.resetFences(impl_->renderFence.get());
+
+  // Wait to resize until we're sure the GPU is done rendering the previous frame to ensure we don't
+  // futz with any Vulkan handles the GPU may still be using
+  if(needsResizing_) {
+    do_resize_();
+    needsResizing_ = false;
+  }
 
   // Don't call reset on the UniqueCommandBuffer; that's the std::unique_ptr API that will destroy
   // the object!
@@ -505,17 +552,14 @@ void VulkanBackend::render_frame() {
   renderPassBeginInfo.renderArea.offset.x = 0;
   renderPassBeginInfo.renderArea.offset.y = 0;
 
-  const auto windowDim                         = window_.dimensions();
-  renderPassBeginInfo.renderArea.extent.width  = windowDim.first;
-  renderPassBeginInfo.renderArea.extent.height = windowDim.second;
+  renderPassBeginInfo.renderArea.extent.width  = impl_->surfaceWidth;
+  renderPassBeginInfo.renderArea.extent.height = impl_->surfaceHeight;
 
   // TODO: validate swapchainImageIdx
   renderPassBeginInfo.framebuffer = impl_->framebuffers.at(swapchainImageIdx.value).get();
 
   vk::ClearValue clearValue;
-  clearValue.color.setFloat32({
-    {0.0f, 1.0f, 0.0f, 1.0f}
-  });
+  clearValue.color.setFloat32(CLEAR_COLOR);
   renderPassBeginInfo.clearValueCount = 1;
   renderPassBeginInfo.pClearValues    = &clearValue;
 
@@ -552,6 +596,23 @@ void VulkanBackend::render_frame() {
     logger_.trace(ss);
   }
   ++impl_->numFrames;
+}
+
+void VulkanBackend::do_resize_() {
+  // We need to destroy the framebuffers, swapchain image views, and the swapchain, and then
+  // recreate them (according to the new dimensions of the window) in reverse order.
+  for(auto &fb : impl_->framebuffers) {
+    fb.reset(nullptr);
+  }
+  for(auto &swapchainImageView : impl_->swapchainImageViews) {
+    vkDestroyImageView(impl_->pDevice->device, swapchainImageView, nullptr);
+  }
+  vkb::destroy_swapchain(*(impl_->pSwapchain));
+  // N.B. we tell the setup functions not to track the created objects in the FIFO, since the
+  // handles to the objects will already be in the FIFO by this point; the existing handles are
+  // simply being pointed at new objects
+  impl_->step5_create_swapchain(*this, false);
+  impl_->step8_create_framebuffers(*this, false);
 }
 
 }  // namespace omulator

@@ -18,6 +18,7 @@ Subsystem::Subsystem(ILogger                  &logger,
     name_{name},
     receiver_{mbrouter.claim_mailbox(mailboxToken)},
     sender_{mbrouter.get_mailbox(mailboxToken)},
+    startSignal_{false},
     thrd_{&Subsystem::thrd_proc_, this, onStart, onEnd} {
   std::string str("Creating subsystem: ");
   str += name_;
@@ -46,9 +47,15 @@ void Subsystem::message_proc(const msg::Message &msg) {
 
 void Subsystem::stop() { thrd_.request_stop(); }
 
+void Subsystem::start_() {
+  startSignal_.store(true, std::memory_order_release);
+  startSignal_.notify_all();
+}
+
 void Subsystem::thrd_proc_(std::function<void()> onStart, std::function<void()> onEnd) {
   // Wrap each thread in its own exception handler
   try {
+    startSignal_.wait(false, std::memory_order_acquire);
     onStart();
     auto stoken = thrd_.get_stop_token();
     while(!stoken.stop_requested()) {

@@ -32,6 +32,9 @@ struct SystemWindow::Impl_ {
       case WM_CLOSE:
         context.inputHandler_.handle_input(InputHandler::InputEvent::QUIT);
         break;
+      case WM_SIZE:
+        context.inputHandler_.handle_input(InputHandler::InputEvent::RESIZE);
+        break;
       default:
         retval = DefWindowProc(hwnd, msg, wparam, lparam);
     }
@@ -94,7 +97,7 @@ std::pair<U32, U32> SystemWindow::dimensions() const noexcept {
   }
 
   RECT rect;
-  if(GetWindowRect(impl_->hwnd, &rect)) {
+  if(GetClientRect(impl_->hwnd, &rect)) {
     const U32 x = rect.right - rect.left;
     const U32 y = rect.bottom - rect.top;
 

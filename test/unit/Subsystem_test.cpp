@@ -30,7 +30,9 @@ public:
   TestSubsys(ILogger &logger, MailboxRouter &mbrouter, U64 &i, Sequencer &sequencer)
     : Subsystem(logger, "TestSubsys", mbrouter, TypeHash<TestSubsys>),
       i_{i},
-      sequencer_{sequencer} { }
+      sequencer_{sequencer} {
+    start_();
+  }
   ~TestSubsys() override = default;
 
   void message_proc(const Message &msg) override {

@@ -15,6 +15,7 @@ public:
   VulkanBackend(ILogger &logger, PropertyMap &propertyMap, IWindow &window);
   ~VulkanBackend() override;
 
+  void handle_resize() override;
   void render_frame() override;
 
 private:
@@ -23,5 +24,10 @@ private:
 
   PropertyMap &propertyMap_;
   IWindow     &window_;
+
+  bool needsResizing_;
+  bool shouldRender_;
+
+  void do_resize_();
 };
 }  // namespace omulator

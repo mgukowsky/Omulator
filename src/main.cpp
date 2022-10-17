@@ -1,12 +1,12 @@
 #include "omulator/main.hpp"
 
 #include "omulator/App.hpp"
-#include "omulator/IGraphicsBackend.hpp"
 #include "omulator/ILogger.hpp"
 #include "omulator/IWindow.hpp"
 #include "omulator/InputHandler.hpp"
 #include "omulator/Interpreter.hpp"
 #include "omulator/PropertyMap.hpp"
+#include "omulator/TestGraphicsEngine.hpp"
 #include "omulator/di/Injector.hpp"
 #include "omulator/msg/MailboxRouter.hpp"
 #include "omulator/props.hpp"
@@ -35,13 +35,15 @@ int oml_main(const int argc, const char **argv) {
     // to associate the window with the graphics API.
     wnd.show();
 
-    [[maybe_unused]] auto &graphicsBackend = injector.get<IGraphicsBackend>();
+    [[maybe_unused]] auto &testGraphicsEngine = injector.get<TestGraphicsEngine>();
     if(injector.get<PropertyMap>().get_prop<bool>(props::INTERACTIVE).get()) {
       [[maybe_unused]] auto &cliinput    = injector.get<util::CLIInput>();
       [[maybe_unused]] auto &interpreter = injector.get<Interpreter>();
     }
 
     msg::MailboxReceiver mbrecv = injector.get<msg::MailboxRouter>().claim_mailbox<App>();
+    msg::MailboxSender   testEngineMailbox =
+      injector.get<msg::MailboxRouter>().get_mailbox<TestGraphicsEngine>();
 
     bool done = false;
 
@@ -54,8 +56,8 @@ int oml_main(const int argc, const char **argv) {
         },
         msg::RecvBehavior::NONBLOCK);
       wnd.pump_msgs();
-      graphicsBackend.render_frame();
-      // std::this_thread::sleep_for(16ms);
+      testEngineMailbox.send_single_message(msg::MessageType::RENDER_FRAME);
+      std::this_thread::sleep_for(16ms);
     }
   }
 

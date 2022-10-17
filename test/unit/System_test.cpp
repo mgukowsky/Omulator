@@ -80,7 +80,9 @@ public:
           std::function<void()> onDestruction)
     : Subsystem(logger, TypeString<SubsysA>, mbrouter, TypeHash<SubsysA>),
       onDemoMsgA_(onDemoMsgA),
-      onDestruction_(onDestruction) { }
+      onDestruction_(onDestruction) {
+    start_();
+  }
   ~SubsysA() override { onDestruction_(); }
 
   void message_proc(const Message &msg) override {

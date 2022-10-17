@@ -130,7 +130,9 @@ Interpreter::Interpreter(di::Injector &injector)
       Interpreter::instanceFlag_ = false;
     }),
     injector_(injector),
-    logger_(injector_.get<ILogger>()) { }
+    logger_(injector_.get<ILogger>()) {
+  start_();
+}
 
 void Interpreter::exec(std::string str) {
   pybind11::exec(str);
@@ -163,6 +165,9 @@ void Interpreter::message_proc(const msg::Message &msg) {
     auto fence = reinterpret_cast<std::atomic_bool *>(msg.payload);
     fence->store(true, std::memory_order_release);
     fence->notify_all();
+  }
+  else {
+    Subsystem::message_proc(msg);
   }
 }
 

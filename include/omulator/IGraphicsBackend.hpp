@@ -14,7 +14,8 @@ public:
   IGraphicsBackend(ILogger &logger) : logger_(logger) { }
   virtual ~IGraphicsBackend() = default;
 
-  virtual void render_frame() = 0;
+  virtual void handle_resize() = 0;
+  virtual void render_frame()  = 0;
 
 protected:
   ILogger &logger_;

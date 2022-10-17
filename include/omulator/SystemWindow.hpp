@@ -3,6 +3,7 @@
 #include "omulator/ILogger.hpp"
 #include "omulator/IWindow.hpp"
 #include "omulator/InputHandler.hpp"
+#include "omulator/msg/MailboxRouter.hpp"
 #include "omulator/util/Pimpl.hpp"
 
 namespace omulator {

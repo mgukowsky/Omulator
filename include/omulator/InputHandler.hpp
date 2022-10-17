@@ -13,7 +13,7 @@ public:
   /**
    * Platform-agnostic input events.
    */
-  enum class InputEvent { QUIT };
+  enum class InputEvent { QUIT, RESIZE };
 
   explicit InputHandler(msg::MailboxRouter &mbrouter);
 
@@ -24,5 +24,10 @@ private:
    * Used to send messages to the main App instance.
    */
   msg::MailboxSender appSender_;
+
+  /**
+   * Used to send messages to the graphics backend.
+   */
+  msg::MailboxSender graphicsSender_;
 };
 }  // namespace omulator
