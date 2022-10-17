@@ -160,7 +160,7 @@ void Interpreter::message_proc(const msg::Message &msg) {
     }
   }
   else if(msg.type == msg::MessageType::SIMPLE_FENCE) {
-    auto fence = msg.get_managed_payload<std::atomic_bool *>();
+    auto fence = reinterpret_cast<std::atomic_bool *>(msg.payload);
     fence->store(true, std::memory_order_release);
     fence->notify_all();
   }

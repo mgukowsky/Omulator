@@ -49,14 +49,14 @@ void CLIInput::input_loop() {
 
       auto mq = msgSender_.get_mq();
       mq->push_managed_payload<std::string>(msg::MessageType::STDIN_STRING, std::move(str));
-      mq->push_managed_payload<std::atomic_bool *>(msg::MessageType::SIMPLE_FENCE, &fence);
+      mq->push<std::atomic_bool *>(msg::MessageType::SIMPLE_FENCE, &fence);
       msgSender_.send(mq);
 
       // Wait on the fence to ensure that the CLI prompt only displays after the Interpreter has
       // printed its own output (the prompt may still be mangled if Omulator's logger is printing to
       // stdout in the meantime though, since the printing of the prompt to stdin is not
       // synchronized with Omulator's own logging functionality).
-      fence.wait(false);
+      fence.wait(false, std::memory_order_acquire);
     }
   }
 }
