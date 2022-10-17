@@ -159,6 +159,11 @@ void Interpreter::message_proc(const msg::Message &msg) {
       logger_.error(e.what());
     }
   }
+  else if(msg.type == msg::MessageType::SIMPLE_FENCE) {
+    auto fence = msg.get_managed_payload<std::atomic_bool *>();
+    fence->store(true, std::memory_order_release);
+    fence->notify_all();
+  }
 }
 
 std::pair<std::string, std::string> Interpreter::reset_stdio_() {

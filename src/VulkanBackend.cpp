@@ -366,16 +366,26 @@ struct VulkanBackend::Impl_ {
       context, presentSemaphore, [&] { return device.createSemaphoreUnique(semaphoreCreateInfo); });
   }
 
-  void validate_vk_return(VulkanBackend &context, VkResult result) {
-    if(result != VK_SUCCESS) {
+  void validate_vk_return(VulkanBackend &context, std::string_view op, VkResult result) {
+    // Timeouts are not great, but tolerable. This enables us to continue execution in debugging
+    // scenarios where timeouts may be exceeded, such as having the debugger paused on a breakpoint.
+    // The downside to this approach is that it is incumbent on the end user to kill the program if
+    // there is some sort of GPU driver failure that causes an operation to never return and
+    // consequently lock up the application
+    if(result == VK_TIMEOUT) {
       std::stringstream ss;
-      ss << "Vulkan failure; error code: " << vkErrorString(result);
+      ss << "Vulkan timeout detected in operation '" << op << "'";
+      context.logger_.warn(ss);
+    }
+    else if(result != VK_SUCCESS) {
+      std::stringstream ss;
+      ss << "Vulkan failure in operation '" << op << "'; error code: " << vkErrorString(result);
       vk_fatal(context, ss.str());
     }
   }
 
-  void validate_vk_return(VulkanBackend &context, vk::Result result) {
-    validate_vk_return(context, VkResult(result));
+  void validate_vk_return(VulkanBackend &context, std::string_view op, vk::Result result) {
+    validate_vk_return(context, op, VkResult(result));
   }
 
   template<typename T>
@@ -459,8 +469,16 @@ VulkanBackend::VulkanBackend(ILogger &logger, PropertyMap &propertyMap, IWindow 
 VulkanBackend::~VulkanBackend() { }
 
 void VulkanBackend::render_frame() {
-  impl_->validate_vk_return(
-    *this, impl_->device.waitForFences(impl_->renderFence.get(), true, GPU_MAX_TIMEOUT_NS));
+  auto waitForFencesResult =
+    impl_->device.waitForFences(impl_->renderFence.get(), true, GPU_MAX_TIMEOUT_NS);
+  impl_->validate_vk_return(*this, "waitForFences", waitForFencesResult);
+  // I _think_ we're good to continue if we get eTimeout here; in a situation where this times out
+  // due to a breakpoint, we'll log the timeout, reset the fences, and continue on our merry way. I
+  // guess it's _possible_ to get undefined behavior in other circumstances... I think? In any case,
+  // we would get a timeout at this point every time we subsequently called this function if we
+  // returned here in the face of eTimeout, since we would never again hit the code below to reset
+  // the fences!
+
   impl_->device.resetFences(impl_->renderFence.get());
 
   // Don't call reset on the UniqueCommandBuffer; that's the std::unique_ptr API that will destroy
@@ -469,7 +487,13 @@ void VulkanBackend::render_frame() {
 
   const auto swapchainImageIdx = impl_->device.acquireNextImageKHR(
     impl_->swapchain, GPU_MAX_TIMEOUT_NS, impl_->presentSemaphore.get());
-  impl_->validate_vk_return(*this, swapchainImageIdx.result);
+  impl_->validate_vk_return(*this, "acquireNextImageKHR", swapchainImageIdx.result);
+  // On this codepath we should abandon the renderpass if we get eTimeout, and try again later. The
+  // semaphore will remain unsignaled, but that's OK since we will try again at the next frame; as
+  // long as the fences have been reset by this point we're OK to abandon the frame.
+  if(swapchainImageIdx.result == vk::Result::eTimeout) {
+    return;
+  }
 
   auto                      &cmdBuffer = impl_->mainCommandBuffers[0].get();
   vk::CommandBufferBeginInfo cmdBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
@@ -520,7 +544,7 @@ void VulkanBackend::render_frame() {
   presentInfo.waitSemaphoreCount = 1;
   presentInfo.pImageIndices      = &(swapchainImageIdx.value);
 
-  impl_->validate_vk_return(*this, impl_->graphicsQueue.presentKHR(presentInfo));
+  impl_->validate_vk_return(*this, "presentKHR", impl_->graphicsQueue.presentKHR(presentInfo));
   {
     std::stringstream ss;
     ss << "Rendering frame #";

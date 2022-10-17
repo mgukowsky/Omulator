@@ -34,6 +34,12 @@ enum class MessageType : U32 {
   APP_QUIT,
 
   /**
+   * A fence (std::atomic_bool*) which should be signaled by the receiver; the sender is likely
+   * waiting on this to be signaled
+   */
+  SIMPLE_FENCE,
+
+  /**
    * A string received on STDIN.
    */
   STDIN_STRING,
