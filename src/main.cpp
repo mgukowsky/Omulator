@@ -54,7 +54,8 @@ int oml_main(const int argc, const char **argv) {
         },
         msg::RecvBehavior::NONBLOCK);
       wnd.pump_msgs();
-      std::this_thread::sleep_for(16ms);
+      graphicsBackend.render_frame();
+      // std::this_thread::sleep_for(16ms);
     }
   }
 

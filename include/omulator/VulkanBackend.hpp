@@ -15,6 +15,8 @@ public:
   VulkanBackend(ILogger &logger, PropertyMap &propertyMap, IWindow &window);
   ~VulkanBackend() override;
 
+  void render_frame() override;
+
 private:
   struct Impl_;
   util::Pimpl<Impl_> impl_;

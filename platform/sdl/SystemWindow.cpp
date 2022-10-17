@@ -71,6 +71,18 @@ void SystemWindow::connect_to_graphics_api(IGraphicsBackend::GraphicsAPI graphic
   }
 }
 
+std::pair<U32, U32> SystemWindow::dimensions() const noexcept {
+  if(impl_->pwnd == nullptr) {
+    logger_.warn("SystemWindow::dimensions called prior to window initialization");
+    return {0, 0};
+  }
+
+  int x, y;
+  SDL_GetWindowSize(impl_->pwnd, &x, &y);
+
+  return {static_cast<U32>(x), static_cast<U32>(y)};
+}
+
 void SystemWindow::pump_msgs() {
   SDL_Event event;
   while(SDL_PollEvent(&event)) {

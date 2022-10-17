@@ -14,6 +14,8 @@ public:
                                void                         *pDataA,
                                void                         *pDataB) override;
 
+  std::pair<U32, U32> dimensions() const noexcept override;
+
   void pump_msgs() override;
 
   void show() override;

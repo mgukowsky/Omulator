@@ -87,6 +87,24 @@ void SystemWindow::connect_to_graphics_api(IGraphicsBackend::GraphicsAPI graphic
   }
 }
 
+std::pair<U32, U32> SystemWindow::dimensions() const noexcept {
+  if(impl_->hwnd == nullptr) {
+    logger_.warn("SystemWindow::dimensions called prior to window initialization");
+    return {0, 0};
+  }
+
+  RECT rect;
+  if(GetWindowRect(impl_->hwnd, &rect)) {
+    const U32 x = rect.right - rect.left;
+    const U32 y = rect.bottom - rect.top;
+
+    return {x, y};
+  }
+  else {
+    return {0, 0};
+  }
+}
+
 void SystemWindow::pump_msgs() {
   MSG msg = {};
   while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
