@@ -16,7 +16,6 @@ using ::testing::HasSubstr;
 using omulator::ILogger;
 using omulator::Subsystem;
 using omulator::U64;
-using omulator::di::TypeHash;
 using omulator::msg::MailboxReceiver;
 using omulator::msg::MailboxRouter;
 using omulator::msg::MailboxSender;
@@ -24,6 +23,7 @@ using omulator::msg::Message;
 using omulator::msg::MessageQueueFactory;
 using omulator::msg::MessageType;
 using omulator::test::Sequencer;
+using omulator::util::TypeHash;
 
 class TestSubsys : public Subsystem {
 public:

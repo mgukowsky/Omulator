@@ -1,8 +1,8 @@
 #pragma once
 
 #include "omulator/PrimitiveIO.hpp"
-#include "omulator/di/TypeHash.hpp"
 #include "omulator/di/TypeMap.hpp"
+#include "omulator/util/TypeHash.hpp"
 #include "omulator/util/TypeString.hpp"
 
 #include <algorithm>
@@ -21,6 +21,7 @@
 #include <vector>
 
 namespace omulator::di {
+using util::TypeHash;
 using util::TypeString;
 
 /**
@@ -77,7 +78,7 @@ class Injector {
 public:
   using Container_t = std::unique_ptr<TypeContainerBase>;
   using Recipe_t    = std::function<Container_t(Injector &)>;
-  using RecipeMap_t = std::map<Hash_t, Recipe_t>;
+  using RecipeMap_t = std::map<util::Hash_t, Recipe_t>;
 
   /**
    * Ensure we strip off all pointers/qualifiers/etc. from any types used with the Injector
@@ -330,7 +331,7 @@ private:
    * found, and the second element is either a reference to the recipe or a reference to a null
    * recipe if no recipe was found.
    */
-  std::pair<bool, Recipe_t> find_recipe_(const Hash_t hsh);
+  std::pair<bool, Recipe_t> find_recipe_(const util::Hash_t hsh);
 
   /**
    * Perform the actual injection.
@@ -448,11 +449,11 @@ private:
   // Tracks the order in which type map instances are instantiated; used to ensure that dependencies
   // are destroyed in the correct order, i.e. we destroy the dependencies in the reverse order in
   // which they are created to ensure we don't destroy a dependency before its dependent(s).
-  std::vector<Hash_t> invocationList_;
+  std::vector<util::Hash_t> invocationList_;
 
   // Tracks the types that are currently being injected; used to detect cycles. Though we use this
   // as a stack, we choose a set since we'll be searching it frequently.
-  std::set<Hash_t> typeHashStack_;
+  std::set<util::Hash_t> typeHashStack_;
 
   // Ensure well as injections themselves are atomic
   mutable std::mutex injectionMtx_;

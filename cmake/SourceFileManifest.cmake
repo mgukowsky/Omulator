@@ -8,7 +8,7 @@ set(
     src/NullWindow.cpp
     src/SpdlogLogger.cpp
     src/Subsystem.cpp
-    src/TestGraphicsEngine.cpp
+    src/CoreGraphicsEngine.cpp
     src/VulkanBackend.cpp
     src/di/Injector.cpp
     src/di/injector_rules.cpp

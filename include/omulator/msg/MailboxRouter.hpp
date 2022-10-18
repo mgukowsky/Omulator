@@ -1,10 +1,10 @@
 #pragma once
 
 #include "omulator/ILogger.hpp"
-#include "omulator/di/TypeHash.hpp"
 #include "omulator/msg/MailboxReceiver.hpp"
 #include "omulator/msg/MailboxSender.hpp"
 #include "omulator/msg/MessageQueue.hpp"
+#include "omulator/util/TypeHash.hpp"
 
 #include <map>
 #include <memory>
@@ -13,7 +13,7 @@
 
 namespace omulator::msg {
 
-using MailboxToken_t = di::Hash_t;
+using MailboxToken_t = util::Hash_t;
 
 class MailboxRouter {
 public:
@@ -32,7 +32,7 @@ public:
    */
   template<typename Raw_t, typename T = std::remove_pointer_t<std::decay_t<Raw_t>>>
   MailboxReceiver claim_mailbox() {
-    return claim_mailbox(di::TypeHash<T>);
+    return claim_mailbox(util::TypeHash<T>);
   }
 
   /**
@@ -48,7 +48,7 @@ public:
    */
   template<typename Raw_t, typename T = std::remove_pointer_t<std::decay_t<Raw_t>>>
   MailboxSender get_mailbox() {
-    return get_mailbox(di::TypeHash<T>);
+    return get_mailbox(util::TypeHash<T>);
   }
 
 private:

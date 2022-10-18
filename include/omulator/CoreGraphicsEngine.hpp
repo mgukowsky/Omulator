@@ -8,10 +8,10 @@
 
 namespace omulator {
 
-class TestGraphicsEngine : public Subsystem {
+class CoreGraphicsEngine : public Subsystem {
 public:
-  explicit TestGraphicsEngine(di::Injector &injector);
-  ~TestGraphicsEngine() = default;
+  explicit CoreGraphicsEngine(di::Injector &injector);
+  ~CoreGraphicsEngine() = default;
 
   void message_proc(const msg::Message &msg) override;
 

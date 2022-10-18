@@ -6,7 +6,7 @@ using omulator::PropertyMap;
 using omulator::PropertyValue;
 using omulator::S64;
 using omulator::U64;
-using omulator::di::TypeHash;
+using omulator::util::TypeHash;
 
 TEST(PropertyMap_test, usageTest) {
   omulator::PropertyMap propertyMap;

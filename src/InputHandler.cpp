@@ -1,13 +1,13 @@
 #include "omulator/InputHandler.hpp"
 
 #include "omulator/App.hpp"
-#include "omulator/TestGraphicsEngine.hpp"
+#include "omulator/CoreGraphicsEngine.hpp"
 
 namespace omulator {
 
 InputHandler::InputHandler(msg::MailboxRouter &mbrouter)
   : appSender_(mbrouter.get_mailbox<App>()),
-    graphicsSender_(mbrouter.get_mailbox<TestGraphicsEngine>()) { }
+    graphicsSender_(mbrouter.get_mailbox<CoreGraphicsEngine>()) { }
 
 void InputHandler::handle_input(const InputEvent input) {
   switch(input) {

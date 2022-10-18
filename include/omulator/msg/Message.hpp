@@ -1,9 +1,9 @@
 #pragma once
 
-#include "omulator/di/TypeHash.hpp"
 #include "omulator/di/TypeMap.hpp"
 #include "omulator/msg/MessageType.hpp"
 #include "omulator/oml_types.hpp"
+#include "omulator/util/TypeHash.hpp"
 #include "omulator/util/to_underlying.hpp"
 
 #include <cassert>
@@ -50,7 +50,7 @@ struct Message {
     // creation, and should match the type T that we're casting to provided that the message is
     // being interpreted correctly.
     // TODO: maybe should throw instead of just assert?
-    assert(di::TypeHash<std::decay_t<T>> == pCtr->identity());
+    assert(util::TypeHash<std::decay_t<T>> == pCtr->identity());
 
     return pCtr->ref();
   }

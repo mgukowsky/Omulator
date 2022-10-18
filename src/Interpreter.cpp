@@ -2,10 +2,10 @@
 
 #include "omulator/App.hpp"
 #include "omulator/ILogger.hpp"
-#include "omulator/di/TypeHash.hpp"
 #include "omulator/msg/MailboxRouter.hpp"
 #include "omulator/msg/Message.hpp"
 #include "omulator/msg/MessageType.hpp"
+#include "omulator/util/TypeHash.hpp"
 #include "omulator/util/TypeString.hpp"
 
 #include <pybind11/attr.h>
@@ -22,7 +22,7 @@ using namespace pybind11::literals;
 
 using pybind11::doc;
 
-using omulator::di::TypeHash;
+using omulator::util::TypeHash;
 using omulator::util::TypeString;
 
 namespace {

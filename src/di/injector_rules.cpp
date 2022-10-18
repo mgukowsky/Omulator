@@ -4,6 +4,7 @@
  */
 
 #include "omulator/Clock.hpp"
+#include "omulator/CoreGraphicsEngine.hpp"
 #include "omulator/IGraphicsBackend.hpp"
 #include "omulator/ILogger.hpp"
 #include "omulator/InputHandler.hpp"
@@ -12,21 +13,20 @@
 #include "omulator/PropertyMap.hpp"
 #include "omulator/SpdlogLogger.hpp"
 #include "omulator/SystemWindow.hpp"
-#include "omulator/TestGraphicsEngine.hpp"
 #include "omulator/VulkanBackend.hpp"
 #include "omulator/di/Injector.hpp"
-#include "omulator/di/TypeHash.hpp"
 #include "omulator/msg/MailboxRouter.hpp"
 #include "omulator/msg/MessageQueueFactory.hpp"
 #include "omulator/props.hpp"
 #include "omulator/util/CLIInput.hpp"
 #include "omulator/util/CLIParser.hpp"
+#include "omulator/util/TypeHash.hpp"
 
 #include <map>
 #include <memory_resource>
 #include <thread>
 
-using omulator::di::TypeHash;
+using omulator::util::TypeHash;
 
 namespace omulator::di {
 void Injector::installDefaultRules(Injector &injector) {
@@ -39,7 +39,7 @@ void Injector::installDefaultRules(Injector &injector) {
   injector.addCtorRecipe<SystemWindow, ILogger &, InputHandler &>();
   injector.addCtorRecipe<InputHandler, msg::MailboxRouter &>();
   injector.addCtorRecipe<Interpreter, di::Injector &>();
-  injector.addCtorRecipe<TestGraphicsEngine, di::Injector &>();
+  injector.addCtorRecipe<CoreGraphicsEngine, di::Injector &>();
   injector.addCtorRecipe<VulkanBackend, ILogger &, PropertyMap &, IWindow &>();
   injector.addCtorRecipe<util::CLIInput, ILogger &, msg::MailboxRouter &>();
 

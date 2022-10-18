@@ -24,14 +24,14 @@ Injector::Injector(Injector *pUpstream) : Injector() { pUpstream_ = pUpstream; }
 
 Injector::~Injector() {
   // Delete the elements in the type map in the reverse order they were constructed
-  std::for_each(invocationList_.rbegin(), invocationList_.rend(), [this](const Hash_t &thash) {
-    typeMap_.erase(thash);
-  });
+  std::for_each(invocationList_.rbegin(),
+                invocationList_.rend(),
+                [this](const util::Hash_t &thash) { typeMap_.erase(thash); });
 }
 
 bool Injector::is_root() const noexcept { return pUpstream_ == nullptr; }
 
-std::pair<bool, Injector::Recipe_t> Injector::find_recipe_(const Hash_t hsh) {
+std::pair<bool, Injector::Recipe_t> Injector::find_recipe_(const util::Hash_t hsh) {
   std::scoped_lock lck(recipeMapMtx_);
 
   auto recipeIt = std::find_if(

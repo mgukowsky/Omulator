@@ -1,6 +1,6 @@
 #pragma once
 
-#include "omulator/di/TypeHash.hpp"
+#include "omulator/util/TypeHash.hpp"
 
 #include <concepts>
 #include <memory>
@@ -15,23 +15,23 @@ namespace omulator::di {
 // Container providing type erasure
 class TypeContainerBase {
 public:
-  explicit TypeContainerBase(const Hash_t hsh) : hsh_(hsh) { }
+  explicit TypeContainerBase(const util::Hash_t hsh) : hsh_(hsh) { }
   virtual ~TypeContainerBase() = default;
 
   /**
    * Return the TypeHash of the contained instance; used for a degree of type safety.
    */
-  inline Hash_t identity() const noexcept { return hsh_; }
+  inline util::Hash_t identity() const noexcept { return hsh_; }
 
 protected:
-  Hash_t hsh_;
+  util::Hash_t hsh_;
 };
 
 template<typename T>
 class TypeContainer : public TypeContainerBase {
 public:
   TypeContainer()
-    : TypeContainerBase(TypeHash<std::decay_t<T>>), ptr_(nullptr), hasOwnership_(false) { }
+    : TypeContainerBase(util::TypeHash<std::decay_t<T>>), ptr_(nullptr), hasOwnership_(false) { }
 
   ~TypeContainer() override { release_(); }
 
@@ -108,7 +108,7 @@ private:
  */
 class TypeMap {
 public:
-  bool contains(const Hash_t hsh) const noexcept {
+  bool contains(const util::Hash_t hsh) const noexcept {
     std::scoped_lock lck(mtx_);
     return map_.contains(hsh);
   }
@@ -133,8 +133,8 @@ public:
 
     std::scoped_lock lck(mtx_);
 
-    map_.emplace(TypeHash<T>, std::make_unique<TypeContainer<T>>());
-    auto pContainerBase = map_.at(TypeHash<T>).get();
+    map_.emplace(util::TypeHash<T>, std::make_unique<TypeContainer<T>>());
+    auto pContainerBase = map_.at(util::TypeHash<T>).get();
     reinterpret_cast<TypeContainer<T> *>(pContainerBase)
       ->createInstance(std::forward<Args>(args)...);
     return false;
@@ -149,8 +149,8 @@ public:
     else {
       std::scoped_lock lck(mtx_);
 
-      map_.emplace(TypeHash<Interface>, std::make_unique<TypeContainer<Interface>>());
-      auto pContainerBase = map_.at(TypeHash<Interface>).get();
+      map_.emplace(util::TypeHash<Interface>, std::make_unique<TypeContainer<Interface>>());
+      auto pContainerBase = map_.at(util::TypeHash<Interface>).get();
       reinterpret_cast<TypeContainer<Interface> *>(pContainerBase)->setref(&impl);
 
       return false;
@@ -168,7 +168,7 @@ public:
     }
 
     std::scoped_lock lck(mtx_);
-    map_.emplace(TypeHash<T>, std::move(ctr));
+    map_.emplace(util::TypeHash<T>, std::move(ctr));
 
     return false;
   }
@@ -189,12 +189,12 @@ public:
     ctr->setref(pT);
 
     std::scoped_lock lck(mtx_);
-    map_.emplace(TypeHash<T>, std::move(ctr));
+    map_.emplace(util::TypeHash<T>, std::move(ctr));
 
     return false;
   }
 
-  void erase(const Hash_t hsh) {
+  void erase(const util::Hash_t hsh) {
     std::scoped_lock lck(mtx_);
     map_.erase(hsh);
   }
@@ -205,7 +205,7 @@ public:
   template<typename T>
   inline T &ref() const {
     std::scoped_lock lck(mtx_);
-    auto             pContainerBase = map_.at(TypeHash<T>).get();
+    auto             pContainerBase = map_.at(util::TypeHash<T>).get();
     return reinterpret_cast<TypeContainer<T> *>(pContainerBase)->ref();
   }
 
@@ -214,7 +214,7 @@ public:
     // TODO: I _think_ count is slightly more efficient than find() for unordered_map in this
     // use case, since the count can only be either 0 or 1...
     std::scoped_lock lck(mtx_);
-    return map_.count(TypeHash<T>);
+    return map_.count(util::TypeHash<T>);
   }
 
 private:
@@ -224,7 +224,7 @@ private:
    * unique_ptr here is NOT redundant with the one in TypeContainer; if we just used a raw
    * pointer as the value, then the destructor in TypeContainer would never be triggered.
    */
-  std::unordered_map<Hash_t, std::unique_ptr<TypeContainerBase>> map_;
+  std::unordered_map<util::Hash_t, std::unique_ptr<TypeContainerBase>> map_;
 
   mutable std::mutex mtx_;
 };

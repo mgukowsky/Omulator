@@ -24,14 +24,14 @@ using omulator::SubsystemList_t;
 using omulator::System;
 using omulator::U64;
 using omulator::di::Injector;
-using omulator::di::TypeHash;
-using omulator::di::TypeString;
 using omulator::msg::MailboxRouter;
 using omulator::msg::Message;
 using omulator::msg::MessageCallback_t;
 using omulator::msg::MessageQueueFactory;
 using omulator::msg::MessageType;
 using omulator::test::Sequencer;
+using omulator::util::TypeHash;
+using omulator::util::TypeString;
 
 namespace {
 

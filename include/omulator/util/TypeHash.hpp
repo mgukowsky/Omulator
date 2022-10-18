@@ -9,7 +9,7 @@
  *
  * Based on https://github.com/Manu343726/ctti/blob/master/include/ctti/detail/hash.hpp
  */
-namespace omulator::di {
+namespace omulator::util {
 
 namespace detail {
   constinit const std::uint32_t FNV_BASIS_32 = 0x811C'9DC5;
@@ -65,4 +65,4 @@ constinit const inline auto TypeHash = TypeHash64<T>;
  */
 using Hash_t = std::remove_const_t<decltype(TypeHash<void>)>;
 
-} /* namespace omulator::di */
+}  // namespace omulator::util

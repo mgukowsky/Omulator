@@ -1,20 +1,20 @@
-#include "omulator/TestGraphicsEngine.hpp"
+#include "omulator/CoreGraphicsEngine.hpp"
 
 #include "omulator/util/TypeString.hpp"
 
 namespace omulator {
-TestGraphicsEngine::TestGraphicsEngine(di::Injector &injector)
+CoreGraphicsEngine::CoreGraphicsEngine(di::Injector &injector)
   : Subsystem(injector.get<ILogger>(),
-              util::TypeString<TestGraphicsEngine>,
+              util::TypeString<CoreGraphicsEngine>,
               injector.get<msg::MailboxRouter>(),
-              di::TypeHash<TestGraphicsEngine>),
+              util::TypeHash<CoreGraphicsEngine>),
     injector_(injector),
     logger_(injector_.get<ILogger>()),
     graphicsBackend_(injector_.get<IGraphicsBackend>()) {
   start_();
 }
 
-void TestGraphicsEngine::message_proc(const msg::Message &msg) {
+void CoreGraphicsEngine::message_proc(const msg::Message &msg) {
   if(msg.type == msg::MessageType::RENDER_FRAME) {
     graphicsBackend_.render_frame();
   }

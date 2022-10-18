@@ -1,8 +1,8 @@
 #pragma once
 
-#include "omulator/di/TypeHash.hpp"
 #include "omulator/oml_types.hpp"
 #include "omulator/util/Spinlock.hpp"
+#include "omulator/util/TypeHash.hpp"
 
 #include <atomic>
 #include <mutex>
@@ -108,7 +108,7 @@ public:
   &get_prop(std::string key) {
     std::scoped_lock lck{mtx_};
 
-    constexpr auto typeHash = di::TypeHash<T>;
+    constexpr auto typeHash = util::TypeHash<T>;
 
     auto entryIt = map_.find(key);
     if(entryIt == map_.end()) {
@@ -129,19 +129,19 @@ public:
 
     // We need if constexpr here to prevent the compiler from emitting code that would return a
     // PropertyValue with a different type argument than what the return value is expecting.
-    if constexpr(typeHash == di::TypeHash<S64>) {
+    if constexpr(typeHash == util::TypeHash<S64>) {
       return entry.s64Val;
     }
-    if constexpr(typeHash == di::TypeHash<U64>) {
+    if constexpr(typeHash == util::TypeHash<U64>) {
       return entry.u64Val;
     }
-    else if constexpr(typeHash == di::TypeHash<bool>) {
+    else if constexpr(typeHash == util::TypeHash<bool>) {
       return entry.boolVal;
     }
-    else if constexpr(typeHash == di::TypeHash<double>) {
+    else if constexpr(typeHash == util::TypeHash<double>) {
       return entry.doubleVal;
     }
-    else if constexpr(typeHash == di::TypeHash<std::string>) {
+    else if constexpr(typeHash == util::TypeHash<std::string>) {
       return entry.stringVal;
     }
     else {
@@ -159,11 +159,11 @@ public:
    * Returns a pair consisting of a boolean indicating if the key is present and the TypeHash of the
    * value (or 0 if the key is not present).
    */
-  std::pair<bool, di::Hash_t> query_prop(std::string_view key) {
+  std::pair<bool, util::Hash_t> query_prop(std::string_view key) {
     auto it = map_.find(std::string(key));
 
-    const bool found = (it != map_.end());
-    di::Hash_t hsh   = 0;
+    const bool   found = (it != map_.end());
+    util::Hash_t hsh   = 0;
 
     if(found) {
       hsh = it->second.tag;
@@ -174,16 +174,16 @@ public:
 
 private:
   struct MapEntry {
-    MapEntry(const di::Hash_t tagArg) : tag{tagArg} {
+    MapEntry(const util::Hash_t tagArg) : tag{tagArg} {
       // We need to use placement new to properly initialize non-trivial types in the union.
-      if(tag == di::TypeHash<std::string>) {
+      if(tag == util::TypeHash<std::string>) {
         new(&stringVal) PropertyValue<std::string>;
       }
     }
 
     ~MapEntry() {
       // We need to explicitly destroy non-trivial types in the union.
-      if(tag == di::TypeHash<std::string>) {
+      if(tag == util::TypeHash<std::string>) {
         stringVal.~PropertyValue<std::string>();
       }
     }
@@ -199,7 +199,7 @@ private:
     };
 
     // Store a tag for the type so that we can have some degree of type safety
-    const di::Hash_t tag;
+    const util::Hash_t tag;
   };
 
   std::unordered_map<std::string, MapEntry> map_;
