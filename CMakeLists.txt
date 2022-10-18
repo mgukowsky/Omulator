@@ -82,7 +82,10 @@ find_package(
 find_package(
   Vulkan
     REQUIRED
+  COMPONENTS
+    glslc
 )
+find_program(glslc_exe NAMES glslc HINTS Vulkan::glslc)
 
 add_subdirectory("third_party/docopt.cpp")
 # Add exception handling to docopt to make MSVC happy
@@ -186,6 +189,58 @@ target_sources(
   ${PROJECT_NAME}
   PRIVATE
   ${OML_SOURCE_FILE_MANIFEST}
+)
+
+# Shader compilation
+# Based on https://stackoverflow.com/a/68457439
+set(SHADER_OUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+add_custom_command(
+  COMMAND
+    ${CMAKE_COMMAND} -E make_directory ${SHADER_OUT_DIR}
+  OUTPUT
+    ${SHADER_OUT_DIR}
+  COMMENT
+    "Creating directory ${SHADER_OUT_DIR}"
+)
+
+foreach(SHADER IN LISTS OML_SHADER_FILE_MANIFEST)
+  get_filename_component(FILENAME ${SHADER} NAME)
+  set(SHADER_BIN ${SHADER_OUT_DIR}/${FILENAME}.spv)
+  add_custom_command(
+    COMMAND
+      ${glslc_exe}
+    ARGS
+      -o ${SHADER_BIN}
+      --target-env=vulkan1.1
+      -Werror
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:-g>
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:-O0>
+      $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:-O>
+      ${CMAKE_CURRENT_LIST_DIR}/${SHADER}
+    OUTPUT
+      ${SHADER_BIN}
+    DEPENDS
+      ${SHADER_OUT_DIR}
+    COMMENT
+      "Compiling shader ${SHADER}"
+  )
+
+  list(
+    APPEND
+    COMPILED_SHADERS
+      ${SHADER_BIN}
+  )
+endforeach()
+
+add_custom_target(
+  SHADER_COMPILATION
+  DEPENDS
+    ${COMPILED_SHADERS}
+)
+
+add_dependencies(
+  ${PROJECT_NAME}
+    SHADER_COMPILATION
 )
 
 # Tests

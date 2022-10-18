@@ -21,9 +21,16 @@ set(
     src/util/exception_handler.cpp
     src/util/CLIInput.cpp
     src/util/CLIParser.cpp
+    src/vkmisc/Shader.cpp
     ${PLATFORM_DIR}/KillableThread.cpp
     ${PLATFORM_DIR}/PrimitiveIO.cpp
     ${PLATFORM_DIR}/SystemWindow.cpp
+)
+
+set(
+  OML_SHADER_FILE_MANIFEST
+    shaders/triangle.frag
+    shaders/triangle.vert
 )
 
 if(MSVC)

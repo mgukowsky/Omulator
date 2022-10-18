@@ -4,6 +4,7 @@
 #include "omulator/IWindow.hpp"
 #include "omulator/PropertyMap.hpp"
 #include "omulator/util/Pimpl.hpp"
+#include "omulator/vkmisc/Shader.hpp"
 
 namespace omulator {
 
