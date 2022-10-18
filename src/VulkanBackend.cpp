@@ -5,7 +5,6 @@
 #include "omulator/util/TypeString.hpp"
 #include "omulator/util/reinterpret.hpp"
 
-#define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
 #include <vulkan/vulkan.hpp>
 
 #include <VkBootstrap.h>
@@ -207,7 +206,10 @@ struct VulkanBackend::Impl_ {
     vkb::PhysicalDeviceSelector physicalDeviceSelector(*pInstance);
 
     // TODO: any other criteria we care about? Any required features/extensions?
-    auto selection = physicalDeviceSelector.set_surface(surface).set_minimum_version(1, 1).select();
+    auto selection = physicalDeviceSelector.set_surface(surface)
+                       .set_minimum_version(1, 1)
+                       .prefer_gpu_device_type(vkb::PreferredDeviceType::discrete)
+                       .select();
     validate_vkb_return(context, selection);
 
     vkb::DeviceBuilder deviceBuilder(selection.value());
@@ -243,11 +245,12 @@ struct VulkanBackend::Impl_ {
     surfaceWidth    = dims.first;
     surfaceHeight   = dims.second;
 
-    // TODO: ensure triple buffering is setup with MAILBOX_KHR and/or allow an option for vsync via
-    // FIFO_KHR
+    // TODO: we prefer triple buffering since it plays nicely with MAILBOX_KHR, but we should allow
+    // for vsync w/ fewer buffers via FIFO_KHR, perhaps through a config value...
     swapchainBuilder.use_default_format_selection()
       .set_desired_present_mode(VK_PRESENT_MODE_MAILBOX_KHR)
-      .set_desired_extent(surfaceWidth, surfaceHeight);
+      .set_desired_extent(surfaceWidth, surfaceHeight)
+      .set_desired_min_image_count(vkb::SwapchainBuilder::BufferMode::TRIPLE_BUFFERING);
     const auto swapchainBuildRet = swapchainBuilder.build();
     validate_vkb_return(context, swapchainBuildRet);
     pSwapchain = std::make_unique<vkb::Swapchain>(swapchainBuildRet.value());

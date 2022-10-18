@@ -35,6 +35,9 @@ function(configure_target target_name)
 
       # _REENTRANT signals parts of the stdlib to use threadsafe functions
       $<$<BOOL:UNIX>:_REENTRANT>
+
+      # Use the default vulkan.hpp loader
+      VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
   )
 
   # Best practice to check for PIE before enabling it

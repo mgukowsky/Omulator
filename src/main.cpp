@@ -1,6 +1,7 @@
 #include "omulator/main.hpp"
 
 #include "omulator/App.hpp"
+#include "omulator/IClock.hpp"
 #include "omulator/ILogger.hpp"
 #include "omulator/IWindow.hpp"
 #include "omulator/InputHandler.hpp"
@@ -44,10 +45,13 @@ int oml_main(const int argc, const char **argv) {
     msg::MailboxReceiver mbrecv = injector.get<msg::MailboxRouter>().claim_mailbox<App>();
     msg::MailboxSender   testEngineMailbox =
       injector.get<msg::MailboxRouter>().get_mailbox<TestGraphicsEngine>();
+    IClock &clock = injector.get<IClock>();
 
     bool done = false;
 
     while(!done) {
+      const TimePoint_t timeOfNextIteration = clock.now() + 16ms;
+
       mbrecv.recv(
         [&](const msg::Message &msg) {
           if(msg.type == msg::MessageType::APP_QUIT) {
@@ -57,7 +61,8 @@ int oml_main(const int argc, const char **argv) {
         msg::RecvBehavior::NONBLOCK);
       wnd.pump_msgs();
       testEngineMailbox.send_single_message(msg::MessageType::RENDER_FRAME);
-      std::this_thread::sleep_for(16ms);
+
+      clock.sleep_until(timeOfNextIteration);
     }
   }
 
