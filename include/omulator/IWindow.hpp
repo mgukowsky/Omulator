@@ -51,6 +51,12 @@ public:
 protected:
   void set_shown_(const bool newVal) noexcept { shown_.store(newVal, std::memory_order_release); }
 
+  /**
+   * Default window dimensions, in pixels.
+   */
+  static constexpr auto DEFAULT_WIDTH_  = 640;
+  static constexpr auto DEFAULT_HEIGHT_ = 480;
+
 private:
   std::atomic_bool shown_;
 };

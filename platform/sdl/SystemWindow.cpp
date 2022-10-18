@@ -1,16 +1,44 @@
 #include "omulator/SystemWindow.hpp"
 
+#include "omulator/oml_types.hpp"
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
 
+#include <functional>
 #include <sstream>
 #include <stdexcept>
+#include <utility>
+
+using omulator::U32;
+using WindowDim_t = std::pair<U32, U32>;
+
+namespace {
+
+WindowDim_t getWindowDimDefault(SDL_Window *pwnd) {
+  int x, y;
+  SDL_GetWindowSize(pwnd, &x, &y);
+
+  return {static_cast<U32>(x), static_cast<U32>(y)};
+}
+
+WindowDim_t getWindowDimVk(SDL_Window *pwnd) {
+  int x, y;
+  SDL_Vulkan_GetDrawableSize(pwnd, &x, &y);
+
+  return {static_cast<U32>(x), static_cast<U32>(y)};
+}
+}  // namespace
 
 namespace omulator {
 struct SystemWindow::Impl_ {
   SDL_Window *pwnd;
 
-  Impl_() : pwnd(nullptr) { }
+  // SDL has slightly different methods of determining window dimensions depending on the graphics
+  // API in use
+  std::function<WindowDim_t(SDL_Window *)> windowDimFn;
+
+  Impl_() : pwnd(nullptr), windowDimFn(getWindowDimDefault) { }
   ~Impl_() = default;
 
   void sdl_fatal(ILogger &logger) {
@@ -45,6 +73,12 @@ struct SystemWindow::Impl_ {
       inputHandler.handle_input(InputHandler::InputEvent::QUIT);
     }
   }
+
+  void handle_window_event(InputHandler &inputHandler, SDL_Event &event) {
+    if(event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+      inputHandler.handle_input(InputHandler::InputEvent::RESIZE);
+    }
+  }
 };
 
 SystemWindow::SystemWindow(ILogger &logger, InputHandler &inputHandler)
@@ -64,10 +98,14 @@ void SystemWindow::connect_to_graphics_api(IGraphicsBackend::GraphicsAPI graphic
                                            void                         *pDataA,
                                            void                         *pDataB) {
   if(graphicsApi == IGraphicsBackend::GraphicsAPI::VULKAN) {
+    impl_->windowDimFn = getWindowDimVk;
     impl_->check_sdl_return(logger_,
                             SDL_Vulkan_CreateSurface(impl_->pwnd,
                                                      *(reinterpret_cast<VkInstance *>(pDataA)),
                                                      reinterpret_cast<VkSurfaceKHR *>(pDataB)));
+  }
+  else {
+    impl_->windowDimFn = getWindowDimDefault;
   }
 }
 
@@ -77,10 +115,7 @@ std::pair<U32, U32> SystemWindow::dimensions() const noexcept {
     return {0, 0};
   }
 
-  int x, y;
-  SDL_GetWindowSize(impl_->pwnd, &x, &y);
-
-  return {static_cast<U32>(x), static_cast<U32>(y)};
+  return impl_->windowDimFn(impl_->pwnd);
 }
 
 void SystemWindow::pump_msgs() {
@@ -89,6 +124,12 @@ void SystemWindow::pump_msgs() {
     switch(event.type) {
       case SDL_KEYDOWN:
         impl_->handle_key(inputHandler_, event);
+        break;
+      case SDL_QUIT:
+        inputHandler_.handle_input(InputHandler::InputEvent::QUIT);
+        break;
+      case SDL_WINDOWEVENT:
+        impl_->handle_window_event(inputHandler_, event);
         break;
       default:
         break;
@@ -105,8 +146,8 @@ void SystemWindow::show() {
     WINDOW_TITLE,
     SDL_WINDOWPOS_UNDEFINED,
     SDL_WINDOWPOS_UNDEFINED,
-    640,
-    480,
+    DEFAULT_WIDTH_,
+    DEFAULT_HEIGHT_,
     SDL_WINDOW_VULKAN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
   impl_->check_sdl_return(logger_, impl_->pwnd);
 

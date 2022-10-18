@@ -18,10 +18,10 @@ Shader::Shader(vk::Device &device, std::filesystem::path path) : device_(device)
 
   // Fancy method to effciently read a file into a buffer; from
   // https://vulkan-tutorial.com/Drawing_a_triangle/Graphics_pipeline_basics/Shader_modules#page_Loading-a-shader
-  buff_.resize(ifs.tellg());
+  buff_.resize(static_cast<std::size_t>(ifs.tellg()));
   ifs.seekg(0);
 
-  ifs.read(buff_.data(), buff_.size());
+  ifs.read(buff_.data(), static_cast<std::streamsize>(buff_.size()));
   ifs.close();
 
   vk::ShaderModuleCreateInfo shaderModuleCreateInfo(
