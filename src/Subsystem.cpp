@@ -26,7 +26,11 @@ Subsystem::Subsystem(ILogger                  &logger,
 }
 
 Subsystem::~Subsystem() {
+  // Awkward looking, but necessary in case we have a derived Subsystem constructor that throws an
+  // exception before it can call start_(). We call stop() first to ensure that the stop token is
+  // set, then call start_() to unblock the startSignal_ in case it needs to be signaled.
   stop();
+  start_();
 
   sender_.send_single_message(msg::MessageType::POKE);
 }

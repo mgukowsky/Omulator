@@ -116,6 +116,8 @@ struct VulkanBackend::Impl_ {
       renderPass(nullptr),
       graphicsQueue(nullptr),
       graphicsQueueFamily(0),
+      presentQueue(nullptr),
+      presentQueueFamily(0),
       surface(nullptr),
       pDevice(nullptr),
       pInstance(nullptr),
@@ -125,7 +127,9 @@ struct VulkanBackend::Impl_ {
       surfaceHeight(0),
       numFrames(0) { }
   ~Impl_() {
-    device.waitIdle();
+    if(pDevice.get() != nullptr) {
+      device.waitIdle();
+    }
 
     // Clear out the FIFO; from https://vkguide.dev/docs/chapter-2/cleanup/
     for(auto it = deleterFIFO.rbegin(); it != deleterFIFO.rend(); ++it) {
@@ -163,6 +167,22 @@ struct VulkanBackend::Impl_ {
     auto systemInfoRet = vkb::SystemInfo::get_system_info();
     validate_vkb_return(context, systemInfoRet);
     pSystemInfo = std::make_unique<vkb::SystemInfo>(systemInfoRet.value());
+
+    std::stringstream ss;
+    ss << "Instance info: \n";
+    ss << "Available extensions: ";
+
+    for(const auto &ext : pSystemInfo->available_extensions) {
+      ss << "\t" << ext.extensionName << "(" << ext.specVersion << ")\n";
+    }
+
+    ss << "\nAvailable layers: ";
+    for(const auto &layer : pSystemInfo->available_layers) {
+      ss << "\t" << layer.layerName << "(spec: " << layer.specVersion
+         << "; impl: " << layer.implementationVersion << " ): " << layer.description << "\n";
+    }
+
+    context.logger_.debug(ss);
   }
 
   void step2_create_instance(VulkanBackend &context) {
@@ -170,9 +190,15 @@ struct VulkanBackend::Impl_ {
 
     instanceBuilder.set_app_name("Omulator").require_api_version(1, 1, 0);
 
+    // Enable enumeration of non-conformant implementations which may be installed. See
+    // https://vulkan-tutorial.com/Drawing_a_triangle/Setup/Instance#page_Encountered-VK_ERROR_INCOMPATIBLE_DRIVER
+    if(pSystemInfo->is_extension_available(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME)) {
+      instanceBuilder.enable_extension(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+    }
+
     if(context.propertyMap_.get_prop<bool>(props::VKDEBUG).get()) {
       instanceBuilder.request_validation_layers();
-      if(pSystemInfo->is_extension_available(VK_EXT_DEBUG_UTILS_EXTENSION_NAME)) {
+      if(pSystemInfo->debug_utils_available) {
         instanceBuilder.enable_extension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME)
           .set_debug_callback(&Impl_::debug_callback)
           .set_debug_callback_user_data_pointer(&context);
@@ -209,6 +235,8 @@ struct VulkanBackend::Impl_ {
     auto selection = physicalDeviceSelector.set_surface(surface)
                        .set_minimum_version(1, 1)
                        .prefer_gpu_device_type(vkb::PreferredDeviceType::discrete)
+                       .require_present(true)
+                       .add_required_extension(VK_KHR_SWAPCHAIN_EXTENSION_NAME)
                        .select();
     validate_vkb_return(context, selection);
 
@@ -235,6 +263,14 @@ struct VulkanBackend::Impl_ {
     validate_vkb_return(context, graphicsQueueIndexRet);
     graphicsQueueFamily = graphicsQueueIndexRet.value();
 
+    auto presentQueueRet = pDevice->get_queue(vkb::QueueType::present);
+    validate_vkb_return(context, presentQueueRet);
+
+    presentQueue = vk::Queue(presentQueueRet.value());
+
+    auto presentQueueIndexRet = pDevice->get_queue_index(vkb::QueueType::present);
+    validate_vkb_return(context, presentQueueIndexRet);
+    presentQueueFamily = presentQueueIndexRet.value();
     // TODO: any other queues we want to retrieve?
   }
 
@@ -247,7 +283,15 @@ struct VulkanBackend::Impl_ {
 
     // TODO: we prefer triple buffering since it plays nicely with MAILBOX_KHR, but we should allow
     // for vsync w/ fewer buffers via FIFO_KHR, perhaps through a config value...
-    swapchainBuilder.use_default_format_selection()
+    swapchainBuilder
+      .use_default_format_selection()
+      // Can set to TRANSFER_DST_BIT if rendering somewhere else first
+      .add_image_usage_flags(VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+      // Don't blend with other windows in the window system
+      .set_composite_alpha_flags(VkCompositeAlphaFlagBitsKHR::VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR)
+      // Don't care about pixels that fall outside the presentable area (N.B. the docs advise
+      // against fragment shaders with side-effects when using this setting)
+      .set_clipped(true)
       .set_desired_present_mode(VK_PRESENT_MODE_MAILBOX_KHR)
       .set_desired_extent(surfaceWidth, surfaceHeight)
       .set_desired_min_image_count(vkb::SwapchainBuilder::BufferMode::TRIPLE_BUFFERING);
@@ -441,6 +485,8 @@ struct VulkanBackend::Impl_ {
   vk::UniqueSemaphore                  presentSemaphore;
   vk::Queue                            graphicsQueue;
   U32                                  graphicsQueueFamily;
+  vk::Queue                            presentQueue;
+  U32                                  presentQueueFamily;
   VkSurfaceKHR                         surface;
 
   // N.B. that these are vulkan.hpp wrappers around non-owning references to vk-bootsrap objects,
