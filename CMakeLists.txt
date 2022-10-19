@@ -82,10 +82,10 @@ find_package(
 find_package(
   Vulkan
     REQUIRED
-  COMPONENTS
-    glslc
+  # COMPONENTS
+  #   glslc
 )
-find_program(glslc_exe NAMES glslc HINTS Vulkan::glslc)
+find_program(GLSLC_EXE NAMES glslc HINTS Vulkan::glslc)
 
 add_subdirectory("third_party/docopt.cpp")
 # Add exception handling to docopt to make MSVC happy
@@ -208,7 +208,7 @@ foreach(SHADER IN LISTS OML_SHADER_FILE_MANIFEST)
   set(SHADER_BIN ${SHADER_OUT_DIR}/${FILENAME}.spv)
   add_custom_command(
     COMMAND
-      ${glslc_exe}
+      ${GLSLC_EXE}
     ARGS
       -o ${SHADER_BIN}
       --target-env=vulkan1.1
@@ -232,16 +232,22 @@ foreach(SHADER IN LISTS OML_SHADER_FILE_MANIFEST)
   )
 endforeach()
 
-add_custom_target(
-  SHADER_COMPILATION
-  DEPENDS
-    ${COMPILED_SHADERS}
-)
-
-add_dependencies(
-  ${PROJECT_NAME}
+if(GLSLC_EXE)
+  add_custom_target(
     SHADER_COMPILATION
-)
+    DEPENDS
+      ${COMPILED_SHADERS}
+  )
+
+  add_dependencies(
+    ${PROJECT_NAME}
+      SHADER_COMPILATION
+  )
+else()
+  # TODO: This is a stopgap until we can get glslc into our CI environment; tests may run w/o the
+  # compiled shaders, but our app won't.
+  message(WARNING "Skipping shader compilation because glslc could not be found")
+endif()
 
 # Tests
 if(OMULATOR_BUILD_TESTS)
