@@ -142,13 +142,13 @@ void SystemWindow::show() {
     return;
   }
 
-  impl_->pwnd = SDL_CreateWindow(
-    WINDOW_TITLE,
-    SDL_WINDOWPOS_UNDEFINED,
-    SDL_WINDOWPOS_UNDEFINED,
-    DEFAULT_WIDTH_,
-    DEFAULT_HEIGHT_,
-    SDL_WINDOW_VULKAN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+  impl_->pwnd =
+    SDL_CreateWindow(WINDOW_TITLE,
+                     SDL_WINDOWPOS_UNDEFINED,
+                     SDL_WINDOWPOS_UNDEFINED,
+                     DEFAULT_WIDTH_,
+                     DEFAULT_HEIGHT_,
+                     SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
   impl_->check_sdl_return(logger_, impl_->pwnd);
 
   set_shown_(true);
