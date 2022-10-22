@@ -12,9 +12,7 @@ public:
   SystemWindow(ILogger &logger, InputHandler &inputHandler);
   ~SystemWindow() override;
 
-  void connect_to_graphics_api(IGraphicsBackend::GraphicsAPI graphicsApi,
-                               void                         *pDataA,
-                               void                         *pDataB) override;
+  void *connect_to_graphics_api(IGraphicsBackend::GraphicsAPI graphicsApi, void *pData) override;
 
   std::pair<U32, U32> dimensions() const noexcept override;
 

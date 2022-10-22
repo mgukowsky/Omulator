@@ -21,6 +21,8 @@
 #include "omulator/util/CLIInput.hpp"
 #include "omulator/util/CLIParser.hpp"
 #include "omulator/util/TypeHash.hpp"
+#include "omulator/vkmisc/Initializer.hpp"
+#include "omulator/vkmisc/Swapchain.hpp"
 
 #include <map>
 #include <memory_resource>
@@ -40,8 +42,16 @@ void Injector::installDefaultRules(Injector &injector) {
   injector.addCtorRecipe<InputHandler, msg::MailboxRouter &>();
   injector.addCtorRecipe<Interpreter, di::Injector &>();
   injector.addCtorRecipe<CoreGraphicsEngine, di::Injector &>();
-  injector.addCtorRecipe<VulkanBackend, ILogger &, PropertyMap &, IWindow &>();
+  injector.addCtorRecipe<VulkanBackend,
+                         ILogger &,
+                         Injector &,
+                         IWindow &,
+                         vk::raii::Device &,
+                         vkmisc::Swapchain &>();
   injector.addCtorRecipe<util::CLIInput, ILogger &, msg::MailboxRouter &>();
+  injector.addCtorRecipe<vkmisc::Swapchain, Injector &, ILogger &, IWindow &, vk::raii::Device &>();
+
+  vkmisc::install_vk_initializer_rules(injector);
 
   /**
    * Implementations should be bound to interfaces here.

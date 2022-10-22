@@ -21,7 +21,11 @@ set(
     src/util/exception_handler.cpp
     src/util/CLIInput.cpp
     src/util/CLIParser.cpp
+    src/vkmisc/Frame.cpp
+    src/vkmisc/Initializer.cpp
     src/vkmisc/Shader.cpp
+    src/vkmisc/Swapchain.cpp
+    src/vkmisc/VkBootstrapUtil.cpp
     ${PLATFORM_DIR}/KillableThread.cpp
     ${PLATFORM_DIR}/PrimitiveIO.cpp
     ${PLATFORM_DIR}/SystemWindow.cpp

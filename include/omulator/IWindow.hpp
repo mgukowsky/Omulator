@@ -17,15 +17,10 @@ public:
   virtual ~IWindow() = default;
 
   /**
-   * Associate a window with a given graphics API.
-   *
-   * TODO: the two opaque handles we pass in to this function are perhaps a little too opaque, even
-   * though they will mean different things depending on who calls this function and what graphics
-   * API is selected... regardless, can we give the parameters more descriptive names?
+   * Associate a window with a given graphics API, returning an object representing that association
+   * (e.g a surface).
    */
-  virtual void connect_to_graphics_api(IGraphicsBackend::GraphicsAPI graphicsApi,
-                                       void                         *pDataA,
-                                       void                         *pDataB) = 0;
+  virtual void *connect_to_graphics_api(IGraphicsBackend::GraphicsAPI graphicsApi, void *pData) = 0;
 
   /**
    * Get the dimensions of the window.

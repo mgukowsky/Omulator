@@ -7,6 +7,9 @@
 
 namespace omulator::vkmisc {
 
+/**
+ * Holds a single SPIR-V compiled shader loaded from the filesystem.
+ */
 class Shader {
 public:
   Shader(vk::Device &device, std::filesystem::path path);

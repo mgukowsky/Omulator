@@ -1,9 +1,11 @@
 #include "omulator/SystemWindow.hpp"
 
 #include "omulator/oml_types.hpp"
+#include "omulator/util/reinterpret.hpp"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
+#include <vulkan/vulkan_raii.hpp>
 
 #include <functional>
 #include <sstream>
@@ -94,18 +96,21 @@ SystemWindow::~SystemWindow() {
   SDL_Quit();
 }
 
-void SystemWindow::connect_to_graphics_api(IGraphicsBackend::GraphicsAPI graphicsApi,
-                                           void                         *pDataA,
-                                           void                         *pDataB) {
+void *SystemWindow::connect_to_graphics_api(IGraphicsBackend::GraphicsAPI graphicsApi,
+                                            void                         *pData) {
+  auto &instance = util::reinterpret<vk::raii::Instance>(pData);
+
   if(graphicsApi == IGraphicsBackend::GraphicsAPI::VULKAN) {
+    VkSurfaceKHR surface;
     impl_->windowDimFn = getWindowDimVk;
-    impl_->check_sdl_return(logger_,
-                            SDL_Vulkan_CreateSurface(impl_->pwnd,
-                                                     *(reinterpret_cast<VkInstance *>(pDataA)),
-                                                     reinterpret_cast<VkSurfaceKHR *>(pDataB)));
+    impl_->check_sdl_return(logger_, SDL_Vulkan_CreateSurface(impl_->pwnd, *instance, &surface));
+
+    return surface;
   }
   else {
     impl_->windowDimFn = getWindowDimDefault;
+    logger_.warn("Returning nullptr in SystemWindow::connect_to_graphics_api");
+    return nullptr;
   }
 }
 

@@ -236,6 +236,13 @@ public:
   }
 
   /**
+   * Version of creat() which moves the T instance out of the unique_ptr container. Requires the
+   * type be moveable.
+   */
+  template<typename Raw_t, typename T = InjType_t<Raw_t>>
+  requires std::is_move_constructible_v<T> T creat_move() { return std::move(*(creat<T>())); }
+
+  /**
    * Retrieve an instance of type T.
    * If type T has not yet been instantiated, then an new instance is created with the proper
    * dependencies injected.

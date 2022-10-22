@@ -1,6 +1,7 @@
 #pragma once
 
 #include "omulator/ILogger.hpp"
+#include "omulator/di/Injector.hpp"
 
 namespace omulator {
 
@@ -11,13 +12,15 @@ class IGraphicsBackend {
 public:
   enum class GraphicsAPI { VULKAN };
 
-  IGraphicsBackend(ILogger &logger) : logger_(logger) { }
+  IGraphicsBackend(ILogger &logger, di::Injector &injector)
+    : logger_(logger), injector_(injector) { }
   virtual ~IGraphicsBackend() = default;
 
   virtual void handle_resize() = 0;
   virtual void render_frame()  = 0;
 
 protected:
-  ILogger &logger_;
+  ILogger      &logger_;
+  di::Injector &injector_;
 };
 }  // namespace omulator
