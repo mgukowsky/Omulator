@@ -205,6 +205,7 @@ add_custom_command(
 
 foreach(SHADER IN LISTS OML_SHADER_FILE_MANIFEST)
   get_filename_component(FILENAME ${SHADER} NAME)
+  set(SHADER_SRC ${PROJECT_SOURCE_DIR}/${SHADER})
   set(SHADER_BIN ${SHADER_OUT_DIR}/${FILENAME}.spv)
   add_custom_command(
     COMMAND
@@ -216,7 +217,9 @@ foreach(SHADER IN LISTS OML_SHADER_FILE_MANIFEST)
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:-g>
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:-O0>
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:-O>
-      ${CMAKE_CURRENT_LIST_DIR}/${SHADER}
+      ${SHADER_SRC}
+    MAIN_DEPENDENCY
+      ${SHADER_SRC}
     OUTPUT
       ${SHADER_BIN}
     DEPENDS

@@ -80,16 +80,10 @@ void SystemWindow::connect_to_graphics_api(IGraphicsBackend::GraphicsAPI graphic
     createInfo.hwnd      = impl_->hwnd;
     createInfo.hinstance = impl_->hinstance;
 
-    auto        &instance = util::reinterpret<vk::raii::Instance>(pDataA);
+    auto        &instance = util::reinterpret<vk::raii::Instance>(pData);
     VkSurfaceKHR surface;
 
-    if(vkCreateWin32SurfaceKHR(
-         instance,
-         &createInfo,
-         nullptr,
-         &surface;
-       != VK_SUCCESS)
-    {
+    if(vkCreateWin32SurfaceKHR(instance, &createInfo, nullptr, &surface) != VK_SUCCESS) {
       throw std::runtime_error("Failed to create Win32 Vulkan surface");
     }
 
