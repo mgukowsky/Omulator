@@ -73,7 +73,8 @@ SystemWindow::SystemWindow(ILogger &logger, InputHandler &inputHandler)
 
 SystemWindow::~SystemWindow() { }
 
-void SystemWindow::connect_to_graphics_api(IGraphicsBackend::GraphicsAPI graphicsApi, void *pData) {
+void *SystemWindow::connect_to_graphics_api(IGraphicsBackend::GraphicsAPI graphicsApi,
+                                            void                         *pData) {
   if(graphicsApi == IGraphicsBackend::GraphicsAPI::VULKAN) {
     VkWin32SurfaceCreateInfoKHR createInfo{};
     createInfo.sType     = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
@@ -83,7 +84,7 @@ void SystemWindow::connect_to_graphics_api(IGraphicsBackend::GraphicsAPI graphic
     auto        &instance = util::reinterpret<vk::raii::Instance>(pData);
     VkSurfaceKHR surface;
 
-    if(vkCreateWin32SurfaceKHR(instance, &createInfo, nullptr, &surface) != VK_SUCCESS) {
+    if(vkCreateWin32SurfaceKHR(*instance, &createInfo, nullptr, &surface) != VK_SUCCESS) {
       throw std::runtime_error("Failed to create Win32 Vulkan surface");
     }
 
