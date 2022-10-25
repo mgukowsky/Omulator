@@ -1,8 +1,12 @@
 #pragma once
 
-#include <vulkan/vulkan.hpp>
+#include "omulator/ILogger.hpp"
+#include "omulator/PropertyMap.hpp"
 
-#include <filesystem>
+#include <vulkan/vulkan_raii.hpp>
+
+#include <string>
+#include <string_view>
 #include <vector>
 
 namespace omulator::vkmisc {
@@ -12,18 +16,25 @@ namespace omulator::vkmisc {
  */
 class Shader {
 public:
-  Shader(vk::Device &device, std::filesystem::path path);
+  static constexpr auto ENTRY_POINT = "main";
+  static constexpr auto SHADER_DIR  = "shaders";
+
+  Shader(ILogger                    &logger,
+         vk::raii::Device           &device,
+         std::string_view            filename,
+         PropertyValue<std::string> &workingDir);
 
   const char *data() const noexcept;
 
-  vk::ShaderModule &get() noexcept;
+  vk::raii::ShaderModule &get() noexcept;
 
   std::size_t size() const noexcept;
 
 private:
-  vk::Device            &device_;
+  ILogger               &logger_;
+  vk::raii::Device      &device_;
   std::vector<char>      buff_;
-  vk::UniqueShaderModule shaderModule_;
+  vk::raii::ShaderModule shaderModule_;
 };
 
 }  // namespace omulator::vkmisc

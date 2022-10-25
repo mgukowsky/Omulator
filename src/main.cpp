@@ -15,6 +15,7 @@
 #include "omulator/util/CLIParser.hpp"
 #include "omulator/util/exception_handler.hpp"
 
+#include <filesystem>
 #include <thread>
 
 using namespace std::chrono_literals;
@@ -30,6 +31,13 @@ int oml_main(const int argc, const char **argv) {
     cliparser.parse_args(argc, argv);
 
     di::Injector::installDefaultRules(injector);
+
+    // TODO: find a better place to initialize these
+    auto &propertyMap = injector.get<PropertyMap>();
+    propertyMap.get_prop<std::string>(props::WORKING_DIR)
+      .set(std::filesystem::current_path().string());
+    propertyMap.get_prop<std::string>(props::RESOURCE_DIR)
+      .set(std::filesystem::absolute(*argv).parent_path().string());
 
     IWindow &wnd = injector.get<IWindow>();
     // The window MUST be shown prior to creating the graphics backend, otherwise we may not be able

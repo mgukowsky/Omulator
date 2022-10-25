@@ -2,18 +2,33 @@
 
 #include "omulator/oml_types.hpp"
 
+#include <filesystem>
 #include <fstream>
 #include <stdexcept>
+#include <string>
 
 namespace omulator::vkmisc {
 
-Shader::Shader(vk::Device &device, std::filesystem::path path) : device_(device) {
-  std::ifstream ifs(path, std::ios::ate | std::ios::binary);
+Shader::Shader(ILogger                    &logger,
+               vk::raii::Device           &device,
+               std::string_view            filename,
+               PropertyValue<std::string> &workingDir)
+  : logger_(logger), device_(device), shaderModule_(nullptr) {
+  // TODO: the path and shader dir should all be retrieved from PropertyMap!
+  auto          filepath = std::filesystem::path(workingDir.get()) / SHADER_DIR / filename;
+  std::ifstream ifs(filepath, std::ios::ate | std::ios::binary);
 
   if(!(ifs.is_open())) {
     std::string errmsg = "Failed to open file: ";
-    errmsg += path.string();
+    errmsg += filepath.string();
+
+    // TODO: don't throw; log the error and fall back to a known shader
     throw std::runtime_error(errmsg);
+  }
+  else {
+    std::string msg = "Successfully opened shader file: ";
+    msg += filepath.string();
+    logger_.info(msg);
   }
 
   // Fancy method to effciently read a file into a buffer; from
@@ -26,12 +41,12 @@ Shader::Shader(vk::Device &device, std::filesystem::path path) : device_(device)
 
   vk::ShaderModuleCreateInfo shaderModuleCreateInfo(
     {}, size(), reinterpret_cast<const U32 *>(data()), nullptr);
-  shaderModule_ = device_.createShaderModuleUnique(shaderModuleCreateInfo);
+  shaderModule_ = vk::raii::ShaderModule(device_, shaderModuleCreateInfo);
 }
 
 const char *Shader::data() const noexcept { return buff_.data(); }
 
-vk::ShaderModule &Shader::get() noexcept { return shaderModule_.get(); }
+vk::raii::ShaderModule &Shader::get() noexcept { return shaderModule_; }
 
 std::size_t Shader::size() const noexcept { return buff_.size(); }
 

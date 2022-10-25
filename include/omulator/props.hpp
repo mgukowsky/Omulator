@@ -16,8 +16,18 @@ constexpr auto HEADLESS = "sys.headless";
 constexpr auto INTERACTIVE = "sys.interactive";
 
 /**
+ * Root directory for resources; defaults to the directory of the executable.
+ */
+constexpr auto RESOURCE_DIR = "sys.resource_dir";
+
+/**
  * If true, turn on Vulkan debugging and validation.
  */
 constexpr auto VKDEBUG = "sys.vkdebug";
+
+/**
+ * Working directory; defaults to the initial value of std::filesystem::current_path()
+ */
+constexpr auto WORKING_DIR = "sys.working_dir";
 
 }  // namespace omulator::props

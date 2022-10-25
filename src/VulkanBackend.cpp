@@ -9,13 +9,21 @@
 
 namespace omulator {
 
-VulkanBackend::VulkanBackend(ILogger           &logger,
-                             di::Injector      &injector,
-                             IWindow           &window,
-                             vk::raii::Device  &device,
-                             vkmisc::Swapchain &swapchain)
-  : IGraphicsBackend(logger, injector), window_(window), device_(device), swapchain_(swapchain) {
+VulkanBackend::VulkanBackend(ILogger                &logger,
+                             di::Injector           &injector,
+                             IWindow                &window,
+                             vk::raii::Device       &device,
+                             vkmisc::Swapchain      &swapchain,
+                             vkmisc::Pipeline       &pipeline,
+                             vkmisc::DeviceQueues_t &deviceQueues)
+  : IGraphicsBackend(logger, injector),
+    window_(window),
+    device_(device),
+    swapchain_(swapchain),
+    pipeline_(pipeline) {
   logger_.info("Initializing Vulkan, this may take a moment...");
+
+  swapchain_.reset();
 
   for(std::size_t i = 0; i < vkmisc::NUM_FRAMES_IN_FLIGHT; ++i) {
     auto &cmdBuffs = injector.get<vk::raii::CommandBuffers>();
@@ -26,14 +34,16 @@ VulkanBackend::VulkanBackend(ILogger           &logger,
                          injector.creat_move<vk::raii::Fence>(),
                          injector.creat_move<vk::raii::Semaphore>(),
                          injector.creat_move<vk::raii::Semaphore>(),
-                         cmdBuffs.at(i));
+                         device_,
+                         cmdBuffs.at(i),
+                         swapchain_,
+                         pipeline_,
+                         deviceQueues);
   }
-
-  swapchain_.reset();
 
   logger_.info("Vulkan initialization completed");
 }
-VulkanBackend::~VulkanBackend() { }
+VulkanBackend::~VulkanBackend() { device_.waitIdle(); }
 
 void VulkanBackend::handle_resize() {
   const auto windowDims = window_.dimensions();
@@ -47,7 +57,7 @@ void VulkanBackend::handle_resize() {
   }
 }
 
-void VulkanBackend::render_frame() { }
+void VulkanBackend::render_frame() { frames_[0].render(); }
 
 void VulkanBackend::do_resize_() { swapchain_.reset(); }
 }  // namespace omulator

@@ -5,6 +5,8 @@
 #include "omulator/PropertyMap.hpp"
 #include "omulator/util/Pimpl.hpp"
 #include "omulator/vkmisc/Frame.hpp"
+#include "omulator/vkmisc/Initializer.hpp"
+#include "omulator/vkmisc/Pipeline.hpp"
 #include "omulator/vkmisc/Shader.hpp"
 #include "omulator/vkmisc/Swapchain.hpp"
 
@@ -19,11 +21,13 @@ namespace omulator {
  */
 class VulkanBackend : public IGraphicsBackend {
 public:
-  VulkanBackend(ILogger           &logger,
-                di::Injector      &injector,
-                IWindow           &window,
-                vk::raii::Device  &device,
-                vkmisc::Swapchain &swapchain);
+  VulkanBackend(ILogger                &logger,
+                di::Injector           &injector,
+                IWindow                &window,
+                vk::raii::Device       &device,
+                vkmisc::Swapchain      &swapchain,
+                vkmisc::Pipeline       &pipeline,
+                vkmisc::DeviceQueues_t &deviceQueues);
   ~VulkanBackend() override;
 
   void handle_resize() override;
@@ -33,6 +37,7 @@ private:
   IWindow           &window_;
   vk::raii::Device  &device_;
   vkmisc::Swapchain &swapchain_;
+  vkmisc::Pipeline  &pipeline_;
 
   std::vector<vkmisc::Frame> frames_;
 

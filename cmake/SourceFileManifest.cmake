@@ -23,6 +23,7 @@ set(
     src/util/CLIParser.cpp
     src/vkmisc/Frame.cpp
     src/vkmisc/Initializer.cpp
+    src/vkmisc/Pipeline.cpp
     src/vkmisc/Shader.cpp
     src/vkmisc/Swapchain.cpp
     src/vkmisc/VkBootstrapUtil.cpp

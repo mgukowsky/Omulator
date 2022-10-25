@@ -3,6 +3,8 @@
 #include "omulator/IWindow.hpp"
 #include "omulator/vkmisc/VkBootstrapUtil.hpp"
 
+#include <cassert>
+
 namespace omulator::vkmisc {
 
 struct Swapchain::Impl_ {
@@ -31,9 +33,18 @@ Swapchain::Swapchain(di::Injector     &injector,
 
 Swapchain::~Swapchain() { }
 
+std::pair<U32, U32> Swapchain::dimensions() const noexcept { return {surfaceWidth, surfaceHeight}; }
+
+vk::raii::Framebuffer &Swapchain::framebuffer(const std::size_t idx) {
+  assert(idx < framebuffers_.size() && "Framebuffer index must be in range");
+  return framebuffers_.at(idx);
+}
+
 vk::Format Swapchain::image_format() {
   return static_cast<vk::Format>(impl_->vkbSwapchain.image_format);
 }
+
+vk::raii::RenderPass &Swapchain::renderPass() { return renderPass_; }
 
 void Swapchain::reset() {
   clear_();
@@ -41,6 +52,8 @@ void Swapchain::reset() {
   build_image_views_();
   build_framebuffers_();
 }
+
+vk::raii::SwapchainKHR &Swapchain::swapchain() { return swapchain_; }
 
 void Swapchain::build_framebuffers_() {
   for(const auto &imageView : imageViews_) {
@@ -128,10 +141,10 @@ void Swapchain::create_renderpass_() {
   // One sample; no MSAA
   colorAttachment.samples = vk::SampleCountFlagBits::e1;
 
-  // Clear when the attachment is loaded
+  // Clear the values in the attachment to a constant when we start
   colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
 
-  // Keep the attachment stored when the renderpass ends
+  // Renderpass contents will be stored in memory and can be read later
   colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
 
   // Don't care about stencil ops
@@ -153,12 +166,23 @@ void Swapchain::create_renderpass_() {
   subpassDescription.colorAttachmentCount = 1;
   subpassDescription.pColorAttachments    = &colorAttachmentReference;
 
+  vk::SubpassDependency subpassDependency;
+  // TODO: why does this not accept anything other than the macro?
+  subpassDependency.srcSubpass    = VK_SUBPASS_EXTERNAL;
+  subpassDependency.dstSubpass    = 0;
+  subpassDependency.srcStageMask  = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+  subpassDependency.srcAccessMask = vk::AccessFlagBits::eNone;
+  subpassDependency.dstStageMask  = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+  subpassDependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+
   // Create the actual renderpass
   vk::RenderPassCreateInfo renderPassCreateInfo;
   renderPassCreateInfo.attachmentCount = 1;
   renderPassCreateInfo.pAttachments    = &colorAttachment;
   renderPassCreateInfo.subpassCount    = 1;
   renderPassCreateInfo.pSubpasses      = &subpassDescription;
+  renderPassCreateInfo.dependencyCount = 1;
+  renderPassCreateInfo.pDependencies   = &subpassDependency;
 
   renderPass_ = vk::raii::RenderPass(device_, renderPassCreateInfo);
 }

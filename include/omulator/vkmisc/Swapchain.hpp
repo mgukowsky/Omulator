@@ -20,8 +20,12 @@ public:
   Swapchain(di::Injector &injector, ILogger &logger, IWindow &window, vk::raii::Device &device);
   ~Swapchain();
 
-  vk::Format image_format();
-  void       reset();
+  std::pair<U32, U32>     dimensions() const noexcept;
+  vk::raii::Framebuffer  &framebuffer(const std::size_t idx);
+  vk::Format              image_format();
+  vk::raii::RenderPass   &renderPass();
+  void                    reset();
+  vk::raii::SwapchainKHR &swapchain();
 
 private:
   struct Impl_;

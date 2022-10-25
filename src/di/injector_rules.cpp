@@ -22,6 +22,7 @@
 #include "omulator/util/CLIParser.hpp"
 #include "omulator/util/TypeHash.hpp"
 #include "omulator/vkmisc/Initializer.hpp"
+#include "omulator/vkmisc/Pipeline.hpp"
 #include "omulator/vkmisc/Swapchain.hpp"
 
 #include <map>
@@ -47,9 +48,16 @@ void Injector::installDefaultRules(Injector &injector) {
                          Injector &,
                          IWindow &,
                          vk::raii::Device &,
-                         vkmisc::Swapchain &>();
+                         vkmisc::Swapchain &,
+                         vkmisc::Pipeline &,
+                         vkmisc::DeviceQueues_t &>();
   injector.addCtorRecipe<util::CLIInput, ILogger &, msg::MailboxRouter &>();
   injector.addCtorRecipe<vkmisc::Swapchain, Injector &, ILogger &, IWindow &, vk::raii::Device &>();
+  injector.addCtorRecipe<vkmisc::Pipeline,
+                         ILogger &,
+                         vk::raii::Device &,
+                         vkmisc::Swapchain &,
+                         PropertyMap &>();
 
   vkmisc::install_vk_initializer_rules(injector);
 
