@@ -33,6 +33,7 @@ Frame::Frame(ILogger                 &logger,
 
 bool Frame::render() {
   cmdBuff_.reset();
+  pipeline_.update_dynamic_state();
 
   auto [nextImgResult, imageIdx] =
     swapchain_.swapchain().acquireNextImage(GPU_MAX_TIMEOUT_NS, *presentSemaphore_);
@@ -123,6 +124,7 @@ void Frame::recordBuff_(const std::size_t idx) {
 
   cmdBuff_.beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
   cmdBuff_.bindPipeline(vk::PipelineBindPoint::eGraphics, *(pipeline_.pipeline()));
+
   cmdBuff_.setViewport(0, pipeline_.viewport());
   cmdBuff_.setScissor(0, pipeline_.scissor());
 

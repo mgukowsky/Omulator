@@ -30,6 +30,11 @@ public:
 
   void set_shader(const ShaderStage shaderStage, const std::string shader);
 
+  /**
+   * Updates dynamic state within the pipeline (i.e. state that may change per frame)
+   */
+  void update_dynamic_state();
+
   vk::Viewport &viewport();
 
 private:

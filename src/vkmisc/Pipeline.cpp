@@ -34,29 +34,17 @@ Pipeline::Pipeline(ILogger          &logger,
   inputAssemblyInfo_.topology               = vk::PrimitiveTopology::eTriangleList;
   inputAssemblyInfo_.primitiveRestartEnable = false;
 
-  // N.B. that, because we are using dynamic state for the viewport and scissor, we don't need a
-  // vk::ViewportStateCreateInfo struct!
-  {
-    // Grab the dims from the swapchain rather than the window to avoid a very unlikely but possible
-    // scenario where the swapchain would end up with different dims than what the window would have
-    // at this moment.
-    const auto dims = swapchain_.dimensions();
+  // Fairly standard viewport
+  viewport_.x        = 0;
+  viewport_.y        = 0;
+  viewport_.minDepth = 0.0f;
+  viewport_.maxDepth = 1.0f;
 
-    // Fairly standard viewport
-    viewport_.x        = 0;
-    viewport_.y        = 0;
-    viewport_.width    = static_cast<float>(dims.first);
-    viewport_.height   = static_cast<float>(dims.second);
-    viewport_.minDepth = 0.0f;
-    viewport_.maxDepth = 1.0f;
-
-    // Nothing special with the scissor
-    scissor_.offset = vk::Offset2D{0, 0};
-    scissor_.extent = vk::Extent2D{dims.first, dims.second};
-  }
+  scissor_.offset = vk::Offset2D{0, 0};
 
   viewportInfo_.viewportCount = 1;
   viewportInfo_.scissorCount  = 1;
+  update_dynamic_state();
 
   rasterizerInfo_.depthClampEnable = false;
 
@@ -174,6 +162,18 @@ void Pipeline::set_shader(const Pipeline::ShaderStage shaderStage, const std::st
       vertShaderInfo_.module = *(vertexShader_->get());
     }
   }
+}
+
+void Pipeline::update_dynamic_state() {
+  // Grab the dims from the swapchain rather than the window to avoid a very unlikely but possible
+  // scenario where the swapchain would end up with different dims than what the window would have
+  // at this moment.
+  const auto dims = swapchain_.dimensions();
+
+  viewport_.width  = static_cast<float>(dims.first);
+  viewport_.height = static_cast<float>(dims.second);
+
+  scissor_.extent = vk::Extent2D{dims.first, dims.second};
 }
 
 vk::Viewport &Pipeline::viewport() { return viewport_; }
