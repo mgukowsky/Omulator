@@ -41,8 +41,9 @@ private:
 
   std::vector<vkmisc::Frame> frames_;
 
-  bool needsResizing_;
-  bool shouldRender_;
+  std::size_t frameIdx_;
+  bool        needsResizing_;
+  bool        shouldRender_;
 
   void do_resize_();
 };

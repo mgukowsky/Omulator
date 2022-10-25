@@ -1,14 +1,17 @@
 #include "omulator/vkmisc/Frame.hpp"
 
+#include "omulator/vkmisc/VkBootstrapUtil.hpp"
+
 namespace {
 
-constexpr std::array    CLEAR_COLOR{0.0f, 1.0f, 0.0f, 1.0f};
-constexpr omulator::U64 GPU_MAX_TIMEOUT_NS = 5'000'000'000;
+constexpr std::array    CLEAR_COLOR{0.0f, 0.0f, 0.0f, 1.0f};
+constexpr omulator::U64 GPU_MAX_TIMEOUT_NS = 1'000'000'000;
 
 }  // namespace
 
 namespace omulator::vkmisc {
-Frame::Frame(const std::size_t        id,
+Frame::Frame(ILogger                 &logger,
+             const std::size_t        id,
              vk::raii::Fence          fence,
              vk::raii::Semaphore      presentSemaphore,
              vk::raii::Semaphore      renderSemaphore,
@@ -17,7 +20,8 @@ Frame::Frame(const std::size_t        id,
              Swapchain               &swapchain,
              Pipeline                &pipeline,
              DeviceQueues_t          &deviceQueues)
-  : id_(id),
+  : logger_(logger),
+    id_(id),
     fence_(std::move(fence)),
     presentSemaphore_(std::move(presentSemaphore)),
     renderSemaphore_(std::move(renderSemaphore)),
@@ -27,20 +31,22 @@ Frame::Frame(const std::size_t        id,
     pipeline_(pipeline),
     deviceQueues_(deviceQueues) { }
 
-void Frame::render() {
-  // TODO: error handling
-  if(device_.waitForFences({*fence_}, VK_TRUE, GPU_MAX_TIMEOUT_NS) != vk::Result::eSuccess) {
-    throw std::runtime_error(":(");
-  }
-  device_.resetFences({*fence_});
-
-  // TODO: resize logic needs to happen here?
-
+bool Frame::render() {
   cmdBuff_.reset();
 
-  // TODO: error handling
-  auto [result, imageIdx] =
+  auto [nextImgResult, imageIdx] =
     swapchain_.swapchain().acquireNextImage(GPU_MAX_TIMEOUT_NS, *presentSemaphore_);
+  // On this codepath we should abandon the renderpass if we get eTimeout, and try again later. The
+  // semaphore will remain unsignaled, but that's OK since we will try again at the next frame; as
+  // long as the fences have been reset by this point we're OK to abandon the frame.
+  if(nextImgResult == vk::Result::eTimeout || nextImgResult == vk::Result::eSuboptimalKHR
+     || nextImgResult == vk::Result::eErrorOutOfDateKHR)
+  {
+    return false;
+  }
+
+  // Don't reset the fence until we're sure we will submit work to the GPU
+  device_.resetFences({*fence_});
 
   recordBuff_(imageIdx);
 
@@ -58,7 +64,6 @@ void Frame::render() {
     submitInfo.commandBufferCount   = static_cast<U32>(cmdBuffs.size());
     submitInfo.pCommandBuffers      = cmdBuffs.data();
 
-    // TODO: error handling
     deviceQueues_.at(QueueType_t::graphics).first.submit(submitInfo, *fence_);
   }
 
@@ -72,11 +77,32 @@ void Frame::render() {
     presentInfo.pWaitSemaphores    = waitSemaphores.data();
     presentInfo.pImageIndices      = &imageIdx;
 
-    // TODO: error handling
-    if(deviceQueues_.at(QueueType_t::present).first.presentKHR(presentInfo) != vk::Result::eSuccess)
-    {
-      throw std::runtime_error(":(");
-    }
+    const auto result = deviceQueues_.at(QueueType_t::present).first.presentKHR(presentInfo);
+    validate_vk_return(logger_, "presentKHR", result);
+  }
+
+  return true;
+}
+
+bool Frame::wait() {
+  const auto result = device_.waitForFences({*fence_}, VK_TRUE, GPU_MAX_TIMEOUT_NS);
+  validate_vk_return(logger_, "waitForFences", result);
+  // I _think_ we're good to continue if we get eTimeout here; in a situation where this times out
+  // due to a breakpoint, we'll log the timeout, reset the fences, and continue on our merry way. I
+  // guess it's _possible_ to get undefined behavior in other circumstances... I think? In any case,
+  // we would get a timeout at this point every time we subsequently called this function if we
+  // returned here in the face of eTimeout, since we would never again hit the code below to reset
+  // the fences!
+
+  // This error code means that the surface has been resized but VulkanBackend hasn't responded to
+  // the resize yet
+  if(result == vk::Result::eSuboptimalKHR || result == vk::Result::eErrorOutOfDateKHR
+     || result == vk::Result::eTimeout)
+  {
+    return false;
+  }
+  else {
+    return true;
   }
 }
 

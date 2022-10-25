@@ -48,7 +48,6 @@ private:
   vk::raii::Device &device_;
 
   std::vector<vk::raii::Framebuffer> framebuffers_;
-  std::vector<VkImage>               images_;
   std::vector<vk::raii::ImageView>   imageViews_;
   vk::raii::RenderPass               renderPass_;
   vk::raii::SwapchainKHR             swapchain_;

@@ -25,6 +25,8 @@ Swapchain::Swapchain(di::Injector     &injector,
     surfaceHeight(0) {
   // Almost the same as calling Swapchain::reset(), however we only have to create the renderpass
   // one time here
+  // TODO: the above is true except in specific circumstances, like moving the window to and from an
+  // HDR monitor... do we care?
   build_swapchain_();
   create_renderpass_();
   build_image_views_();
@@ -73,9 +75,7 @@ void Swapchain::build_framebuffers_() {
 }
 
 void Swapchain::build_image_views_() {
-  images_ = swapchain_.getImages();
-
-  for(const auto &image : images_) {
+  for(const auto &image : swapchain_.getImages()) {
     vk::ImageViewCreateInfo createInfo;
     createInfo.image      = image;
     createInfo.viewType   = vk::ImageViewType::e2D;
@@ -127,7 +127,6 @@ void Swapchain::build_swapchain_() {
 void Swapchain::clear_() {
   framebuffers_.clear();
   imageViews_.clear();
-  images_.clear();
   swapchain_.clear();
 }
 

@@ -13,7 +13,8 @@ namespace omulator::vkmisc {
  */
 class Frame {
 public:
-  Frame(const std::size_t        id,
+  Frame(ILogger                 &logger,
+        const std::size_t        id,
         vk::raii::Fence          fence,
         vk::raii::Semaphore      presentSemaphore,
         vk::raii::Semaphore      renderSemaphore,
@@ -23,11 +24,21 @@ public:
         Pipeline                &pipeline,
         DeviceQueues_t          &deviceQueues);
 
-  void render();
+  /**
+   * Send a draw call to the GPU. Returns true if the frame was successfully submitted.
+   */
+  bool render();
+
+  /**
+   * Wait for any work this frame has submitted to the GPU to complete. Returns true if the wait
+   * operation complete successfully.
+   */
+  bool wait();
 
 private:
   void recordBuff_(const std::size_t idx);
 
+  ILogger          &logger_;
   const std::size_t id_;
 
   vk::raii::Fence     fence_;

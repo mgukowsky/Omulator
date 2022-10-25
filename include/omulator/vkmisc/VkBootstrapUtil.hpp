@@ -3,16 +3,21 @@
 #include "omulator/ILogger.hpp"
 #include "omulator/util/TypeString.hpp"
 
+#include <vulkan/vulkan.hpp>
+
 #include <VkBootstrap.h>
 
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 
 namespace omulator::vkmisc {
 
 void vk_fatal(ILogger &logger, const char *msg);
 void vk_fatal(ILogger &logger, const std::string &msg);
+
+void validate_vk_return(ILogger &logger, std::string_view op, const vk::Result result);
 
 template<typename T>
 // TODO: constrain me

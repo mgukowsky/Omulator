@@ -20,7 +20,10 @@ VulkanBackend::VulkanBackend(ILogger                &logger,
     window_(window),
     device_(device),
     swapchain_(swapchain),
-    pipeline_(pipeline) {
+    pipeline_(pipeline),
+    frameIdx_(0),
+    needsResizing_(false),
+    shouldRender_(false) {
   logger_.info("Initializing Vulkan, this may take a moment...");
 
   swapchain_.reset();
@@ -30,7 +33,8 @@ VulkanBackend::VulkanBackend(ILogger                &logger,
     assert(i < cmdBuffs.size()
            && "At least NUM_FRAMES_IN_FLIGHT command buffers need to be created");
 
-    frames_.emplace_back(i,
+    frames_.emplace_back(logger_,
+                         i,
                          injector.creat_move<vk::raii::Fence>(),
                          injector.creat_move<vk::raii::Semaphore>(),
                          injector.creat_move<vk::raii::Semaphore>(),
@@ -41,9 +45,15 @@ VulkanBackend::VulkanBackend(ILogger                &logger,
                          deviceQueues);
   }
 
+  shouldRender_ = true;
   logger_.info("Vulkan initialization completed");
 }
-VulkanBackend::~VulkanBackend() { device_.waitIdle(); }
+VulkanBackend::~VulkanBackend() {
+  // Wait for the GPU to finish before destroying all of the Vulkan components owned by this class.
+  // N.B. that vk::raii plus our Injector will take care of destroying everything in the correct
+  // order.
+  device_.waitIdle();
+}
 
 void VulkanBackend::handle_resize() {
   const auto windowDims = window_.dimensions();
@@ -57,7 +67,30 @@ void VulkanBackend::handle_resize() {
   }
 }
 
-void VulkanBackend::render_frame() { frames_[0].render(); }
+void VulkanBackend::render_frame() {
+  vkmisc::Frame &currentFrame = frames_.at(frameIdx_);
 
-void VulkanBackend::do_resize_() { swapchain_.reset(); }
+  if(shouldRender_) {
+    if(!(currentFrame.wait()) || needsResizing_) {
+      do_resize_();
+      needsResizing_ = false;
+    }
+
+    // On the off chance that rendering failed, we probably need to resize the window
+    if(!currentFrame.render()) {
+      needsResizing_ = true;
+    }
+
+    frameIdx_ = (frameIdx_ + 1) % vkmisc::NUM_FRAMES_IN_FLIGHT;
+  }
+}
+
+void VulkanBackend::do_resize_() {
+  // TODO: we need all frames to finish before it's safe to rebuild the swapchain, but would it be
+  // better to call wait() for each frame in frames_ ?
+  // OR... we could utilize the oldSwapChain field in VkSwapchainCreateInfoKHR while the old swap
+  // chain images are still in flight on the GPU...
+  device_.waitIdle();
+  swapchain_.reset();
+}
 }  // namespace omulator
