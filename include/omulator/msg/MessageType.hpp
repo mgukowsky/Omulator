@@ -44,6 +44,11 @@ enum class MessageType : U32 {
   RENDER_FRAME,
 
   /**
+   * Set the vertex shader to the file specified in the payload.
+   */
+  SET_VERTEX_SHADER,
+
+  /**
    * A fence (std::atomic_bool*) which should be signaled by the receiver; the sender is likely
    * waiting on this to be signaled
    */

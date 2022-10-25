@@ -21,6 +21,9 @@ void CoreGraphicsEngine::message_proc(const msg::Message &msg) {
   else if(msg.type == msg::MessageType::HANDLE_RESIZE) {
     graphicsBackend_.handle_resize();
   }
+  else if(msg.type == msg::MessageType::SET_VERTEX_SHADER) {
+    graphicsBackend_.set_vertex_shader(msg.get_managed_payload<std::string>());
+  }
   else {
     Subsystem::message_proc(msg);
   }

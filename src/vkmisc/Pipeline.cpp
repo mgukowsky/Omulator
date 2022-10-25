@@ -160,15 +160,17 @@ void Pipeline::set_shader(const Pipeline::ShaderStage shaderStage, const std::st
   std::unique_ptr newShader = std::make_unique<Shader>(
     logger_, device_, shader, propertyMap_.get_prop<std::string>(props::RESOURCE_DIR));
 
-  if(shaderStage == ShaderStage::FRAGMENT) {
-    fragmentShader_.reset(nullptr);
-    fragmentShader_        = std::move(newShader);
-    fragShaderInfo_.module = *(fragmentShader_->get());
-  }
-  else {
-    vertexShader_.reset(nullptr);
-    vertexShader_          = std::move(newShader);
-    vertShaderInfo_.module = *(vertexShader_->get());
+  if(newShader->valid()) {
+    if(shaderStage == ShaderStage::FRAGMENT) {
+      fragmentShader_.reset(nullptr);
+      fragmentShader_        = std::move(newShader);
+      fragShaderInfo_.module = *(fragmentShader_->get());
+    }
+    else {
+      vertexShader_.reset(nullptr);
+      vertexShader_          = std::move(newShader);
+      vertShaderInfo_.module = *(vertexShader_->get());
+    }
   }
 }
 

@@ -30,9 +30,16 @@ public:
 
   std::size_t size() const noexcept;
 
+  /**
+   * Returns true if the shader was loaded successfully
+   */
+  bool valid() const noexcept;
+
 private:
-  ILogger               &logger_;
-  vk::raii::Device      &device_;
+  ILogger          &logger_;
+  vk::raii::Device &device_;
+
+  bool                   valid_;
   std::vector<char>      buff_;
   vk::raii::ShaderModule shaderModule_;
 };

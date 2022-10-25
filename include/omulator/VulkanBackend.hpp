@@ -32,6 +32,7 @@ public:
 
   void handle_resize() override;
   void render_frame() override;
+  void set_vertex_shader(const std::string &shader) override;
 
 private:
   IWindow           &window_;

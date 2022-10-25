@@ -85,6 +85,12 @@ void VulkanBackend::render_frame() {
   }
 }
 
+void VulkanBackend::set_vertex_shader(const std::string &shader) {
+  pipeline_.set_shader(vkmisc::Pipeline::ShaderStage::VERTEX, shader);
+  device_.waitIdle();
+  pipeline_.rebuild_pipeline();
+}
+
 void VulkanBackend::do_resize_() {
   // TODO: we need all frames to finish before it's safe to rebuild the swapchain, but would it be
   // better to call wait() for each frame in frames_ ?

@@ -1,6 +1,7 @@
 #include "omulator/Interpreter.hpp"
 
 #include "omulator/App.hpp"
+#include "omulator/CoreGraphicsEngine.hpp"
 #include "omulator/ILogger.hpp"
 #include "omulator/msg/MailboxRouter.hpp"
 #include "omulator/msg/Message.hpp"
@@ -79,7 +80,17 @@ PYBIND11_EMBEDDED_MODULE(omulator, m) {
   m.def(
     "log",
     [&](std::string msg) { logger.info(msg); },
-    doc{"log a string using Omulator's main logger"});
+    doc{"Log a string using Omulator's main logger"});
+
+  m.def(
+    "set_vertex_shader",
+    [&](std::string shader) {
+      auto sender = mbrouter.get_mailbox<omulator::CoreGraphicsEngine>();
+      auto mq     = sender.get_mq();
+      mq->push_managed_payload<std::string>(omulator::msg::MessageType::SET_VERTEX_SHADER, shader);
+      sender.send(mq);
+    },
+    doc{"Set the vertex shader to the specified file"});
 
   m.def(
     "shutdown",

@@ -36,6 +36,7 @@ set(
   OML_SHADER_FILE_MANIFEST
     shaders/triangle.frag
     shaders/triangle.vert
+    shaders/red_triangle.vert
 )
 
 if(MSVC)

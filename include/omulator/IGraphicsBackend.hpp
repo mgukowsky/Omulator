@@ -16,8 +16,9 @@ public:
     : logger_(logger), injector_(injector) { }
   virtual ~IGraphicsBackend() = default;
 
-  virtual void handle_resize() = 0;
-  virtual void render_frame()  = 0;
+  virtual void handle_resize()                              = 0;
+  virtual void render_frame()                               = 0;
+  virtual void set_vertex_shader(const std::string &shader) = 0;
 
 protected:
   ILogger      &logger_;
