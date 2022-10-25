@@ -158,6 +158,8 @@ target_include_directories(
   PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/spdlog/include>
     $<INSTALL_INTERFACE:third_party/spdlog/include>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/imgui>
+    $<INSTALL_INTERFACE:third_party/imgui>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/concurrentqueue>
     $<INSTALL_INTERFACE:third_party/concurrentqueue>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/docopt.cpp>

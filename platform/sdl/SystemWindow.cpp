@@ -123,6 +123,8 @@ std::pair<U32, U32> SystemWindow::dimensions() const noexcept {
   return impl_->windowDimFn(impl_->pwnd);
 }
 
+void *SystemWindow::native_handle() const noexcept { return impl_->pwnd; }
+
 void SystemWindow::pump_msgs() {
   SDL_Event event;
   while(SDL_PollEvent(&event)) {

@@ -16,6 +16,8 @@ public:
 
   std::pair<U32, U32> dimensions() const noexcept override;
 
+  void *native_handle() const noexcept override;
+
   void pump_msgs() override;
 
   void show() override;

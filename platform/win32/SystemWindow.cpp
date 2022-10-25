@@ -114,6 +114,8 @@ std::pair<U32, U32> SystemWindow::dimensions() const noexcept {
   }
 }
 
+void *SystemWindow::native_handle() const noexcept { return impl_->hwnd; }
+
 void SystemWindow::pump_msgs() {
   MSG msg = {};
   while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {

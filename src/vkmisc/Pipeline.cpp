@@ -122,9 +122,9 @@ Pipeline::Pipeline(ILogger          &logger,
 
 vk::raii::Pipeline &Pipeline::pipeline() { return pipeline_; }
 
-// void Pipeline::add_shader(const Pipeline::ShaderStage shaderStage, const std::string shader) { }
-
 void Pipeline::rebuild_pipeline() {
+  // TODO: can cache pipelines instead of discarding them every time, esp. if only a single piece of
+  // the state is being toggled
   clear_();
   pipelineLayout_ = vk::raii::PipelineLayout(device_, pipelineLayoutInfo_);
 
@@ -157,6 +157,8 @@ void Pipeline::rebuild_pipeline() {
 vk::Rect2D &Pipeline::scissor() { return scissor_; }
 
 void Pipeline::set_shader(const Pipeline::ShaderStage shaderStage, const std::string shader) {
+  // TODO: should cache shaders that have been loaded previously instead of always discarding them
+  // when a new shader is loaded
   std::unique_ptr newShader = std::make_unique<Shader>(
     logger_, device_, shader, propertyMap_.get_prop<std::string>(props::RESOURCE_DIR));
 

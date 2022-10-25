@@ -28,6 +28,11 @@ public:
   virtual std::pair<U32, U32> dimensions() const noexcept = 0;
 
   /**
+   * Get a native handle to the window.
+   */
+  virtual void *native_handle() const noexcept = 0;
+
+  /**
    * Process any messages sent to the Window by the OS or other sources.
    */
   virtual void pump_msgs() = 0;
@@ -49,8 +54,8 @@ protected:
   /**
    * Default window dimensions, in pixels.
    */
-  static constexpr auto DEFAULT_WIDTH_  = 640;
-  static constexpr auto DEFAULT_HEIGHT_ = 480;
+  static constexpr auto DEFAULT_WIDTH_  = 1280;
+  static constexpr auto DEFAULT_HEIGHT_ = 720;
 
 private:
   std::atomic_bool shown_;

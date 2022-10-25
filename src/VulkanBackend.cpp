@@ -55,6 +55,10 @@ VulkanBackend::~VulkanBackend() {
   device_.waitIdle();
 }
 
+IGraphicsBackend::GraphicsAPI VulkanBackend::api() const noexcept {
+  return IGraphicsBackend::GraphicsAPI::VULKAN;
+}
+
 void VulkanBackend::handle_resize() {
   const auto windowDims = window_.dimensions();
   // The window is minimized or otherwise not visible; don't resize and don't render

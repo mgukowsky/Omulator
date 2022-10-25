@@ -30,6 +30,8 @@ public:
                 vkmisc::DeviceQueues_t &deviceQueues);
   ~VulkanBackend() override;
 
+  GraphicsAPI api() const noexcept override;
+
   void handle_resize() override;
   void render_frame() override;
   void set_vertex_shader(const std::string &shader) override;

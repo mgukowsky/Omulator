@@ -8,6 +8,8 @@ void *NullWindow::connect_to_graphics_api(
 
 std::pair<U32, U32> NullWindow::dimensions() const noexcept { return {0, 0}; }
 
+void *NullWindow::native_handle() const noexcept { return nullptr; }
+
 void NullWindow::pump_msgs() { }
 
 void NullWindow::show() { set_shown_(true); }
