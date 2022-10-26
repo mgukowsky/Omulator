@@ -31,12 +31,6 @@ set(
     ${PLATFORM_DIR}/KillableThread.cpp
     ${PLATFORM_DIR}/PrimitiveIO.cpp
     ${PLATFORM_DIR}/SystemWindow.cpp
-    third_party/imgui/imgui.cpp
-    third_party/imgui/imgui_demo.cpp
-    third_party/imgui/imgui_draw.cpp
-    third_party/imgui/imgui_tables.cpp
-    third_party/imgui/imgui_widgets.cpp
-    third_party/imgui/backends/imgui_impl_vulkan.cpp
 )
 
 set(
@@ -55,6 +49,5 @@ if(MSVC)
       # For Windows targets, manifest files can be added as source files and will be embedded
       # in the resulting binary (https://cmake.org/cmake/help/v3.4/release/3.4.html#other)
       ${PLATFORM_DIR}/win32app.manifest
-      third_party/imgui/backends/imgui_impl_win32.cpp
   )
 endif()

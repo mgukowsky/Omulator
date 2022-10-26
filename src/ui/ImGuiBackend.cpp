@@ -5,7 +5,7 @@
 #ifdef _MSC_VER
 #include <backends/imgui_impl_win32.h>
 #else
-#error Missing ImGui impl for platform
+#include <backends/imgui_impl_sdl.h>
 #endif
 
 #include "omulator/vkmisc/Initializer.hpp"
@@ -59,7 +59,7 @@ void ImGuiBackend::init_vulkan_() {
 #ifdef _MSC_VER
   ImGui_ImplWin32_Init(window_.native_handle());
 #else
-#error Missing ImGui impl for platform
+  ImGui_ImplSDL2_InitForVulkan(reinterpret_cast<SDL_Window *>(window_.native_handle()));
 #endif
 
   ImGui_ImplVulkan_InitInfo initInfo;

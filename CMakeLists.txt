@@ -82,31 +82,12 @@ find_package(
 find_package(
   Vulkan
     REQUIRED
+  # Commented out since older Vulkan SDKs may not include this
   # COMPONENTS
   #   glslc
 )
+
 find_program(GLSLC_EXE NAMES glslc HINTS Vulkan::glslc)
-
-add_subdirectory("third_party/docopt.cpp")
-# Add exception handling to docopt to make MSVC happy
-if(MSVC)
-  configure_target(docopt)
-endif()
-
-add_subdirectory("third_party/pybind11")
-add_subdirectory("third_party/vk-bootstrap")
-
-target_link_libraries(
-  ${PROJECT_NAME}
-  PUBLIC
-    Threads::Threads
-    Vulkan::Vulkan
-    docopt
-    vk-bootstrap::vk-bootstrap
-    ${CMAKE_DL_LIBS}
-  PRIVATE
-    pybind11::embed
-)
 
 if(NOT MSVC)
   message(
@@ -129,6 +110,31 @@ if(NOT MSVC)
       readline
   )
 endif()
+
+# SDL must have been found before this is called
+include(libimgui)
+
+add_subdirectory("third_party/docopt.cpp")
+# Add exception handling to docopt to make MSVC happy
+if(MSVC)
+  configure_target(docopt)
+endif()
+
+add_subdirectory("third_party/pybind11")
+add_subdirectory("third_party/vk-bootstrap")
+
+target_link_libraries(
+  ${PROJECT_NAME}
+  PUBLIC
+    Threads::Threads
+    Vulkan::Vulkan
+    imgui
+    docopt
+    vk-bootstrap::vk-bootstrap
+    ${CMAKE_DL_LIBS}
+  PRIVATE
+    pybind11::embed
+)
 
 configure_target(${PROJECT_NAME})
 
