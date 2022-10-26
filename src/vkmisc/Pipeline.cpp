@@ -151,16 +151,21 @@ void Pipeline::set_shader(const Pipeline::ShaderStage shaderStage, const std::st
     logger_, device_, shader, propertyMap_.get_prop<std::string>(props::RESOURCE_DIR));
 
   if(newShader->valid()) {
+    std::unique_ptr<Shader>           *ppShader    = nullptr;
+    vk::PipelineShaderStageCreateInfo *pShaderInfo = nullptr;
+
     if(shaderStage == ShaderStage::FRAGMENT) {
-      fragmentShader_.reset(nullptr);
-      fragmentShader_        = std::move(newShader);
-      fragShaderInfo_.module = *(fragmentShader_->get());
+      ppShader    = &fragmentShader_;
+      pShaderInfo = &fragShaderInfo_;
     }
     else {
-      vertexShader_.reset(nullptr);
-      vertexShader_          = std::move(newShader);
-      vertShaderInfo_.module = *(vertexShader_->get());
+      ppShader    = &vertexShader_;
+      pShaderInfo = &vertShaderInfo_;
     }
+
+    ppShader->reset(nullptr);
+    *ppShader           = std::move(newShader);
+    pShaderInfo->module = *(ppShader->get()->get());
   }
 }
 

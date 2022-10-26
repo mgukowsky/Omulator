@@ -28,6 +28,10 @@ public:
 
   vk::Rect2D &scissor();
 
+  /**
+   * Set the shader used for a given stage in the pipeline. N.B. that rebuild_pipeline() will have
+   * to be called in order for this change to take effect.
+   */
   void set_shader(const ShaderStage shaderStage, const std::string shader);
 
   /**
