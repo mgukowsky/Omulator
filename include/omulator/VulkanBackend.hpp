@@ -49,5 +49,11 @@ private:
   bool        shouldRender_;
 
   void do_resize_();
+
+  /**
+   * Block until the GPU is finished executing its current workload. N.B. this is a rather coarse
+   * synchronization mechanism and should be used sparingly.
+   */
+  void wait_for_idle_();
 };
 }  // namespace omulator

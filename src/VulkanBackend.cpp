@@ -52,7 +52,7 @@ VulkanBackend::~VulkanBackend() {
   // Wait for the GPU to finish before destroying all of the Vulkan components owned by this class.
   // N.B. that vk::raii plus our Injector will take care of destroying everything in the correct
   // order.
-  device_.waitIdle();
+  wait_for_idle_();
 }
 
 IGraphicsBackend::GraphicsAPI VulkanBackend::api() const noexcept {
@@ -91,7 +91,7 @@ void VulkanBackend::render_frame() {
 
 void VulkanBackend::set_vertex_shader(const std::string &shader) {
   pipeline_.set_shader(vkmisc::Pipeline::ShaderStage::VERTEX, shader);
-  device_.waitIdle();
+  wait_for_idle_();
   pipeline_.rebuild_pipeline();
 }
 
@@ -100,7 +100,10 @@ void VulkanBackend::do_resize_() {
   // better to call wait() for each frame in frames_ ?
   // OR... we could utilize the oldSwapChain field in VkSwapchainCreateInfoKHR while the old swap
   // chain images are still in flight on the GPU...
-  device_.waitIdle();
+  wait_for_idle_();
   swapchain_.reset();
 }
+
+void VulkanBackend::wait_for_idle_() { device_.waitIdle(); }
+
 }  // namespace omulator

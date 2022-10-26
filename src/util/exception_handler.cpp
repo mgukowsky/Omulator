@@ -29,7 +29,7 @@ void omulator::util::exception_handler() noexcept {
         "enough RAM installed on your system, or there are too many other programs "
         "running in the background.\n");
     }
-    catch(pybind11::error_already_set &e) {
+    catch([[maybe_unused]] pybind11::error_already_set &e) {
       // Errors should never escape the Interpreter class; if one does, then it's best to terminate
       // the program and not interact with the Python interpreter any further, since we have no
       // idea what thread we're on and if it will play nicely with the GIL.
