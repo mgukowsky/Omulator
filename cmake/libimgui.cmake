@@ -23,7 +23,7 @@ target_compile_definitions(
 
     # _REENTRANT signals parts of the stdlib to use threadsafe functions
     $<$<BOOL:UNIX>:_REENTRANT>
-    )
+)
 
 target_include_directories(
   ${IMGUI_LIB_NAME}
@@ -40,6 +40,11 @@ target_sources(
     third_party/imgui/imgui_tables.cpp
     third_party/imgui/imgui_widgets.cpp
     third_party/imgui/backends/imgui_impl_vulkan.cpp
+)
+target_link_libraries(
+  ${IMGUI_LIB_NAME}
+  PUBLIC
+    Vulkan::Vulkan
 )
 
 if(MSVC)
