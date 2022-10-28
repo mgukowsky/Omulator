@@ -6,6 +6,13 @@ include(CheckIPOSupported)
 include(CheckPIESupported)
 
 function(configure_target target_name)
+  cmake_parse_arguments(configure_target "NOWARNINGS" "" "" ${ARGN})
+  if(configure_target_NOWARNINGS)
+    set(ADD_WARNINGS FALSE)
+  else()
+    set(ADD_WARNINGS TRUE)
+  endif()
+
   define_target_arch(${target_name})
   define_target_compiler(${target_name})
 
@@ -65,16 +72,16 @@ function(configure_target target_name)
   endif()
 
   if(MSVC)
-    config_for_msvc(${target_name})
+    config_for_msvc(${target_name} ${ADD_WARNINGS})
   elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    config_for_gcc(${target_name})
+    config_for_gcc(${target_name} ${ADD_WARNINGS})
   elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    config_for_clang(${target_name})
+    config_for_clang(${target_name} ${ADD_WARNINGS})
   endif()
 
 endfunction()
 
-function(config_for_msvc target_name)
+function(config_for_msvc target_name add_warnings)
 
   target_compile_options(
     ${target_name}
@@ -151,15 +158,6 @@ function(config_for_msvc target_name)
       # ISO compliancy
       $<$<CXX_COMPILER_ID:MSVC>:/Zc:referenceBinding /Zc:throwingNew>
 
-      # MSVC's Wall is ridiculous and triggers a deluge of false positives in its OWN headers,
-      # so W4 is the next best thing. WL puts diagnostics on one line.
-      $<$<CXX_COMPILER_ID:MSVC>:/W4 /WL>
-
-      # Stop clang-cl from complaining about Windows code
-      $<$<CXX_COMPILER_ID:Clang>:-W3 -Wno-c++98-compat -Wno-c++98-compat-pedantic>
-
-      $<$<CXX_COMPILER_ID:Clang>:-Wno-unused-lambda-capture -Wno-unused-private-field>
-
       # Make a PDB, don't inline and don't optimize, use buffer overflow canaries, and add
       # security and runtime checks
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:/Zi /Ob0 /Od /GS /sdl /RTC1>
@@ -168,6 +166,21 @@ function(config_for_msvc target_name)
       # function level linking
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:/O2 /Ob2 /Gw /GS- /Gy>
   )
+
+  if(add_warnings)
+    target_compile_options(
+      ${target_name}
+      PUBLIC
+        # MSVC's Wall is ridiculous and triggers a deluge of false positives in its OWN headers,
+        # so W4 is the next best thing. WL puts diagnostics on one line.
+        $<$<CXX_COMPILER_ID:MSVC>:/W4 /WL>
+
+        # Stop clang-cl from complaining about Windows code
+        $<$<CXX_COMPILER_ID:Clang>:-W3 -Wno-c++98-compat -Wno-c++98-compat-pedantic>
+
+        $<$<CXX_COMPILER_ID:Clang>:-Wno-unused-lambda-capture -Wno-unused-private-field>
+    )
+  endif()
 
   target_compile_definitions(
     ${target_name}
@@ -214,7 +227,7 @@ function(config_for_msvc target_name)
       PUBLIC
         # Whole program optimization
         $<$<CXX_COMPILER_ID:MSVC>:/GL>
-        
+
         $<$<CXX_COMPILER_ID:Clang>:-flto=thin>
 
         # Fast transcendentals
@@ -230,38 +243,12 @@ function(config_for_msvc target_name)
 
 endfunction()
 
-function(config_for_gcc target_name)
+function(config_for_gcc target_name add_warnings)
   target_compile_options(
     ${target_name}
     PUBLIC
       -ansi
       -pedantic
-      -Wall
-      -Werror
-      -Wextra
-      -Wshadow
-      -Wwrite-strings
-
-      # Additional warnings recommended by
-      # https://github.com/lefticus/cppbestpractices/blob/master/02-Use_the_Tools_Available.md#compilers
-      -Wnon-virtual-dtor
-      -Wold-style-cast
-      -Wold-style-cast
-      -Wcast-align
-      -Wunused
-      -Woverloaded-virtual
-      -Wpedantic
-      #-Wconversion
-      -Wsign-conversion
-      $<$<CXX_COMPILER_ID:GNU>:-Wmisleading-indentation>
-      $<$<CXX_COMPILER_ID:GNU>:-Wduplicated-cond>
-      $<$<CXX_COMPILER_ID:GNU>:-Wduplicated-branches>
-      $<$<CXX_COMPILER_ID:GNU>:-Wlogical-op>
-      $<$<CXX_COMPILER_ID:GNU>:-Wnull-dereference>
-      $<$<CXX_COMPILER_ID:GNU>:-Wuseless-cast>
-      -Wdouble-promotion
-      -Wformat=2
-
 
       # Target Intel Broadwell (~2015 w/ AVX2)
       # on an official build machine this could be -march=native
@@ -271,6 +258,38 @@ function(config_for_gcc target_name)
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Debug>:$<$<CXX_COMPILER_ID:GNU>:--coverage>>
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},Release>:-O3 -fomit-frame-pointer>
   )
+
+  if(add_warnings)
+    target_compile_options(
+      ${target_name}
+      PUBLIC
+        -Wall
+        -Werror
+        -Wextra
+        -Wshadow
+        -Wwrite-strings
+
+        # Additional warnings recommended by
+        # https://github.com/lefticus/cppbestpractices/blob/master/02-Use_the_Tools_Available.md#compilers
+        -Wnon-virtual-dtor
+        -Wold-style-cast
+        -Wold-style-cast
+        -Wcast-align
+        -Wunused
+        -Woverloaded-virtual
+        -Wpedantic
+        #-Wconversion
+        -Wsign-conversion
+        $<$<CXX_COMPILER_ID:GNU>:-Wmisleading-indentation>
+        $<$<CXX_COMPILER_ID:GNU>:-Wduplicated-cond>
+        $<$<CXX_COMPILER_ID:GNU>:-Wduplicated-branches>
+        $<$<CXX_COMPILER_ID:GNU>:-Wlogical-op>
+        $<$<CXX_COMPILER_ID:GNU>:-Wnull-dereference>
+        $<$<CXX_COMPILER_ID:GNU>:-Wuseless-cast>
+        -Wdouble-promotion
+        -Wformat=2
+    )
+  endif()
 
   target_link_options(
     ${target_name}
@@ -285,16 +304,12 @@ function(config_for_gcc target_name)
   )
 endfunction()
 
-function(config_for_clang target_name)
+function(config_for_clang target_name add_warnings)
   config_for_gcc(${target_name})
 
   target_compile_options(
     ${target_name}
     PUBLIC
-      # Turn these warnings off to make tests compile
-      -Wno-unused-private-field
-      -Wno-unused-lambda-capture
-
       # -fno-omit-frame-pointer is needed to help the sanitizers
       $<$<STREQUAL:${CMAKE_BUILD_TYPE},RelWithDebInfo>:-g -O1 -fno-omit-frame-pointer>
 
@@ -310,6 +325,16 @@ function(config_for_clang target_name)
       # $<$<STREQUAL:${CMAKE_BUILD_TYPE},RelWithDebInfo>: -fsanitize=memory>
       # $<$<STREQUAL:${CMAKE_BUILD_TYPE},RelWithDebInfo>: -fsanitize=thread>
   )
+
+  if(add_warnings)
+    target_compile_options(
+      ${target_name}
+      PUBLIC
+        # Turn these warnings off to make tests compile
+        -Wno-unused-private-field
+        -Wno-unused-lambda-capture
+    )
+  endif()
 
   target_link_options(
     ${target_name}
