@@ -51,36 +51,8 @@ bool Frame::render() {
 
   recordBuff_(imageIdx);
 
-  {
-    std::array             waitSemaphores{*presentSemaphore_};
-    std::array             signalSemaphores{*renderSemaphore_};
-    std::array             cmdBuffs{*cmdBuff_};
-    vk::PipelineStageFlags waitDstStageMask{vk::PipelineStageFlagBits::eColorAttachmentOutput};
-    vk::SubmitInfo         submitInfo;
-    submitInfo.waitSemaphoreCount   = static_cast<U32>(waitSemaphores.size());
-    submitInfo.pWaitSemaphores      = waitSemaphores.data();
-    submitInfo.signalSemaphoreCount = static_cast<U32>(signalSemaphores.size());
-    submitInfo.pSignalSemaphores    = signalSemaphores.data();
-    submitInfo.pWaitDstStageMask    = &waitDstStageMask;
-    submitInfo.commandBufferCount   = static_cast<U32>(cmdBuffs.size());
-    submitInfo.pCommandBuffers      = cmdBuffs.data();
-
-    deviceQueues_.at(QueueType_t::graphics).first.submit(submitInfo, *fence_);
-  }
-
-  {
-    std::array         waitSemaphores{*renderSemaphore_};
-    std::array         swapchains{*(swapchain_.swapchain())};
-    vk::PresentInfoKHR presentInfo;
-    presentInfo.swapchainCount     = static_cast<U32>(swapchains.size());
-    presentInfo.pSwapchains        = swapchains.data();
-    presentInfo.waitSemaphoreCount = static_cast<U32>(waitSemaphores.size());
-    presentInfo.pWaitSemaphores    = waitSemaphores.data();
-    presentInfo.pImageIndices      = &imageIdx;
-
-    const auto result = deviceQueues_.at(QueueType_t::present).first.presentKHR(presentInfo);
-    validate_vk_return(logger_, "presentKHR", result);
-  }
+  submit_();
+  present_(imageIdx);
 
   return true;
 }
@@ -105,6 +77,20 @@ bool Frame::wait() {
   else {
     return true;
   }
+}
+
+void Frame::present_(const U32 imageIdx) {
+  std::array         waitSemaphores{*renderSemaphore_};
+  std::array         swapchains{*(swapchain_.swapchain())};
+  vk::PresentInfoKHR presentInfo;
+  presentInfo.swapchainCount     = static_cast<U32>(swapchains.size());
+  presentInfo.pSwapchains        = swapchains.data();
+  presentInfo.waitSemaphoreCount = static_cast<U32>(waitSemaphores.size());
+  presentInfo.pWaitSemaphores    = waitSemaphores.data();
+  presentInfo.pImageIndices      = &imageIdx;
+
+  const auto result = deviceQueues_.at(QueueType_t::present).first.presentKHR(presentInfo);
+  validate_vk_return(logger_, "presentKHR", result);
 }
 
 void Frame::recordBuff_(const std::size_t idx) {
@@ -133,4 +119,22 @@ void Frame::recordBuff_(const std::size_t idx) {
   cmdBuff_.endRenderPass();
   cmdBuff_.end();
 }
+
+void Frame::submit_() {
+  std::array             waitSemaphores{*presentSemaphore_};
+  std::array             signalSemaphores{*renderSemaphore_};
+  std::array             cmdBuffs{*cmdBuff_};
+  vk::PipelineStageFlags waitDstStageMask{vk::PipelineStageFlagBits::eColorAttachmentOutput};
+  vk::SubmitInfo         submitInfo;
+  submitInfo.waitSemaphoreCount   = static_cast<U32>(waitSemaphores.size());
+  submitInfo.pWaitSemaphores      = waitSemaphores.data();
+  submitInfo.signalSemaphoreCount = static_cast<U32>(signalSemaphores.size());
+  submitInfo.pSignalSemaphores    = signalSemaphores.data();
+  submitInfo.pWaitDstStageMask    = &waitDstStageMask;
+  submitInfo.commandBufferCount   = static_cast<U32>(cmdBuffs.size());
+  submitInfo.pCommandBuffers      = cmdBuffs.data();
+
+  deviceQueues_.at(QueueType_t::graphics).first.submit(submitInfo, *fence_);
+}
+
 }  // namespace omulator::vkmisc

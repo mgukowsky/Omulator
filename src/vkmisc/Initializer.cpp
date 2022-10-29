@@ -191,6 +191,12 @@ vkb::Device *vkb_device_recipe(di::Injector &injector) {
                      .select();
   validate_vkb_return(logger, selection);
 
+  {
+    std::stringstream ss;
+    ss << "Selected physical Vulkan device: " << selection.value().name;
+    logger.info(ss);
+  }
+
   vkb::DeviceBuilder deviceBuilder(selection.value());
   const auto         deviceBuildResult = deviceBuilder.build();
   validate_vkb_return(logger, deviceBuildResult);

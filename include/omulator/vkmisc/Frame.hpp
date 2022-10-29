@@ -36,7 +36,9 @@ public:
   bool wait();
 
 private:
+  void present_(const U32 imageIdx);
   void recordBuff_(const std::size_t idx);
+  void submit_();
 
   ILogger          &logger_;
   const std::size_t id_;
