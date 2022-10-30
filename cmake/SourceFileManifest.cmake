@@ -22,6 +22,7 @@ set(
     src/util/exception_handler.cpp
     src/util/CLIInput.cpp
     src/util/CLIParser.cpp
+    src/vkmisc/Allocator.cpp
     src/vkmisc/Frame.cpp
     src/vkmisc/Initializer.cpp
     src/vkmisc/Pipeline.cpp

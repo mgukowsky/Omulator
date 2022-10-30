@@ -5,8 +5,6 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include <VkBootstrap.h>
-
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -14,9 +12,12 @@
 
 namespace omulator::vkmisc {
 
+constexpr auto OML_VK_VERSION = VK_API_VERSION_1_1;
+
 void vk_fatal(ILogger &logger, const char *msg);
 void vk_fatal(ILogger &logger, const std::string &msg);
 
+void validate_vk_return(ILogger &logger, std::string_view op, const VkResult result);
 void validate_vk_return(ILogger &logger, std::string_view op, const vk::Result result);
 
 template<typename T>

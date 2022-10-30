@@ -3,6 +3,8 @@
 #include "omulator/IWindow.hpp"
 #include "omulator/vkmisc/VkBootstrapUtil.hpp"
 
+#include <VkBootstrap.h>
+
 #include <cassert>
 
 namespace omulator::vkmisc {

@@ -45,6 +45,10 @@ const char *vk_error_string(const vk::Result errorCode) {
 
 namespace omulator::vkmisc {
 
+void validate_vk_return(ILogger &logger, std::string_view op, const VkResult result) {
+  validate_vk_return(logger, op, vk::Result(result));
+}
+
 void validate_vk_return(ILogger &logger, std::string_view op, const vk::Result result) {
   // Don't care about these; just means the window has resized
   if(result == vk::Result::eSuboptimalKHR || result == vk::Result::eErrorOutOfDateKHR) {

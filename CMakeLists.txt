@@ -120,17 +120,21 @@ if(MSVC)
   configure_target(docopt)
 endif()
 
+add_subdirectory("third_party/glm")
 add_subdirectory("third_party/pybind11")
 add_subdirectory("third_party/vk-bootstrap")
+add_subdirectory("third_party/VulkanMemoryAllocator")
 
 target_link_libraries(
   ${PROJECT_NAME}
   PUBLIC
     Threads::Threads
     Vulkan::Vulkan
+    glm::glm
     imgui
     docopt
     vk-bootstrap::vk-bootstrap
+    VulkanMemoryAllocator
     ${CMAKE_DL_LIBS}
   PRIVATE
     pybind11::embed
@@ -172,6 +176,8 @@ target_include_directories(
     $<INSTALL_INTERFACE:third_party/docopt.cpp>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/vk-bootstrap/src>
     $<INSTALL_INTERFACE:third_party/vk-bootstrap/src>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/VulkanMemoryAllocator/include>
+    $<INSTALL_INTERFACE:third_party/VulkanMemoryAllocator/include>
 )
 
 # Select which platform folder to use

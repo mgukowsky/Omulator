@@ -7,6 +7,8 @@
 
 #include <vulkan/vulkan_raii.hpp>
 
+#include <VkBootstrap.h>
+
 #include <array>
 #include <memory>
 #include <sstream>
@@ -211,7 +213,7 @@ vkb::Instance *vkb_instance_recipe(di::Injector &injector) {
 
   vkb::InstanceBuilder instanceBuilder;
 
-  instanceBuilder.set_app_name("Omulator").require_api_version(1, 1, 0);
+  instanceBuilder.set_app_name("Omulator").require_api_version(OML_VK_VERSION);
 
   // Enable enumeration of non-conformant implementations which may be installed. See
   // https://vulkan-tutorial.com/Drawing_a_triangle/Setup/Instance#page_Encountered-VK_ERROR_INCOMPATIBLE_DRIVER
