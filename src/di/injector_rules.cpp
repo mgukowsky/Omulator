@@ -83,6 +83,7 @@ void Injector::installDefaultRules(Injector &injector) {
 void Injector::installMinimalRules(Injector &injector) {
   // Only need what is necessary to parse the command line before we call installDefaultRules
   injector.bindImpl<ILogger, SpdlogLogger>();
+  injector.addCtorRecipe<PropertyMap, ILogger &>();
   injector.addCtorRecipe<util::CLIParser, ILogger &, PropertyMap &>();
 }
 

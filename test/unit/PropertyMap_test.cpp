@@ -1,5 +1,7 @@
 #include "omulator/PropertyMap.hpp"
 
+#include "mocks/LoggerMock.hpp"
+
 #include <gtest/gtest.h>
 
 using omulator::PropertyMap;
@@ -9,7 +11,8 @@ using omulator::U64;
 using omulator::util::TypeHash;
 
 TEST(PropertyMap_test, usageTest) {
-  omulator::PropertyMap propertyMap;
+  LoggerMock            logger;
+  omulator::PropertyMap propertyMap(logger);
 
   PropertyValue<bool> &pvb = propertyMap.get_prop<bool>("boolKey");
   pvb.set(true);
@@ -51,4 +54,34 @@ TEST(PropertyMap_test, usageTest) {
     EXPECT_EQ(TypeHash<std::string>, thash)
       << "PropertyMap::query_prop should return the type of the property for keys in the map";
   }
+}
+
+TEST(PropertyMap_test, getPropVariantTest) {
+  LoggerMock            logger;
+  omulator::PropertyMap propertyMap(logger);
+
+  constexpr auto SKEY1 = "stringkey1";
+  constexpr auto SVAL1 = "stringval1";
+  constexpr auto SKEY2 = "stringkey2";
+  constexpr auto SVAL2 = "stringval2";
+
+  auto &strVal = propertyMap.get_prop<std::string>(SKEY1);
+  strVal.set(SVAL1);
+  auto strVarVal = propertyMap.get_prop_variant(SKEY1);
+  EXPECT_EQ(SVAL1, std::get<std::string>(strVarVal))
+    << "PropertyMap::get_prop_variant should return the value corresponding to the provided key";
+  strVarVal = SVAL2;
+  EXPECT_NE(strVal.get(), std::get<std::string>(strVarVal))
+    << "PropertyMap::get_prop_variant should return a copy of the corresponding value";
+
+  auto unsetVarVal = propertyMap.get_prop_variant(SKEY2);
+  EXPECT_EQ(PropertyMap::KEY_NOT_FOUND_STR, std::get<std::string>(unsetVarVal))
+    << "PropertyMap::get_prop_variant should return a magic value when the requested key is not "
+       "present in the map";
+  EXPECT_FALSE(propertyMap.query_prop(SKEY2).first)
+    << "PropertyMap::get_prop_variant should not create an entry in the PropertyMap for a key that "
+       "is not yet present in the PropertyMap";
+
+  // I don't feel like writing tests for the other member types of the variant; let's assume they
+  // all work :)
 }

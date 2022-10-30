@@ -3,6 +3,7 @@
 #include "omulator/App.hpp"
 #include "omulator/CoreGraphicsEngine.hpp"
 #include "omulator/ILogger.hpp"
+#include "omulator/PropertyMap.hpp"
 #include "omulator/msg/MailboxRouter.hpp"
 #include "omulator/msg/Message.hpp"
 #include "omulator/msg/MessageType.hpp"
@@ -12,12 +13,14 @@
 #include <pybind11/attr.h>
 #include <pybind11/embed.h>
 #include <pybind11/iostream.h>
+#include <pybind11/stl.h>
 
 #include <cassert>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <variant>
 
 using namespace pybind11::literals;
 
@@ -74,13 +77,29 @@ STDERR_SINK.seek(0)
 }  // namespace
 
 PYBIND11_EMBEDDED_MODULE(omulator, m) {
-  omulator::ILogger            &logger   = gInjector->get<omulator::ILogger>();
-  omulator::msg::MailboxRouter &mbrouter = gInjector->get<omulator::msg::MailboxRouter>();
+  auto &logger      = gInjector->get<omulator::ILogger>();
+  auto &mbrouter    = gInjector->get<omulator::msg::MailboxRouter>();
+  auto &propertyMap = gInjector->get<omulator::PropertyMap>();
+
+  m.def(
+    "get_prop",
+    [&](std::string prop) { return propertyMap.get_prop_variant(prop); },
+    doc{"Get the value of a given property"});
 
   m.def(
     "log",
     [&](std::string msg) { logger.info(msg); },
     doc{"Log a string using Omulator's main logger"});
+
+  m.def(
+    "set_prop",
+    // N.B. that bool is not included here; Python will send those over as S64's. Also note that
+    // Python can decide to send over either a S64 or U64 depending on how big the value is, so we
+    // have to handle such cases appropriately
+    [&](std::string prop, omulator::PropertyMap::PropVariant_t val) {
+      propertyMap.set_prop_variant(prop, val);
+    },
+    doc{"Set a property to a given value"});
 
   m.def(
     "set_vertex_shader",
