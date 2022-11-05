@@ -15,7 +15,8 @@ VulkanBackend::VulkanBackend(ILogger                &logger,
                              vk::raii::Device       &device,
                              vkmisc::Swapchain      &swapchain,
                              vkmisc::Pipeline       &pipeline,
-                             vkmisc::DeviceQueues_t &deviceQueues)
+                             vkmisc::DeviceQueues_t &deviceQueues,
+                             vkmisc::Allocator      &allocator)
   : IGraphicsBackend(logger, injector),
     window_(window),
     device_(device),
@@ -46,6 +47,37 @@ VulkanBackend::VulkanBackend(ILogger                &logger,
   }
 
   shouldRender_ = true;
+
+  // TODO: make this a unique_ptr to shut the compiler up (or maybe make the allocation a ptr? seems
+  // to be failing b/c of some vma magic...)
+  meshes_.emplace_back(logger_, allocator, 3);
+  auto &mesh = meshes_[0];
+  pipeline_.set_vertex_binding_attrs(mesh.get_bindings(), mesh.get_attrs());
+  set_vertex_shader("tri_mesh.vert.spv");
+  mesh.set_vertex(
+    0,
+    {
+      glm::vec3{1.0f, 1.0f, 0.0f},
+      glm::vec3{0.0f, 0.0f, 0.0f},
+      glm::vec3{0.0f, 1.0f, 0.0f}
+  });
+  mesh.set_vertex(
+    1,
+    {
+      glm::vec3{-1.0f, 1.0f, 0.0f},
+      glm::vec3{0.0f,  0.0f, 0.0f},
+      glm::vec3{0.0f,  1.0f, 0.0f}
+  });
+  mesh.set_vertex(
+    2,
+    {
+      glm::vec3{0.0f, -1.0f, 0.0f},
+      glm::vec3{0.0f, 0.0f,  0.0f},
+      glm::vec3{0.0f, 1.0f,  0.0f}
+  });
+
+  mesh.upload();
+
   logger_.info("Vulkan initialization completed");
 }
 VulkanBackend::~VulkanBackend() {
@@ -81,7 +113,13 @@ void VulkanBackend::render_frame() {
     }
 
     // On the off chance that rendering failed, we probably need to resize the window
-    if(!currentFrame.render()) {
+    if(!currentFrame.render([&](vk::raii::CommandBuffer &cmdBuff) {
+         auto          &mesh       = meshes_[0];
+         vk::DeviceSize deviceSize = 0;
+         cmdBuff.bindVertexBuffers(0, mesh.buff(), deviceSize);
+         cmdBuff.draw(mesh.size(), 1, 0, 0);
+       }))
+    {
       needsResizing_ = true;
     }
 
@@ -103,6 +141,8 @@ void VulkanBackend::do_resize_() {
   wait_for_idle_();
   swapchain_.reset();
 }
+
+void VulkanBackend::upload_mesh_() { }
 
 void VulkanBackend::wait_for_idle_() { device_.waitIdle(); }
 

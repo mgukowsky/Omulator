@@ -1,6 +1,6 @@
 #include "omulator/vkmisc/Frame.hpp"
 
-#include "omulator/vkmisc/VkBootstrapUtil.hpp"
+#include "omulator/vkmisc/vkmisc.hpp"
 
 namespace {
 
@@ -31,7 +31,7 @@ Frame::Frame(ILogger                 &logger,
     pipeline_(pipeline),
     deviceQueues_(deviceQueues) { }
 
-bool Frame::render() {
+bool Frame::render(std::function<void(vk::raii::CommandBuffer &)> cmdfn) {
   cmdBuff_.reset();
   pipeline_.update_dynamic_state();
 
@@ -49,7 +49,7 @@ bool Frame::render() {
   // Don't reset the fence until we're sure we will submit work to the GPU
   device_.resetFences({*fence_});
 
-  recordBuff_(imageIdx);
+  recordBuff_(imageIdx, cmdfn);
 
   submit_();
   present_(imageIdx);
@@ -93,7 +93,8 @@ void Frame::present_(const U32 imageIdx) {
   validate_vk_return(logger_, "presentKHR", result);
 }
 
-void Frame::recordBuff_(const std::size_t idx) {
+void Frame::recordBuff_(const std::size_t                              idx,
+                        std::function<void(vk::raii::CommandBuffer &)> cmdfn) {
   cmdBuff_.begin({});
 
   vk::RenderPassBeginInfo renderPassBeginInfo;
@@ -114,7 +115,7 @@ void Frame::recordBuff_(const std::size_t idx) {
   cmdBuff_.setViewport(0, pipeline_.viewport());
   cmdBuff_.setScissor(0, pipeline_.scissor());
 
-  cmdBuff_.draw(3, 1, 0, 0);
+  cmdfn(cmdBuff_);
 
   cmdBuff_.endRenderPass();
   cmdBuff_.end();

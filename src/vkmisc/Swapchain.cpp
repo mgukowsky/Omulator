@@ -1,7 +1,7 @@
 #include "omulator/vkmisc/Swapchain.hpp"
 
 #include "omulator/IWindow.hpp"
-#include "omulator/vkmisc/VkBootstrapUtil.hpp"
+#include "omulator/vkmisc/vkmisc.hpp"
 
 #include <VkBootstrap.h>
 

@@ -13,7 +13,6 @@
 #include "omulator/PropertyMap.hpp"
 #include "omulator/SpdlogLogger.hpp"
 #include "omulator/SystemWindow.hpp"
-#include "omulator/VulkanBackend.hpp"
 #include "omulator/di/Injector.hpp"
 #include "omulator/msg/MailboxRouter.hpp"
 #include "omulator/msg/MessageQueueFactory.hpp"
@@ -22,8 +21,6 @@
 #include "omulator/util/CLIParser.hpp"
 #include "omulator/util/TypeHash.hpp"
 #include "omulator/vkmisc/Initializer.hpp"
-#include "omulator/vkmisc/Pipeline.hpp"
-#include "omulator/vkmisc/Swapchain.hpp"
 
 #include <map>
 #include <memory_resource>
@@ -43,21 +40,7 @@ void Injector::installDefaultRules(Injector &injector) {
   injector.addCtorRecipe<InputHandler, msg::MailboxRouter &>();
   injector.addCtorRecipe<Interpreter, di::Injector &>();
   injector.addCtorRecipe<CoreGraphicsEngine, di::Injector &>();
-  injector.addCtorRecipe<VulkanBackend,
-                         ILogger &,
-                         Injector &,
-                         IWindow &,
-                         vk::raii::Device &,
-                         vkmisc::Swapchain &,
-                         vkmisc::Pipeline &,
-                         vkmisc::DeviceQueues_t &>();
   injector.addCtorRecipe<util::CLIInput, ILogger &, msg::MailboxRouter &>();
-  injector.addCtorRecipe<vkmisc::Swapchain, Injector &, ILogger &, IWindow &, vk::raii::Device &>();
-  injector.addCtorRecipe<vkmisc::Pipeline,
-                         ILogger &,
-                         vk::raii::Device &,
-                         vkmisc::Swapchain &,
-                         PropertyMap &>();
 
   vkmisc::install_vk_initializer_rules(injector);
 
@@ -65,7 +48,6 @@ void Injector::installDefaultRules(Injector &injector) {
    * Implementations should be bound to interfaces here.
    */
   injector.bindImpl<IClock, Clock>();
-  injector.bindImpl<IGraphicsBackend, VulkanBackend>();
 
   if(injector.get<PropertyMap>().get_prop<bool>(props::HEADLESS).get()) {
     injector.bindImpl<IWindow, NullWindow>();

@@ -4,6 +4,7 @@
 #include "omulator/util/TypeString.hpp"
 
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
 #include <sstream>
 #include <stdexcept>
@@ -13,6 +14,11 @@
 namespace omulator::vkmisc {
 
 constexpr auto OML_VK_VERSION = VK_API_VERSION_1_1;
+
+struct AllocatedBuffer {
+  vk::Buffer buffer;
+  void      *pAllocation;
+};
 
 void vk_fatal(ILogger &logger, const char *msg);
 void vk_fatal(ILogger &logger, const std::string &msg);

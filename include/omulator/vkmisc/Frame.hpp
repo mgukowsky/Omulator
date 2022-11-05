@@ -6,6 +6,8 @@
 
 #include <vulkan/vulkan_raii.hpp>
 
+#include <functional>
+
 namespace omulator::vkmisc {
 
 /**
@@ -27,7 +29,7 @@ public:
   /**
    * Send a draw call to the GPU. Returns true if the frame was successfully submitted.
    */
-  bool render();
+  bool render(std::function<void(vk::raii::CommandBuffer &)> cmdfn);
 
   /**
    * Wait for any work this frame has submitted to the GPU to complete. Returns true if the wait
@@ -37,7 +39,7 @@ public:
 
 private:
   void present_(const U32 imageIdx);
-  void recordBuff_(const std::size_t idx);
+  void recordBuff_(const std::size_t idx, std::function<void(vk::raii::CommandBuffer &)> cmdfn);
   void submit_();
 
   ILogger          &logger_;

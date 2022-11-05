@@ -10,6 +10,7 @@
 #include <array>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace omulator::vkmisc {
 
@@ -34,6 +35,8 @@ public:
    */
   void set_shader(const ShaderStage shaderStage, const std::string shader);
 
+  void set_vertex_binding_attrs(const std::vector<vk::VertexInputBindingDescription>   &bindings,
+                                const std::vector<vk::VertexInputAttributeDescription> &attrs);
   /**
    * Updates dynamic state within the pipeline (i.e. state that may change per frame)
    */
@@ -58,6 +61,12 @@ private:
 
   vk::raii::Pipeline       pipeline_;
   vk::raii::PipelineLayout pipelineLayout_;
+
+  /**
+   * Vertex info
+   */
+  std::vector<vk::VertexInputAttributeDescription> vertexAttributes_;
+  std::vector<vk::VertexInputBindingDescription>   vertexBindings_;
 
   /**
    * Initializer structs for the pipeline. These structs can be reused between calls to

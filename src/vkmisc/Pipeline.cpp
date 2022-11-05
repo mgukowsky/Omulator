@@ -169,6 +169,18 @@ void Pipeline::set_shader(const Pipeline::ShaderStage shaderStage, const std::st
   }
 }
 
+void Pipeline::set_vertex_binding_attrs(
+  const std::vector<vk::VertexInputBindingDescription>   &bindings,
+  const std::vector<vk::VertexInputAttributeDescription> &attrs) {
+  vertexBindings_   = bindings;
+  vertexAttributes_ = attrs;
+
+  vertexInputInfo_.vertexBindingDescriptionCount   = vertexBindings_.size();
+  vertexInputInfo_.pVertexBindingDescriptions      = vertexBindings_.data();
+  vertexInputInfo_.vertexAttributeDescriptionCount = vertexAttributes_.size();
+  vertexInputInfo_.pVertexAttributeDescriptions    = vertexAttributes_.data();
+}
+
 void Pipeline::update_dynamic_state() {
   // Grab the dims from the swapchain rather than the window to avoid a very unlikely but possible
   // scenario where the swapchain would end up with different dims than what the window would have

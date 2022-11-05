@@ -1,9 +1,12 @@
 #include "omulator/vkmisc/Initializer.hpp"
 
+#include "omulator/VulkanBackend.hpp"
 #include "omulator/props.hpp"
 #include "omulator/util/reinterpret.hpp"
+#include "omulator/vkmisc/Allocator.hpp"
+#include "omulator/vkmisc/Pipeline.hpp"
 #include "omulator/vkmisc/Swapchain.hpp"
-#include "omulator/vkmisc/VkBootstrapUtil.hpp"
+#include "omulator/vkmisc/vkmisc.hpp"
 
 #include <vulkan/vulkan_raii.hpp>
 
@@ -247,6 +250,7 @@ vkb::Instance *vkb_instance_recipe(di::Injector &injector) {
 }
 
 void install_vk_initializer_rules(di::Injector &injector) {
+  // Custom recipes
   injector.addRecipe<vkb::SystemInfo>(&system_info_recipe);
   injector.addRecipe<vkb::Instance>(&vkb_instance_recipe);
   injector.addRecipe<vk::raii::Instance>(&instance_recipe);
@@ -260,6 +264,34 @@ void install_vk_initializer_rules(di::Injector &injector) {
   injector.addRecipe<vk::raii::CommandBuffers>(&command_buffers_recipe);
   injector.addRecipe<vk::raii::Fence>(&fence_recipe);
   injector.addRecipe<vk::raii::Semaphore>(&semaphore_recipe);
+
+  // ctor recipes
+  injector.addCtorRecipe<vkmisc::Allocator,
+                         ILogger &,
+                         vk::raii::Instance &,
+                         vk::raii::PhysicalDevice &,
+                         vk::raii::Device &>();
+
+  injector
+    .addCtorRecipe<vkmisc::Swapchain, di::Injector &, ILogger &, IWindow &, vk::raii::Device &>();
+  injector.addCtorRecipe<vkmisc::Pipeline,
+                         ILogger &,
+                         vk::raii::Device &,
+                         vkmisc::Swapchain &,
+                         PropertyMap &>();
+
+  injector.addCtorRecipe<VulkanBackend,
+                         ILogger &,
+                         di::Injector &,
+                         IWindow &,
+                         vk::raii::Device &,
+                         vkmisc::Swapchain &,
+                         vkmisc::Pipeline &,
+                         vkmisc::DeviceQueues_t &,
+                         vkmisc::Allocator &>();
+
+  // Interfaces bound to implementations
+  injector.bindImpl<IGraphicsBackend, VulkanBackend>();
 }
 
 }  // namespace omulator::vkmisc

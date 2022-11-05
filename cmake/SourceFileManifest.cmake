@@ -27,8 +27,9 @@ set(
     src/vkmisc/Initializer.cpp
     src/vkmisc/Pipeline.cpp
     src/vkmisc/Shader.cpp
+    src/vkmisc/SimpleMesh.cpp
     src/vkmisc/Swapchain.cpp
-    src/vkmisc/VkBootstrapUtil.cpp
+    src/vkmisc/vkmisc.cpp
     ${PLATFORM_DIR}/KillableThread.cpp
     ${PLATFORM_DIR}/PrimitiveIO.cpp
     ${PLATFORM_DIR}/SystemWindow.cpp
@@ -39,6 +40,7 @@ set(
     shaders/triangle.frag
     shaders/triangle.vert
     shaders/red_triangle.vert
+    shaders/tri_mesh.vert
 )
 
 if(MSVC)
