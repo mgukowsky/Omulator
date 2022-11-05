@@ -175,9 +175,9 @@ void Pipeline::set_vertex_binding_attrs(
   vertexBindings_   = bindings;
   vertexAttributes_ = attrs;
 
-  vertexInputInfo_.vertexBindingDescriptionCount   = vertexBindings_.size();
+  vertexInputInfo_.vertexBindingDescriptionCount   = static_cast<U32>(vertexBindings_.size());
   vertexInputInfo_.pVertexBindingDescriptions      = vertexBindings_.data();
-  vertexInputInfo_.vertexAttributeDescriptionCount = vertexAttributes_.size();
+  vertexInputInfo_.vertexAttributeDescriptionCount = static_cast<U32>(vertexAttributes_.size());
   vertexInputInfo_.pVertexAttributeDescriptions    = vertexAttributes_.data();
 }
 

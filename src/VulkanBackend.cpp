@@ -117,7 +117,7 @@ void VulkanBackend::render_frame() {
          auto          &mesh       = meshes_[0];
          vk::DeviceSize deviceSize = 0;
          cmdBuff.bindVertexBuffers(0, mesh.buff(), deviceSize);
-         cmdBuff.draw(mesh.size(), 1, 0, 0);
+         cmdBuff.draw(static_cast<U32>(mesh.size()), 1, 0, 0);
        }))
     {
       needsResizing_ = true;
