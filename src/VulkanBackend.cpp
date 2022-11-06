@@ -2,6 +2,8 @@
 
 #include "omulator/vkmisc/Initializer.hpp"
 
+#include <glm/glm.hpp>
+#include <glm/gtx/transform.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 #include <cassert>
@@ -78,6 +80,9 @@ VulkanBackend::VulkanBackend(ILogger                &logger,
 
   mesh.upload();
 
+  pipeline_.set_push_constant<vkmisc::SimpleMesh::PushConstants_t>(
+    vk::ShaderStageFlagBits::eVertex);
+
   logger_.info("Vulkan initialization completed");
 }
 VulkanBackend::~VulkanBackend() {
@@ -104,6 +109,23 @@ void VulkanBackend::handle_resize() {
 }
 
 void VulkanBackend::render_frame() {
+  if(pipeline_.dirty()) {
+    wait_for_idle_();
+    pipeline_.rebuild_pipeline();
+  }
+
+  // TODO: put this somewhere else!!!
+  glm::vec3 camPos{0.0f, 0.0f, -2.0f};
+  glm::mat4 view       = glm::translate(glm::mat4(1.0f), camPos);
+  glm::mat4 projection = glm::perspective(glm::radians(70.0f), 1700.0f / 900.0f, 0.1f, 200.0f);
+  projection[1][1] *= -1;
+  static U64 framenum = 0;
+  ++framenum;
+  glm::mat4 model = glm::rotate(glm::mat4{1.0f}, glm::radians(framenum * 0.4f), glm::vec3(0, 1, 0));
+  glm::mat4 meshMatrix = projection * view * model;
+  vkmisc::SimpleMesh::PushConstants_t pushConstants;
+  pushConstants.second = meshMatrix;
+
   vkmisc::Frame &currentFrame = frames_.at(frameIdx_);
 
   if(shouldRender_) {
@@ -113,10 +135,12 @@ void VulkanBackend::render_frame() {
     }
 
     // On the off chance that rendering failed, we probably need to resize the window
-    if(!currentFrame.render([&](vk::raii::CommandBuffer &cmdBuff) {
+    if(!currentFrame.render([&, this](vk::raii::CommandBuffer &cmdBuff) {
          auto          &mesh       = meshes_[0];
          vk::DeviceSize deviceSize = 0;
          cmdBuff.bindVertexBuffers(0, mesh.buff(), deviceSize);
+         cmdBuff.pushConstants<vkmisc::SimpleMesh::PushConstants_t>(
+           *(pipeline_.pipelineLayout()), vk::ShaderStageFlagBits::eVertex, 0, pushConstants);
          cmdBuff.draw(static_cast<U32>(mesh.size()), 1, 0, 0);
        }))
     {
@@ -129,8 +153,6 @@ void VulkanBackend::render_frame() {
 
 void VulkanBackend::set_vertex_shader(const std::string &shader) {
   pipeline_.set_shader(vkmisc::Pipeline::ShaderStage::VERTEX, shader);
-  wait_for_idle_();
-  pipeline_.rebuild_pipeline();
 }
 
 void VulkanBackend::do_resize_() {

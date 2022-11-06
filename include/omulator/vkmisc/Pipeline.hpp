@@ -23,11 +23,36 @@ public:
            Swapchain        &swapchain,
            PropertyMap      &propertyMap);
 
-  vk::raii::Pipeline &pipeline();
+  bool dirty() const noexcept;
+
+  vk::raii::Pipeline       &pipeline();
+  vk::raii::PipelineLayout &pipelineLayout();
 
   void rebuild_pipeline();
 
   vk::Rect2D &scissor();
+
+  /**
+   * Set a push constants.
+   *
+   * TODO: This will only set a single push constant at offset 0; add support for more! We also are
+   * intentionally creating element 0 if it doesn't exist...
+   */
+  template<typename T>
+  void set_push_constant(const vk::ShaderStageFlagBits shaderStage) {
+    if(pushConstants_.empty()) {
+      pushConstants_.emplace_back(vk::PushConstantRange());
+    }
+    auto &pushConstant      = pushConstants_.at(0);
+    pushConstant.offset     = 0;
+    pushConstant.size       = sizeof(T);
+    pushConstant.stageFlags = shaderStage;
+
+    pipelineLayoutInfo_.pushConstantRangeCount = static_cast<U32>(pushConstants_.size());
+    pipelineLayoutInfo_.pPushConstantRanges    = pushConstants_.data();
+
+    pipelineDirty_ = true;
+  }
 
   /**
    * Set the shader used for a given stage in the pipeline. N.B. that rebuild_pipeline() will have
@@ -91,6 +116,13 @@ private:
    */
   std::unique_ptr<Shader> fragmentShader_;
   std::unique_ptr<Shader> vertexShader_;
+
+  std::vector<vk::PushConstantRange> pushConstants_;
+
+  /**
+   * If true, then rebuild_pipeline_ should be invoked.
+   */
+  bool pipelineDirty_;
 };
 
 }  // namespace omulator::vkmisc

@@ -2,9 +2,10 @@
 
 #include "omulator/vkmisc/GPUBuffer.hpp"
 
-#include <glm/vec3.hpp>
+#include <glm/glm.hpp>
 
 #include <array>
+#include <utility>
 #include <vector>
 
 namespace omulator::vkmisc {
@@ -14,7 +15,8 @@ public:
   /**
    * N.B. this is NOT an optimized vertex format!
    */
-  using SimpleVertex = std::array<glm::vec3, 3>;
+  using SimpleVertex    = std::array<glm::vec3, 3>;
+  using PushConstants_t = std::pair<glm::vec4, glm::mat4>;
 
   static constexpr auto VERTEX_IDX_POSITION = 0;
   static constexpr auto VERTEX_IDX_NORMAL   = 1;

@@ -3,6 +3,7 @@
 #include "omulator/props.hpp"
 
 #include <array>
+#include <utility>
 
 namespace omulator::vkmisc {
 
@@ -15,10 +16,11 @@ Pipeline::Pipeline(ILogger          &logger,
     swapchain_(swapchain),
     propertyMap_(propertyMap),
     pipeline_(nullptr),
-    pipelineLayout_(nullptr) {
+    pipelineLayout_(nullptr),
+    pipelineDirty_(true) {
   // We have a relatively chunky constructor here, whose primary responsibility is to fill out
   // various initializer structs with information which will not change between calls to
-  // rebuild_pipeline().
+  // rebuild_pipeline_().
 
   // Dynamic states do not need to be baked into the pipeline, but need to be specified at draw
   // time.
@@ -57,7 +59,8 @@ Pipeline::Pipeline(ILogger          &logger,
   // N.B. that lines thicker than 1.0f requires enabling a feature
   rasterizerInfo_.lineWidth = 1.0f;
 
-  rasterizerInfo_.cullMode                = vk::CullModeFlagBits::eBack;
+  // TODO: should probably be eBack...
+  rasterizerInfo_.cullMode                = vk::CullModeFlagBits::eNone;
   rasterizerInfo_.frontFace               = vk::FrontFace::eClockwise;
   rasterizerInfo_.depthBiasEnable         = false;
   rasterizerInfo_.depthBiasConstantFactor = 0.0f;
@@ -108,9 +111,17 @@ Pipeline::Pipeline(ILogger          &logger,
   rebuild_pipeline();
 }
 
+bool Pipeline::dirty() const noexcept { return pipelineDirty_; }
+
 vk::raii::Pipeline &Pipeline::pipeline() { return pipeline_; }
 
+vk::raii::PipelineLayout &Pipeline::pipelineLayout() { return pipelineLayout_; }
+
 void Pipeline::rebuild_pipeline() {
+  if(!pipelineDirty_) {
+    logger_.warn("rebuild_pipeline called without a dirty pipeline");
+  }
+
   // TODO: can cache pipelines instead of discarding them every time, esp. if only a single piece of
   // the state is being toggled
   clear_();
@@ -140,6 +151,8 @@ void Pipeline::rebuild_pipeline() {
   pipelineCreateInfo.basePipelineIndex  = -1;
 
   pipeline_ = vk::raii::Pipeline(device_, nullptr, pipelineCreateInfo);
+
+  pipelineDirty_ = false;
 }
 
 vk::Rect2D &Pipeline::scissor() { return scissor_; }
@@ -167,6 +180,8 @@ void Pipeline::set_shader(const Pipeline::ShaderStage shaderStage, const std::st
     *ppShader           = std::move(newShader);
     pShaderInfo->module = *(ppShader->get()->get());
   }
+
+  pipelineDirty_ = true;
 }
 
 void Pipeline::set_vertex_binding_attrs(
