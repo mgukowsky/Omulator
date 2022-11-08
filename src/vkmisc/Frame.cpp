@@ -7,6 +7,36 @@ namespace {
 constexpr std::array    CLEAR_COLOR{0.0f, 0.0f, 0.0f, 1.0f};
 constexpr omulator::U64 GPU_MAX_TIMEOUT_NS = 1'000'000'000;
 
+// Although ERROR_OUT_OF_DATE_KHR is recoverable, the spec considers it to be an error cofe for
+// vkAcquireNextImageKHR and vkQueuePresentKHR. Given this, the generated vk:raii (correctly, per
+// the spec) will throw if this error code is returned by either of these functions. To avoid
+// wrapping each call in a try/catch block, we can instead call the underlying Vulkan function
+// directly. Taken from
+// https://github.com/KhronosGroup/Vulkan-Hpp/issues/599#issuecomment-1016468453
+std::pair<vk::Result, uint32_t> rawAcquireNextImageKHR(const vk::raii::SwapchainKHR &swapchain,
+                                                       uint64_t                      timeout,
+                                                       vk::Semaphore                 semaphore,
+                                                       vk::Fence                     fence) {
+  uint32_t   image_index;
+  vk::Result result = static_cast<vk::Result>(
+    swapchain.getDispatcher()->vkAcquireNextImageKHR(static_cast<VkDevice>(swapchain.getDevice()),
+                                                     static_cast<VkSwapchainKHR>(*swapchain),
+                                                     timeout,
+                                                     static_cast<VkSemaphore>(semaphore),
+                                                     static_cast<VkFence>(fence),
+                                                     &image_index));
+  return std::make_pair(result, image_index);
+}
+
+/**
+ * @brief vk::raii::Queue::presentKHR without exceptions
+ */
+vk::Result rawQueuePresentKHR(const vk::raii::Queue    &queue,
+                              const vk::PresentInfoKHR &present_info) {
+  return static_cast<vk::Result>(queue.getDispatcher()->vkQueuePresentKHR(
+    static_cast<VkQueue>(*queue), reinterpret_cast<const VkPresentInfoKHR *>(&present_info)));
+}
+
 }  // namespace
 
 namespace omulator::vkmisc {
@@ -36,7 +66,7 @@ bool Frame::render(std::function<void(vk::raii::CommandBuffer &)> cmdfn) {
   pipeline_.update_dynamic_state();
 
   auto [nextImgResult, imageIdx] =
-    swapchain_.swapchain().acquireNextImage(GPU_MAX_TIMEOUT_NS, *presentSemaphore_);
+    rawAcquireNextImageKHR(swapchain_.swapchain(), GPU_MAX_TIMEOUT_NS, *presentSemaphore_, nullptr);
   // On this codepath we should abandon the renderpass if we get eTimeout, and try again later. The
   // semaphore will remain unsignaled, but that's OK since we will try again at the next frame; as
   // long as the fences have been reset by this point we're OK to abandon the frame.
@@ -89,8 +119,8 @@ void Frame::present_(const U32 imageIdx) {
   presentInfo.pWaitSemaphores    = waitSemaphores.data();
   presentInfo.pImageIndices      = &imageIdx;
 
-  const auto result = deviceQueues_.at(QueueType_t::present).first.presentKHR(presentInfo);
-  validate_vk_return(logger_, "presentKHR", result);
+  const auto presentQueue = deviceQueues_.at(QueueType_t::present).first;
+  validate_vk_return(logger_, "presentKHR", rawQueuePresentKHR(presentQueue, presentInfo));
 }
 
 void Frame::recordBuff_(const std::size_t                              idx,
