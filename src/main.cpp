@@ -20,6 +20,11 @@
 
 using namespace std::chrono_literals;
 
+namespace {
+const auto FPS    = 60;
+const auto PERIOD = 1000ms / FPS;
+}  // namespace
+
 namespace omulator {
 
 int oml_main(const int argc, const char **argv) {
@@ -57,9 +62,9 @@ int oml_main(const int argc, const char **argv) {
 
     bool done = false;
 
-    while(!done) {
-      const TimePoint_t timeOfNextIteration = clock.now() + 16ms;
+    TimePoint_t timeOfNextIteration = clock.now();
 
+    while(!done) {
       mbrecv.recv(
         [&](const msg::Message &msg) {
           if(msg.type == msg::MessageType::APP_QUIT) {
@@ -69,6 +74,14 @@ int oml_main(const int argc, const char **argv) {
         msg::RecvBehavior::NONBLOCK);
       wnd.pump_msgs();
       testEngineMailbox.send_single_message(msg::MessageType::RENDER_FRAME);
+
+      timeOfNextIteration += PERIOD;
+
+      // Account for drift/latency (delay in message processing above; late wakeup, etc.)
+      const auto NOW = clock.now();
+      if(NOW >= timeOfNextIteration) {
+        timeOfNextIteration = NOW + PERIOD;
+      }
 
       clock.sleep_until(timeOfNextIteration);
     }
