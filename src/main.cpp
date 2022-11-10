@@ -18,11 +18,9 @@
 #include <filesystem>
 #include <thread>
 
-using namespace std::chrono_literals;
-
 namespace {
 const auto FPS    = 60;
-const auto PERIOD = 1000ms / FPS;
+const auto PERIOD = std::chrono::nanoseconds(1'000'000'000) / FPS;
 }  // namespace
 
 namespace omulator {
@@ -77,7 +75,7 @@ int oml_main(const int argc, const char **argv) {
 
       timeOfNextIteration += PERIOD;
 
-      // Account for drift/latency (delay in message processing above; late wakeup, etc.)
+      // Account for drift/latency (delay in message processing above, late wakeup, etc.)
       const auto NOW = clock.now();
       if(NOW >= timeOfNextIteration) {
         timeOfNextIteration = NOW + PERIOD;
