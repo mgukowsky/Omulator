@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 
 #include <array>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -34,6 +35,8 @@ public:
   void set_vertex(const std::size_t idx, SimpleVertex vertex);
 
   void upload();
+
+  static SimpleMesh load_obj(ILogger &logger, Allocator &allocator, const std::string filepath);
 
 private:
   GPUBuffer<SimpleVertex> buff_;

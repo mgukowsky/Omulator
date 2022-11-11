@@ -5,6 +5,7 @@
 #include "omulator/di/Injector.hpp"
 #include "omulator/oml_types.hpp"
 #include "omulator/util/Pimpl.hpp"
+#include "omulator/vkmisc/Allocator.hpp"
 
 #include <vulkan/vulkan_raii.hpp>
 
@@ -17,7 +18,11 @@ namespace omulator::vkmisc {
  */
 class Swapchain {
 public:
-  Swapchain(di::Injector &injector, ILogger &logger, IWindow &window, vk::raii::Device &device);
+  Swapchain(di::Injector     &injector,
+            ILogger          &logger,
+            IWindow          &window,
+            Allocator        &allocator,
+            vk::raii::Device &device);
   ~Swapchain();
 
   std::pair<U32, U32>     dimensions() const noexcept;
@@ -31,6 +36,7 @@ private:
   struct Impl_;
   util::Pimpl<Impl_> impl_;
 
+  void build_depth_image_views_();
   void build_framebuffers_();
   void build_image_views_();
   void build_swapchain_();
@@ -45,12 +51,18 @@ private:
   di::Injector     &injector_;
   ILogger          &logger_;
   IWindow          &window_;
+  Allocator        &allocator_;
   vk::raii::Device &device_;
 
+  AllocatedImage                     depthImage_;
+  vk::raii::ImageView                depthImageView_;
   std::vector<vk::raii::Framebuffer> framebuffers_;
   std::vector<vk::raii::ImageView>   imageViews_;
   vk::raii::RenderPass               renderPass_;
   vk::raii::SwapchainKHR             swapchain_;
+
+  vk::ImageCreateInfo     depthImageCreateInfo_;
+  vk::ImageViewCreateInfo depthImageViewCreateInfo_;
 
   U32 surfaceWidth;
   U32 surfaceHeight;

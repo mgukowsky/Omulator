@@ -1,5 +1,7 @@
 #include "omulator/VulkanBackend.hpp"
 
+#include "omulator/PropertyMap.hpp"
+#include "omulator/props.hpp"
 #include "omulator/vkmisc/Initializer.hpp"
 
 #include <glm/glm.hpp>
@@ -7,6 +9,7 @@
 #include <vulkan/vulkan_raii.hpp>
 
 #include <cassert>
+#include <filesystem>
 #include <utility>
 
 namespace omulator {
@@ -52,31 +55,14 @@ VulkanBackend::VulkanBackend(ILogger                &logger,
 
   // TODO: make this a unique_ptr to shut the compiler up (or maybe make the allocation a ptr? seems
   // to be failing b/c of some vma magic...)
-  meshes_.emplace_back(logger_, allocator, 3);
+  const auto filepath =
+    std::filesystem::path(
+      injector.get<PropertyMap>().get_prop<std::string>(props::RESOURCE_DIR).get())
+    / "monkey_smooth.obj";
+  meshes_.emplace_back(vkmisc::SimpleMesh::load_obj(logger_, allocator, filepath.string()));
   auto &mesh = meshes_[0];
   pipeline_.set_vertex_binding_attrs(mesh.get_bindings(), mesh.get_attrs());
   set_vertex_shader("tri_mesh.vert.spv");
-  mesh.set_vertex(
-    0,
-    {
-      glm::vec3{1.0f, 1.0f, 0.0f},
-      glm::vec3{0.0f, 0.0f, 0.0f},
-      glm::vec3{0.0f, 1.0f, 0.0f}
-  });
-  mesh.set_vertex(
-    1,
-    {
-      glm::vec3{-1.0f, 1.0f, 0.0f},
-      glm::vec3{0.0f,  0.0f, 0.0f},
-      glm::vec3{0.0f,  1.0f, 0.0f}
-  });
-  mesh.set_vertex(
-    2,
-    {
-      glm::vec3{0.0f, -1.0f, 0.0f},
-      glm::vec3{0.0f, 0.0f,  0.0f},
-      glm::vec3{0.0f, 1.0f,  0.0f}
-  });
 
   mesh.upload();
 

@@ -99,6 +99,7 @@ private:
    */
   vk::PipelineColorBlendAttachmentState    colorBlendAttachment_;
   vk::PipelineColorBlendStateCreateInfo    colorBlendInfo_;
+  vk::PipelineDepthStencilStateCreateInfo  depthStencilCreateInfo_;
   vk::PipelineDynamicStateCreateInfo       dynamicStateInfo_;
   vk::PipelineShaderStageCreateInfo        fragShaderInfo_;
   vk::PipelineInputAssemblyStateCreateInfo inputAssemblyInfo_;

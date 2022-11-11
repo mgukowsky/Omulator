@@ -136,8 +136,13 @@ void Frame::recordBuff_(const std::size_t                              idx,
 
   vk::ClearValue clearValue;
   clearValue.color.setFloat32(CLEAR_COLOR);
-  renderPassBeginInfo.clearValueCount = 1;
-  renderPassBeginInfo.pClearValues    = &clearValue;
+  vk::ClearValue depthClear;
+  depthClear.depthStencil.depth = 1.0f;
+
+  std::array clearValues{clearValue, depthClear};
+
+  renderPassBeginInfo.clearValueCount = static_cast<U32>(clearValues.size());
+  renderPassBeginInfo.pClearValues    = clearValues.data();
 
   cmdBuff_.beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
   cmdBuff_.bindPipeline(vk::PipelineBindPoint::eGraphics, *(pipeline_.pipeline()));

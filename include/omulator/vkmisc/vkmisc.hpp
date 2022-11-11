@@ -15,10 +15,14 @@ namespace omulator::vkmisc {
 
 constexpr auto OML_VK_VERSION = VK_API_VERSION_1_1;
 
-struct AllocatedBuffer {
-  vk::Buffer buffer;
-  void      *pAllocation;
+template<typename T>
+struct GPUAllocation {
+  T     handle;
+  void *pAllocation;
 };
+
+using AllocatedBuffer = GPUAllocation<vk::Buffer>;
+using AllocatedImage  = GPUAllocation<vk::Image>;
 
 void vk_fatal(ILogger &logger, const char *msg);
 void vk_fatal(ILogger &logger, const std::string &msg);

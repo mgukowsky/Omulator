@@ -272,8 +272,12 @@ void install_vk_initializer_rules(di::Injector &injector) {
                          vk::raii::PhysicalDevice &,
                          vk::raii::Device &>();
 
-  injector
-    .addCtorRecipe<vkmisc::Swapchain, di::Injector &, ILogger &, IWindow &, vk::raii::Device &>();
+  injector.addCtorRecipe<vkmisc::Swapchain,
+                         di::Injector &,
+                         ILogger &,
+                         IWindow &,
+                         vkmisc::Allocator &,
+                         vk::raii::Device &>();
   injector.addCtorRecipe<vkmisc::Pipeline,
                          ILogger &,
                          vk::raii::Device &,

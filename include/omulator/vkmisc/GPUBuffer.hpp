@@ -62,7 +62,7 @@ public:
       rhs.isValid_                = false;
       rhs.pLogger_                = nullptr;
       rhs.pAllocator_             = nullptr;
-      rhs.allocation_.buffer      = nullptr;
+      rhs.allocation_.handle      = nullptr;
       rhs.allocation_.pAllocation = nullptr;
     }
 
@@ -71,7 +71,7 @@ public:
 
   vk::Buffer &buff() {
     assert(isValid_);
-    return allocation_.buffer;
+    return allocation_.handle;
   }
 
   /**

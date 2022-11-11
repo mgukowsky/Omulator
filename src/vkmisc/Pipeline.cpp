@@ -92,6 +92,14 @@ Pipeline::Pipeline(ILogger          &logger,
   colorBlendInfo_.pAttachments    = &colorBlendAttachment_;
   colorBlendInfo_.blendConstants  = std::array{0.0f, 0.0f, 0.0f, 0.0f};
 
+  depthStencilCreateInfo_.depthTestEnable       = true;
+  depthStencilCreateInfo_.depthWriteEnable      = true;
+  depthStencilCreateInfo_.depthCompareOp        = vk::CompareOp::eLessOrEqual;
+  depthStencilCreateInfo_.depthBoundsTestEnable = false;
+  depthStencilCreateInfo_.minDepthBounds        = 0.0f;
+  depthStencilCreateInfo_.maxDepthBounds        = 1.0f;
+  depthStencilCreateInfo_.stencilTestEnable     = false;
+
   pipelineLayoutInfo_.setLayoutCount         = 0;
   pipelineLayoutInfo_.pSetLayouts            = nullptr;
   pipelineLayoutInfo_.pushConstantRangeCount = 0;
@@ -137,7 +145,7 @@ void Pipeline::rebuild_pipeline() {
   pipelineCreateInfo.pViewportState      = &viewportInfo_;
   pipelineCreateInfo.pRasterizationState = &rasterizerInfo_;
   pipelineCreateInfo.pMultisampleState   = &multisamplingInfo_;
-  pipelineCreateInfo.pDepthStencilState  = nullptr;
+  pipelineCreateInfo.pDepthStencilState  = &depthStencilCreateInfo_;
   pipelineCreateInfo.pColorBlendState    = &colorBlendInfo_;
   pipelineCreateInfo.pDynamicState       = &dynamicStateInfo_;
   pipelineCreateInfo.layout              = *pipelineLayout_;

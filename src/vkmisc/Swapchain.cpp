@@ -7,6 +7,10 @@
 
 #include <cassert>
 
+namespace {
+constexpr auto DEPTH_FORMAT = vk::Format::eD32Sfloat;
+}  // namespace
+
 namespace omulator::vkmisc {
 
 struct Swapchain::Impl_ {
@@ -16,15 +20,35 @@ struct Swapchain::Impl_ {
 Swapchain::Swapchain(di::Injector     &injector,
                      ILogger          &logger,
                      IWindow          &window,
+                     Allocator        &allocator,
                      vk::raii::Device &device)
   : injector_(injector),
     logger_(logger),
     window_(window),
+    allocator_(allocator),
     device_(device),
+    depthImage_({nullptr, nullptr}),
+    depthImageView_(nullptr),
     renderPass_(nullptr),
     swapchain_(nullptr),
     surfaceWidth(0),
     surfaceHeight(0) {
+  depthImageCreateInfo_.imageType   = vk::ImageType::e2D;
+  depthImageCreateInfo_.format      = DEPTH_FORMAT;
+  depthImageCreateInfo_.mipLevels   = 1;
+  depthImageCreateInfo_.arrayLayers = 1;
+  depthImageCreateInfo_.samples     = vk::SampleCountFlagBits::e1;
+  depthImageCreateInfo_.tiling      = vk::ImageTiling::eOptimal;
+  depthImageCreateInfo_.usage       = vk::ImageUsageFlagBits::eDepthStencilAttachment;
+
+  depthImageViewCreateInfo_.viewType                        = vk::ImageViewType::e2D;
+  depthImageViewCreateInfo_.format                          = DEPTH_FORMAT;
+  depthImageViewCreateInfo_.subresourceRange.baseMipLevel   = 0;
+  depthImageViewCreateInfo_.subresourceRange.levelCount     = 1;
+  depthImageViewCreateInfo_.subresourceRange.baseArrayLayer = 0;
+  depthImageViewCreateInfo_.subresourceRange.layerCount     = 1;
+  depthImageViewCreateInfo_.subresourceRange.aspectMask     = vk::ImageAspectFlagBits::eDepth;
+
   // Almost the same as calling Swapchain::reset(), however we only have to create the renderpass
   // one time here
   // TODO: the above is true except in specific circumstances, like moving the window to and from an
@@ -32,10 +56,15 @@ Swapchain::Swapchain(di::Injector     &injector,
   build_swapchain_();
   create_renderpass_();
   build_image_views_();
+  build_depth_image_views_();
   build_framebuffers_();
 }
 
-Swapchain::~Swapchain() { }
+Swapchain::~Swapchain() {
+  if(depthImage_.pAllocation != nullptr) {
+    allocator_.free(depthImage_);
+  }
+}
 
 std::pair<U32, U32> Swapchain::dimensions() const noexcept { return {surfaceWidth, surfaceHeight}; }
 
@@ -54,23 +83,37 @@ void Swapchain::reset() {
   clear_();
   build_swapchain_();
   build_image_views_();
+  build_depth_image_views_();
   build_framebuffers_();
 }
 
 vk::raii::SwapchainKHR &Swapchain::swapchain() { return swapchain_; }
 
+void Swapchain::build_depth_image_views_() {
+  depthImageCreateInfo_.extent = vk::Extent3D{surfaceWidth, surfaceHeight, 1};
+  if(depthImage_.pAllocation != nullptr) {
+    allocator_.free(depthImage_);
+  }
+
+  depthImage_ = allocator_.alloc(depthImageCreateInfo_, Allocator::Residency::GPU_ONLY);
+
+  depthImageViewCreateInfo_.image = depthImage_.handle;
+
+  depthImageView_ = vk::raii::ImageView(device_, depthImageViewCreateInfo_);
+}
+
 void Swapchain::build_framebuffers_() {
   for(const auto &imageView : imageViews_) {
     vk::FramebufferCreateInfo framebufferCreateInfo;
-    framebufferCreateInfo.renderPass      = *renderPass_;
-    framebufferCreateInfo.attachmentCount = 1;
-    framebufferCreateInfo.width           = surfaceWidth;
-    framebufferCreateInfo.height          = surfaceHeight;
-    framebufferCreateInfo.layers          = 1;
+    framebufferCreateInfo.renderPass = *renderPass_;
+    framebufferCreateInfo.width      = surfaceWidth;
+    framebufferCreateInfo.height     = surfaceHeight;
+    framebufferCreateInfo.layers     = 1;
 
     // TODO: depth attachment also needs to go in this array
-    std::array attachments{*imageView};
-    framebufferCreateInfo.pAttachments = attachments.data();
+    std::array attachments{*imageView, *depthImageView_};
+    framebufferCreateInfo.attachmentCount = static_cast<U32>(attachments.size());
+    framebufferCreateInfo.pAttachments    = attachments.data();
 
     framebuffers_.emplace_back(device_, framebufferCreateInfo);
   }
@@ -161,11 +204,26 @@ void Swapchain::create_renderpass_() {
   // the parent renderpass)
   vk::AttachmentReference colorAttachmentReference(0, vk::ImageLayout::eColorAttachmentOptimal);
 
+  vk::AttachmentDescription depthAttachment;
+
+  depthAttachment.format         = DEPTH_FORMAT;
+  depthAttachment.samples        = vk::SampleCountFlagBits::e1;
+  depthAttachment.loadOp         = vk::AttachmentLoadOp::eClear;
+  depthAttachment.storeOp        = vk::AttachmentStoreOp::eStore;
+  depthAttachment.stencilLoadOp  = vk::AttachmentLoadOp::eClear;
+  depthAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+  depthAttachment.initialLayout  = vk::ImageLayout::eUndefined;
+  depthAttachment.finalLayout    = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
+  vk::AttachmentReference depthAttachmentReference(1,
+                                                   vk::ImageLayout::eDepthStencilAttachmentOptimal);
+
   // Create our 1 minimally required graphics subpass for our renderpass
   vk::SubpassDescription subpassDescription;
-  subpassDescription.pipelineBindPoint    = vk::PipelineBindPoint::eGraphics;
-  subpassDescription.colorAttachmentCount = 1;
-  subpassDescription.pColorAttachments    = &colorAttachmentReference;
+  subpassDescription.pipelineBindPoint       = vk::PipelineBindPoint::eGraphics;
+  subpassDescription.colorAttachmentCount    = 1;
+  subpassDescription.pColorAttachments       = &colorAttachmentReference;
+  subpassDescription.pDepthStencilAttachment = &depthAttachmentReference;
 
   vk::SubpassDependency subpassDependency;
   // TODO: why does this not accept anything other than the macro?
@@ -176,14 +234,28 @@ void Swapchain::create_renderpass_() {
   subpassDependency.dstStageMask  = vk::PipelineStageFlagBits::eColorAttachmentOutput;
   subpassDependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
 
+  vk::SubpassDependency depthDependency;
+  depthDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+  depthDependency.dstSubpass = 0;
+  depthDependency.srcStageMask =
+    vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eLateFragmentTests;
+  depthDependency.srcAccessMask = vk::AccessFlagBits::eNone;
+  depthDependency.dstStageMask =
+    vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eLateFragmentTests;
+  depthDependency.dstAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+
   // Create the actual renderpass
+  std::array attachments{colorAttachment, depthAttachment};
+  std::array subpassDescriptions{subpassDescription};
+  std::array subpassDependencies{subpassDependency, depthDependency};
+
   vk::RenderPassCreateInfo renderPassCreateInfo;
-  renderPassCreateInfo.attachmentCount = 1;
-  renderPassCreateInfo.pAttachments    = &colorAttachment;
-  renderPassCreateInfo.subpassCount    = 1;
-  renderPassCreateInfo.pSubpasses      = &subpassDescription;
-  renderPassCreateInfo.dependencyCount = 1;
-  renderPassCreateInfo.pDependencies   = &subpassDependency;
+  renderPassCreateInfo.attachmentCount = static_cast<U32>(attachments.size());
+  renderPassCreateInfo.pAttachments    = attachments.data();
+  renderPassCreateInfo.subpassCount    = static_cast<U32>(subpassDescriptions.size());
+  renderPassCreateInfo.pSubpasses      = subpassDescriptions.data();
+  renderPassCreateInfo.dependencyCount = static_cast<U32>(subpassDependencies.size());
+  renderPassCreateInfo.pDependencies   = subpassDependencies.data();
 
   renderPass_ = vk::raii::RenderPass(device_, renderPassCreateInfo);
 }

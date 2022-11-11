@@ -115,9 +115,11 @@ endif()
 include(libimgui)
 
 add_subdirectory("third_party/docopt.cpp")
+add_subdirectory("third_party/tinyobjloader")
 # Add exception handling to docopt to make MSVC happy
 if(MSVC)
   configure_target(docopt)
+  configure_target(tinyobjloader)
 endif()
 
 add_subdirectory("third_party/glm")
@@ -133,6 +135,7 @@ target_link_libraries(
     glm::glm
     imgui
     docopt
+    tinyobjloader
     vk-bootstrap::vk-bootstrap
     VulkanMemoryAllocator
     ${CMAKE_DL_LIBS}
@@ -176,6 +179,8 @@ target_include_directories(
     $<INSTALL_INTERFACE:third_party/concurrentqueue>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/docopt.cpp>
     $<INSTALL_INTERFACE:third_party/docopt.cpp>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/tinyobjloader>
+    $<INSTALL_INTERFACE:third_party/tinyobjloader>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/vk-bootstrap/src>
     $<INSTALL_INTERFACE:third_party/vk-bootstrap/src>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/VulkanMemoryAllocator/include>
@@ -267,6 +272,23 @@ else()
   # compiled shaders, but our app won't.
   message(WARNING "Skipping shader compilation because glslc could not be found")
 endif()
+
+# Download external assets
+# TODO: This will download a set of assets for each build type; download once and copy/symlink to
+# each folder as needed
+include(DownloadedAssetManifest)
+foreach(URL IN LISTS OML_DOWNLOADED_ASSET_MANIFEST)
+  get_filename_component(FILENAME ${URL} NAME)
+  set(OUTFILE ${CMAKE_CURRENT_BINARY_DIR}/${FILENAME})
+  if(NOT EXISTS ${OUTFILE})
+    message(STATUS "Downloading ${FILENAME}")
+    file(
+      DOWNLOAD
+        ${URL}
+        ${OUTFILE}
+    )
+  endif()
+endforeach()
 
 # Tests
 if(OMULATOR_BUILD_TESTS)

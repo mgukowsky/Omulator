@@ -15,6 +15,22 @@ VmaMemoryUsage residency_to_vma_usage(const Allocator::Residency residency) {
   switch(residency) {
     case Allocator::Residency::CPU_TO_GPU:
       return VMA_MEMORY_USAGE_CPU_TO_GPU;
+    case Allocator::Residency::GPU_ONLY:
+      return VMA_MEMORY_USAGE_GPU_ONLY;
+    case Allocator::Residency::CPU_ONLY:
+      return VMA_MEMORY_USAGE_CPU_ONLY;
+    case Allocator::Residency::GPU_TO_CPU:
+      return VMA_MEMORY_USAGE_GPU_TO_CPU;
+    case Allocator::Residency::CPU_COPY:
+      return VMA_MEMORY_USAGE_CPU_COPY;
+    case Allocator::Residency::GPU_LAZILY_ALLOCATED:
+      return VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED;
+    case Allocator::Residency::AUTO:
+      return VMA_MEMORY_USAGE_AUTO;
+    case Allocator::Residency::AUTO_PREFER_DEVICE:
+      return VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+    case Allocator::Residency::AUTO_PREFER_HOST:
+      return VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
     default:
       throw std::runtime_error("Invalid Residency enum value!");
   }
@@ -76,8 +92,37 @@ AllocatedBuffer Allocator::alloc(const vk::BufferCreateInfo &bufferCreateInfo,
   return {buff, allocation};
 }
 
+AllocatedImage Allocator::alloc(const vk::ImageCreateInfo &imageCreateInfo,
+                                const Allocator::Residency residency) {
+  VmaAllocationCreateInfo allocCreateInfo{
+    .flags          = 0,
+    .usage          = residency_to_vma_usage(residency),
+    .requiredFlags  = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+    .preferredFlags = 0,
+    .memoryTypeBits = 0,
+    .pool           = VK_NULL_HANDLE,
+    .pUserData      = nullptr,
+    .priority       = 0.0f};
+
+  VkImage           image;
+  VmaAllocation     allocation;
+  VkImageCreateInfo rawImageCreateInfo(imageCreateInfo);
+
+  validate_vk_return(
+    logger_,
+    "vmaCreateImage",
+    vmaCreateImage(
+      impl_->allocator, &rawImageCreateInfo, &allocCreateInfo, &image, &allocation, nullptr));
+
+  return {image, allocation};
+}
+
 void Allocator::free(AllocatedBuffer &buff) {
-  vmaDestroyBuffer(impl_->allocator, buff.buffer, static_cast<VmaAllocation>(buff.pAllocation));
+  vmaDestroyBuffer(impl_->allocator, buff.handle, static_cast<VmaAllocation>(buff.pAllocation));
+}
+
+void Allocator::free(AllocatedImage &image) {
+  vmaDestroyImage(impl_->allocator, image.handle, static_cast<VmaAllocation>(image.pAllocation));
 }
 
 void Allocator::upload(AllocatedBuffer &buffer, void *localData, const std::size_t size) {

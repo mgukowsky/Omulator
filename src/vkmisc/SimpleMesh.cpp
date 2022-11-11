@@ -1,5 +1,9 @@
 #include "omulator/vkmisc/SimpleMesh.hpp"
 
+#include <tiny_obj_loader.h>
+
+#include <vector>
+
 namespace {
 
 constexpr auto ELEM_SIZE = sizeof(glm::vec3);
@@ -44,5 +48,61 @@ void SimpleMesh::set_vertex(const std::size_t idx, SimpleVertex vertex) {
 std::size_t SimpleMesh::size() const noexcept { return buff_.size(); }
 
 void SimpleMesh::upload() { buff_.upload(); }
+
+SimpleMesh SimpleMesh::load_obj(ILogger &logger, Allocator &allocator, const std::string filepath) {
+  tinyobj::attrib_t                attrib;
+  std::vector<tinyobj::shape_t>    shapes;
+  std::vector<tinyobj::material_t> materials;
+
+  std::string warnStr;
+  std::string errStr;
+
+  tinyobj::LoadObj(&attrib, &shapes, &materials, &warnStr, &errStr, filepath.c_str(), nullptr);
+
+  if(!warnStr.empty()) {
+    logger.warn(warnStr);
+  }
+  if(!errStr.empty()) {
+    logger.error(errStr);
+
+    // TODO: don't throw; return some default mesh/print error
+    throw std::runtime_error(errStr);
+  }
+
+  std::vector<SimpleVertex> vertices;
+
+  for(auto &shape : shapes) {
+    std::size_t indexOffset = 0;
+    for(std::size_t f = 0; f < shape.mesh.num_face_vertices.size(); ++f) {
+      int fv = 3;
+
+      for(std::size_t v = 0; v < fv; ++v) {
+        tinyobj::index_t idx = shape.mesh.indices.at(indexOffset + v);
+
+        tinyobj::real_t vx = attrib.vertices[3 * idx.vertex_index + 0];
+        tinyobj::real_t vy = attrib.vertices[3 * idx.vertex_index + 1];
+        tinyobj::real_t vz = attrib.vertices[3 * idx.vertex_index + 2];
+        tinyobj::real_t nx = attrib.normals[3 * idx.normal_index + 0];
+        tinyobj::real_t ny = attrib.normals[3 * idx.normal_index + 1];
+        tinyobj::real_t nz = attrib.normals[3 * idx.normal_index + 2];
+
+        vertices.emplace_back(SimpleVertex{
+          glm::vec3{vx, vy, vz},
+          glm::vec3{nx, ny, nz},
+          glm::vec3{nx, ny, nz}
+        });
+      }
+
+      indexOffset += fv;
+    }
+  }
+
+  SimpleMesh newMesh(logger, allocator, vertices.size());
+  for(std::size_t i = 0; i < vertices.size(); ++i) {
+    newMesh.set_vertex(i, vertices.at(i));
+  }
+
+  return newMesh;
+}
 
 }  // namespace omulator::vkmisc
