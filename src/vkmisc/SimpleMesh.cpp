@@ -74,17 +74,17 @@ SimpleMesh SimpleMesh::load_obj(ILogger &logger, Allocator &allocator, const std
   for(auto &shape : shapes) {
     std::size_t indexOffset = 0;
     for(std::size_t f = 0; f < shape.mesh.num_face_vertices.size(); ++f) {
-      int fv = 3;
+      std::size_t fv = 3;
 
       for(std::size_t v = 0; v < fv; ++v) {
         tinyobj::index_t idx = shape.mesh.indices.at(indexOffset + v);
 
-        tinyobj::real_t vx = attrib.vertices[3 * idx.vertex_index + 0];
-        tinyobj::real_t vy = attrib.vertices[3 * idx.vertex_index + 1];
-        tinyobj::real_t vz = attrib.vertices[3 * idx.vertex_index + 2];
-        tinyobj::real_t nx = attrib.normals[3 * idx.normal_index + 0];
-        tinyobj::real_t ny = attrib.normals[3 * idx.normal_index + 1];
-        tinyobj::real_t nz = attrib.normals[3 * idx.normal_index + 2];
+        tinyobj::real_t vx = attrib.vertices[static_cast<std::size_t>(3 * idx.vertex_index + 0)];
+        tinyobj::real_t vy = attrib.vertices[static_cast<std::size_t>(3 * idx.vertex_index + 1)];
+        tinyobj::real_t vz = attrib.vertices[static_cast<std::size_t>(3 * idx.vertex_index + 2)];
+        tinyobj::real_t nx = attrib.normals[static_cast<std::size_t>(3 * idx.normal_index + 0)];
+        tinyobj::real_t ny = attrib.normals[static_cast<std::size_t>(3 * idx.normal_index + 1)];
+        tinyobj::real_t nz = attrib.normals[static_cast<std::size_t>(3 * idx.normal_index + 2)];
 
         vertices.emplace_back(SimpleVertex{
           glm::vec3{vx, vy, vz},
