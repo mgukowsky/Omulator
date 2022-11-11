@@ -114,7 +114,7 @@ Pipeline::Pipeline(ILogger          &logger,
   // Load default shaders
   // TODO: put more sensible defaults here
   set_shader(ShaderStage::VERTEX, "triangle.vert.spv");
-  set_shader(ShaderStage::FRAGMENT, "triangle.frag.spv");
+  set_shader(ShaderStage::FRAGMENT, "tri_mesh.frag.spv");
 
   rebuild_pipeline();
 }

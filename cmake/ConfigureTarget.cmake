@@ -305,7 +305,7 @@ function(config_for_gcc target_name add_warnings)
 endfunction()
 
 function(config_for_clang target_name add_warnings)
-  config_for_gcc(${target_name})
+  config_for_gcc(${target_name} ${add_warnings})
 
   target_compile_options(
     ${target_name}

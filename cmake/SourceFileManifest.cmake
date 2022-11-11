@@ -37,9 +37,9 @@ set(
 
 set(
   OML_SHADER_FILE_MANIFEST
-    shaders/triangle.frag
-    shaders/triangle.vert
+    shaders/tri_mesh.frag
     shaders/red_triangle.vert
+    shaders/triangle.vert
     shaders/tri_mesh.vert
 )
 
