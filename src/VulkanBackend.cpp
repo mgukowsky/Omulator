@@ -142,15 +142,13 @@ void VulkanBackend::set_vertex_shader(const std::string &shader) {
 }
 
 void VulkanBackend::do_resize_() {
-  // TODO: we need all frames to finish before it's safe to rebuild the swapchain, but would it be
-  // better to call wait() for each frame in frames_ ?
-  // OR... we could utilize the oldSwapChain field in VkSwapchainCreateInfoKHR while the old swap
-  // chain images are still in flight on the GPU...
+  // TODO: we need all frames (or just the ones currently in flight? What exactly does idling the
+  // device wait on?) to finish before it's safe to rebuild the swapchain, but would it be better to
+  // call wait() for each frame in frames_ ? OR... we could utilize the oldSwapChain field in
+  // VkSwapchainCreateInfoKHR while the old swap chain images are still in flight on the GPU...
   wait_for_idle_();
   swapchain_.reset();
 }
-
-void VulkanBackend::upload_mesh_() { }
 
 void VulkanBackend::wait_for_idle_() { device_.waitIdle(); }
 

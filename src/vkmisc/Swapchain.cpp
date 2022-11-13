@@ -212,8 +212,14 @@ void Swapchain::create_renderpass_() {
   depthAttachment.storeOp        = vk::AttachmentStoreOp::eStore;
   depthAttachment.stencilLoadOp  = vk::AttachmentLoadOp::eClear;
   depthAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-  depthAttachment.initialLayout  = vk::ImageLayout::eUndefined;
-  depthAttachment.finalLayout    = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
+  // TODO: tutorial says this can be eUndefined, however this value causes an error in the
+  // additional validation layers (SYNC-HAZARD-WRITE_AFTER_WRITE), and per the hint at
+  // https://github.com/KhronosGroup/Vulkan-ValidationLayers/blob/4fa8aa748918384fd83ef618089b6c924db76886/tests/vksyncvaltests.cpp#L2109
+  // , this value fixes the error. From what I can tell this has something to do with how Vulkan
+  // transitions between subpasses?
+  depthAttachment.initialLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+  depthAttachment.finalLayout   = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
   vk::AttachmentReference depthAttachmentReference(1,
                                                    vk::ImageLayout::eDepthStencilAttachmentOptimal);

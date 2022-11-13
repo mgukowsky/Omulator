@@ -54,8 +54,6 @@ private:
 
   void do_resize_();
 
-  void upload_mesh_();
-
   /**
    * Block until the GPU is finished executing its current workload. N.B. this is a rather coarse
    * synchronization mechanism and should be used sparingly.
