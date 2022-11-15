@@ -1,8 +1,8 @@
-#include "omulator/CoreGraphicsEngine.hpp"
+#include "omulator/graphics/CoreGraphicsEngine.hpp"
 
 #include "omulator/util/TypeString.hpp"
 
-namespace omulator {
+namespace omulator::graphics {
 CoreGraphicsEngine::CoreGraphicsEngine(di::Injector &injector)
   : Subsystem(injector.get<ILogger>(),
               util::TypeString<CoreGraphicsEngine>,

@@ -1,7 +1,6 @@
 #include "omulator/main.hpp"
 
 #include "omulator/App.hpp"
-#include "omulator/CoreGraphicsEngine.hpp"
 #include "omulator/IClock.hpp"
 #include "omulator/ILogger.hpp"
 #include "omulator/IWindow.hpp"
@@ -9,6 +8,7 @@
 #include "omulator/Interpreter.hpp"
 #include "omulator/PropertyMap.hpp"
 #include "omulator/di/Injector.hpp"
+#include "omulator/graphics/CoreGraphicsEngine.hpp"
 #include "omulator/msg/MailboxRouter.hpp"
 #include "omulator/props.hpp"
 #include "omulator/util/CLIInput.hpp"
@@ -47,7 +47,7 @@ int oml_main(const int argc, const char **argv) {
     // to associate the window with the graphics API.
     wnd.show();
 
-    [[maybe_unused]] auto &testGraphicsEngine = injector.get<CoreGraphicsEngine>();
+    [[maybe_unused]] auto &testGraphicsEngine = injector.get<graphics::CoreGraphicsEngine>();
     // TODO: do this using System::make_subsystem_list
     testGraphicsEngine.start();
 
@@ -60,7 +60,7 @@ int oml_main(const int argc, const char **argv) {
 
     msg::MailboxReceiver mbrecv = injector.get<msg::MailboxRouter>().claim_mailbox<App>();
     msg::MailboxSender   testEngineMailbox =
-      injector.get<msg::MailboxRouter>().get_mailbox<CoreGraphicsEngine>();
+      injector.get<msg::MailboxRouter>().get_mailbox<graphics::CoreGraphicsEngine>();
     auto &clock = injector.get<IClock>();
 
     bool done = false;

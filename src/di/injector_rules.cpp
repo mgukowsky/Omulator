@@ -4,7 +4,6 @@
  */
 
 #include "omulator/Clock.hpp"
-#include "omulator/CoreGraphicsEngine.hpp"
 #include "omulator/IGraphicsBackend.hpp"
 #include "omulator/ILogger.hpp"
 #include "omulator/InputHandler.hpp"
@@ -14,6 +13,7 @@
 #include "omulator/SpdlogLogger.hpp"
 #include "omulator/SystemWindow.hpp"
 #include "omulator/di/Injector.hpp"
+#include "omulator/graphics/CoreGraphicsEngine.hpp"
 #include "omulator/msg/MailboxRouter.hpp"
 #include "omulator/msg/MessageQueueFactory.hpp"
 #include "omulator/props.hpp"
@@ -38,7 +38,7 @@ void Injector::installDefaultRules(Injector &injector) {
   injector.addCtorRecipe<SystemWindow, ILogger &, InputHandler &>();
   injector.addCtorRecipe<InputHandler, msg::MailboxRouter &>();
   injector.addCtorRecipe<Interpreter, di::Injector &>();
-  injector.addCtorRecipe<CoreGraphicsEngine, di::Injector &>();
+  injector.addCtorRecipe<graphics::CoreGraphicsEngine, di::Injector &>();
   injector.addCtorRecipe<util::CLIInput, ILogger &, msg::MailboxRouter &>();
 
   vkmisc::install_vk_initializer_rules(injector);

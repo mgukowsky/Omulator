@@ -6,7 +6,7 @@
 #include "omulator/di/Injector.hpp"
 #include "omulator/msg/Message.hpp"
 
-namespace omulator {
+namespace omulator::graphics {
 
 class CoreGraphicsEngine : public Subsystem {
 public:

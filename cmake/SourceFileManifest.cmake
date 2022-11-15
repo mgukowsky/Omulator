@@ -8,10 +8,10 @@ set(
     src/NullWindow.cpp
     src/SpdlogLogger.cpp
     src/Subsystem.cpp
-    src/CoreGraphicsEngine.cpp
     src/VulkanBackend.cpp
     src/di/Injector.cpp
     src/di/injector_rules.cpp
+    src/graphics/CoreGraphicsEngine.cpp
     src/msg/MessageQueue.cpp
     src/msg/MessageQueueFactory.cpp
     src/msg/MailboxEndpoint.cpp
