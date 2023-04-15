@@ -22,7 +22,7 @@ public:
    * efficient to batch multiple messages into a single queue.
    */
   template<typename T = const U64>
-  requires valid_payload_type<T>
+  requires valid_trivial_payload_type<T>
   void send_single_message(const MessageType type, const T payload = T()) {
     auto *mq = get_mq();
     mq->push(type, payload);

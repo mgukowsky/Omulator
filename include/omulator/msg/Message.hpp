@@ -11,6 +11,17 @@
 namespace omulator::msg {
 
 /**
+ * A trivial payload can be stored in the `payload` field of a Message. A nontrivial payload must be
+ * stored outside a Message, however a Message can hold a pointer to it in its `payload` field,
+ * since Message::payload is guaranteed to be large enough to store a pointer.
+ */
+template<typename T>
+concept valid_trivial_payload_type =
+  std::is_default_constructible_v<T>
+  && std::disjunction_v<std::is_convertible<T, const U64>, std::is_pointer<T>>
+  && sizeof(T) <= sizeof(U64);
+
+/**
  * A message used to communicate between threads. Consists of a message type and an associated
  * payload.
  */

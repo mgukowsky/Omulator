@@ -16,9 +16,7 @@ using ::testing::Exactly;
 using ::testing::HasSubstr;
 
 using omulator::U64;
-using omulator::di::TypeContainer;
 using omulator::msg::Message;
-using omulator::msg::MessageFlagType;
 using omulator::msg::MessageQueue;
 using omulator::msg::MessageType;
 using omulator::util::to_underlying;
@@ -26,6 +24,11 @@ using omulator::util::to_underlying;
 namespace {
 U64 aDtorCount = 0;
 }  // namespace
+
+TEST(MessageQueue_test, msgPayloadFieldSizeCheck) {
+  EXPECT_TRUE(sizeof(Message::payload) >= sizeof(void *))
+    << "Message::payload must be at least large enough to store a pointer";
+}
 
 TEST(MessageQueue_test, singleThreadSendRecv) {
   LoggerMock   logger;

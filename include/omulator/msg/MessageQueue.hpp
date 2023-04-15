@@ -13,15 +13,6 @@
 
 namespace omulator::msg {
 
-// clang-format can't handle the concept syntax properly as of v14
-// clang-format off
-template<typename T>
-concept valid_payload_type =
-  std::is_default_constructible_v<T>
-  && std::disjunction_v<std::is_convertible<T, const U64>, std::is_pointer<T>>
-  && sizeof(T) <= sizeof(U64);
-// clang-format on
-
 /**
  * Callback used to process messages.
  */
@@ -65,7 +56,7 @@ public:
    * been sealed, then no message is created.
    */
   template<typename T>
-  requires valid_payload_type<T>
+  requires valid_trivial_payload_type<T>
   void push(const MessageType type, const MessageFlagType mflags, const T payload) noexcept {
     static_assert(sizeof(T) <= sizeof(U64),
                   "Payload type must be <= sizeof(U64) in order to prevent data loss");
