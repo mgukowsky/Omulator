@@ -218,7 +218,7 @@ void Swapchain::create_renderpass_() {
   // https://github.com/KhronosGroup/Vulkan-ValidationLayers/blob/4fa8aa748918384fd83ef618089b6c924db76886/tests/vksyncvaltests.cpp#L2109
   // , this value fixes the error. From what I can tell this has something to do with how Vulkan
   // transitions between subpasses?
-  depthAttachment.initialLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+  depthAttachment.initialLayout = vk::ImageLayout::eUndefined;
   depthAttachment.finalLayout   = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
   vk::AttachmentReference depthAttachmentReference(1,
