@@ -1,5 +1,5 @@
 ---
-Checks:          'clang-diagnostic-*,clang-analyzer-*,bugprone-*,cert-*,clang-analyzer-*,clang-diagnostic-*,cppcoreguidelines-*,google-*,-google-readability-namespace-comments,-google-readability-todo,hicpp-*,llvm-*,-llvm-namespace-comment,-llvm-header-guard,misc-*,modernize-*,-modernize-use-trailing-return-type,performance-*,readability-*,-readability-avoid-const-params-in-decls,-readability-else-after-return,-cppcoreguidelines-pro-type-reinterpret-cast,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-hicpp-no-array-decay,-modernize-use-nodiscard'
+Checks:          'clang-diagnostic-*,clang-analyzer-*,bugprone-*,cert-*,clang-analyzer-*,clang-diagnostic-*,concurrency-*,cppcoreguidelines-*,fuchsia-multiple-inheritance,google-*,-google-readability-namespace-comments,-google-readability-todo,hicpp-*,llvm-*,-llvm-namespace-comment,-llvm-header-guard,misc-*,modernize-*,-modernize-use-trailing-return-type,performance-*,readability-*,-readability-avoid-const-params-in-decls,-readability-else-after-return,-readability-identifier-length,-cppcoreguidelines-pro-type-reinterpret-cast,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-hicpp-no-array-decay,-modernize-use-nodiscard'
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: true

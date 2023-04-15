@@ -18,7 +18,7 @@ namespace detail {
   constinit const std::uint64_t FNV_PRIME_64 = 0x0000'0100'0000'01B3;
 
   template<typename HashSize_t, HashSize_t fnv_basis, HashSize_t fnv_prime>
-  consteval HashSize_t fnv1a_hash(const std::string_view sv) {
+  consteval HashSize_t fnv1a_hash(const std::string_view sv) noexcept {
     HashSize_t hash = fnv_basis;
 
     for(const auto c : sv) {
@@ -33,7 +33,7 @@ namespace detail {
    * the type argument.
    */
   template<typename T>
-  consteval std::string_view uid_helper() {
+  consteval std::string_view uid_helper() noexcept {
 #if defined(OML_COMPILER_MSVC) || defined(OML_COMPILER_CLANG_CL)
     return __FUNCSIG__;
 #elif defined(OML_COMPILER_GCC) || defined(OML_COMPILER_CLANG)

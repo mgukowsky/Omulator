@@ -247,7 +247,6 @@ function(config_for_gcc target_name add_warnings)
   target_compile_options(
     ${target_name}
     PUBLIC
-      -ansi
       -pedantic
 
       # Target Intel Broadwell (~2015 w/ AVX2)
