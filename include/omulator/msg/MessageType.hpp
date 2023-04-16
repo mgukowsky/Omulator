@@ -65,6 +65,8 @@ enum class MessageType : U32 {
   DEMO_MSG_A,
   DEMO_MSG_B,
   DEMO_MSG_C,
+  DEMO_MSG_D,
+  DEMO_MSG_E,
 
   /**
    * Message types which exceed this value should be ignored.

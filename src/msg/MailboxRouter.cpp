@@ -31,7 +31,7 @@ MailboxEndpoint &MailboxRouter::get_entry_(const MailboxToken_t mailbox_hsh) {
   auto entry = mailboxes_.find(mailbox_hsh);
 
   if(entry == mailboxes_.end()) {
-    auto newEntry = mailboxes_.try_emplace(mailbox_hsh, mailbox_hsh, mqfactory_);
+    auto newEntry = mailboxes_.try_emplace(mailbox_hsh, mailbox_hsh, logger_, mqfactory_);
 
     if(!newEntry.second) {
       throw std::runtime_error("Could not create MailboxEndpoint!");

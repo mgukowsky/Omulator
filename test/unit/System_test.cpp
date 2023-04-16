@@ -74,29 +74,22 @@ private:
 
 class SubsysA : public Subsystem {
 public:
-  SubsysA(ILogger              &logger,
-          MailboxRouter        &mbrouter,
-          MessageCallback_t     onDemoMsgA,
-          std::function<void()> onDestruction)
+  SubsysA(ILogger                       &logger,
+          MailboxRouter                 &mbrouter,
+          std::function<void(const U64)> onDemoMsgA,
+          std::function<void()>          onDestruction)
     : Subsystem(logger, TypeString<SubsysA>, mbrouter, TypeHash<SubsysA>),
       onDemoMsgA_(onDemoMsgA),
       onDestruction_(onDestruction) {
-    start_();
+    receiver_.on_trivial_payload<U64>(MessageType::DEMO_MSG_A,
+                                      [&](const U64 payload) { onDemoMsgA_(payload); });
+    start();
   }
   ~SubsysA() override { onDestruction_(); }
 
-  void message_proc(const Message &msg) override {
-    if(msg.type == MessageType::DEMO_MSG_A) {
-      onDemoMsgA_(msg);
-    }
-    else {
-      Subsystem::message_proc(msg);
-    }
-  }
-
 private:
-  MessageCallback_t     onDemoMsgA_;
-  std::function<void()> onDestruction_;
+  std::function<void(const U64)> onDemoMsgA_;
+  std::function<void()>          onDestruction_;
 };
 
 }  // namespace
@@ -144,8 +137,8 @@ TEST(System_test, simpleSystem) {
       return new SubsysA(
         inj.get<ILogger>(),
         inj.get<MailboxRouter>(),
-        [&](const Message &msg) {
-          i = msg.payload;
+        [&](const U64 payload) {
+          i = payload;
           sequencer.advance_step(1);
         },
         [&]() {

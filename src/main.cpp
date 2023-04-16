@@ -48,9 +48,14 @@ int oml_main(const int argc, const char **argv) {
     wnd.show();
 
     [[maybe_unused]] auto &testGraphicsEngine = injector.get<CoreGraphicsEngine>();
+    // TODO: do this using System::make_subsystem_list
+    testGraphicsEngine.start();
+
     if(injector.get<PropertyMap>().get_prop<bool>(props::INTERACTIVE).get()) {
       [[maybe_unused]] auto &cliinput    = injector.get<util::CLIInput>();
       [[maybe_unused]] auto &interpreter = injector.get<Interpreter>();
+      // TODO: ditto
+      interpreter.start();
     }
 
     msg::MailboxReceiver mbrecv = injector.get<msg::MailboxRouter>().claim_mailbox<App>();
@@ -62,14 +67,10 @@ int oml_main(const int argc, const char **argv) {
 
     TimePoint_t timeOfNextIteration = clock.now();
 
+    mbrecv.on(msg::MessageType::APP_QUIT, [&] { done = true; });
+
     while(!done) {
-      mbrecv.recv(
-        [&](const msg::Message &msg) {
-          if(msg.type == msg::MessageType::APP_QUIT) {
-            done = true;
-          }
-        },
-        msg::RecvBehavior::NONBLOCK);
+      mbrecv.recv(msg::RecvBehavior::NONBLOCK);
       wnd.pump_msgs();
       testEngineMailbox.send_single_message(msg::MessageType::RENDER_FRAME);
 

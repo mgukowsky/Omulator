@@ -161,7 +161,22 @@ Interpreter::Interpreter(di::Injector &injector)
     }),
     injector_(injector),
     logger_(injector_.get<ILogger>()) {
-  start_();
+  receiver_.on_managed_payload<std::string>(msg::MessageType::STDIN_STRING,
+                                            [this](const std::string &execstr) {
+                                              try {
+                                                exec(execstr);
+                                              }
+                                              catch(pybind11::error_already_set &e) {
+                                                // N.B. that calling e.what() from another thread is
+                                                // a bad idea, since it needs the GIL.
+                                                logger_.error(e.what());
+                                              }
+                                            });
+  receiver_.on_unmanaged_payload<std::atomic_bool>(msg::MessageType::SIMPLE_FENCE,
+                                                   [](std::atomic_bool &fence) {
+                                                     fence.store(true, std::memory_order_release);
+                                                     fence.notify_all();
+                                                   });
 }
 
 void Interpreter::exec(std::string str) {
@@ -176,28 +191,6 @@ void Interpreter::exec(std::string str) {
     std::string errmsg = "Python stderr capture: ";
     errmsg += iocaptures.second;
     logger_.info(errmsg);
-  }
-}
-
-void Interpreter::message_proc(const msg::Message &msg) {
-  if(msg.type == msg::MessageType::STDIN_STRING) {
-    const std::string &execstr = msg.get_managed_payload<std::string>();
-
-    try {
-      exec(execstr);
-    }
-    catch(pybind11::error_already_set &e) {
-      // N.B. that calling e.what() from another thread is a bad idea, since it needs the GIL.
-      logger_.error(e.what());
-    }
-  }
-  else if(msg.type == msg::MessageType::SIMPLE_FENCE) {
-    auto fence = reinterpret_cast<std::atomic_bool *>(msg.payload);
-    fence->store(true, std::memory_order_release);
-    fence->notify_all();
-  }
-  else {
-    Subsystem::message_proc(msg);
   }
 }
 

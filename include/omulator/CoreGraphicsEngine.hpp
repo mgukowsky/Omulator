@@ -13,8 +13,6 @@ public:
   explicit CoreGraphicsEngine(di::Injector &injector);
   ~CoreGraphicsEngine() = default;
 
-  void message_proc(const msg::Message &msg) override;
-
 private:
   di::Injector     &injector_;
   ILogger          &logger_;

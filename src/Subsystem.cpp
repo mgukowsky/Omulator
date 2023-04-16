@@ -15,11 +15,12 @@ Subsystem::Subsystem(ILogger                  &logger,
                      std::function<void()>     onStart,
                      std::function<void()>     onEnd)
   : logger_{logger},
-    name_{name},
     receiver_{mbrouter.claim_mailbox(mailboxToken)},
+    name_{name},
     sender_{mbrouter.get_mailbox(mailboxToken)},
     startSignal_{false},
     thrd_{&Subsystem::thrd_proc_, this, onStart, onEnd} {
+  receiver_.on(msg::MessageType::POKE, [] { /* no-op */ });
   std::string str("Creating subsystem: ");
   str += name_;
   logger_.info(str.c_str());
@@ -27,34 +28,22 @@ Subsystem::Subsystem(ILogger                  &logger,
 
 Subsystem::~Subsystem() {
   // Awkward looking, but necessary in case we have a derived Subsystem constructor that throws an
-  // exception before it can call start_(). We call stop() first to ensure that the stop token is
-  // set, then call start_() to unblock the startSignal_ in case it needs to be signaled.
+  // exception before it can call start(). We call stop() first to ensure that the stop token is
+  // set, then call start() to unblock the startSignal_ in case it needs to be signaled.
   stop();
-  start_();
+  start();
 
   sender_.send_single_message(msg::MessageType::POKE);
 }
 
 std::string_view Subsystem::name() const noexcept { return name_; }
 
-void Subsystem::message_proc(const msg::Message &msg) {
-  if(msg.type == msg::MessageType::POKE) {
-    /* no-op */
-  }
-  else {
-    std::stringstream ss;
-    ss << "Unprocessed message: ";
-    ss << util::to_underlying(msg.type);
-    logger_.warn(ss.str().c_str());
-  }
-}
-
-void Subsystem::stop() { thrd_.request_stop(); }
-
-void Subsystem::start_() {
+void Subsystem::start() {
   startSignal_.store(true, std::memory_order_release);
   startSignal_.notify_all();
 }
+
+void Subsystem::stop() { thrd_.request_stop(); }
 
 void Subsystem::thrd_proc_(std::function<void()> onStart, std::function<void()> onEnd) {
   // Wrap each thread in its own exception handler
@@ -63,7 +52,7 @@ void Subsystem::thrd_proc_(std::function<void()> onStart, std::function<void()> 
     onStart();
     auto stoken = thrd_.get_stop_token();
     while(!stoken.stop_requested()) {
-      receiver_.recv([this](const msg::Message &msg) { message_proc(msg); });
+      receiver_.recv();
     }
     onEnd();
   }

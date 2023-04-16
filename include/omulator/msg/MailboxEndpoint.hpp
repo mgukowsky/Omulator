@@ -1,11 +1,13 @@
 #pragma once
 
+#include "omulator/ILogger.hpp"
 #include "omulator/msg/MessageQueue.hpp"
 #include "omulator/msg/MessageQueueFactory.hpp"
 #include "omulator/util/Pimpl.hpp"
 
 #include <atomic>
 #include <condition_variable>
+#include <map>
 #include <mutex>
 #include <queue>
 
@@ -31,7 +33,7 @@ public:
    * N.B. that the id provided here is purely for reference; it is not checked anywhere within this
    * class's internal logic.
    */
-  MailboxEndpoint(const U64 id, MessageQueueFactory &mqfactory);
+  MailboxEndpoint(const U64 id, ILogger &logger, MessageQueueFactory &mqfactory);
 
   /**
    * Claim a given mailbox. MailboxEndpoint instances cannot be claimed more than once; they can
@@ -45,20 +47,31 @@ public:
   bool claimed() const noexcept;
 
   /**
+   * Removes a callback associated with a given MessageType via a call to on(). If no such callback
+   * has previously been registered, then this function has no effect.
+   */
+  void off(const MessageType type);
+
+  /**
    * Returns a fresh MessageQueue from the internal MessageQueueFactory, which can be filled with
    * messages and then sent via a call to send().
    */
   MessageQueue *get_mq() noexcept;
 
   /**
-   * Invokes the provided callback for each MessageQueue the endpoint has been provided via calls to
-   * send(), in the order they were sent. Once all messages in a MessageQueue have been responded
-   * to, the MessageQueue will be returned back to the MessageQueueFactory instance.
+   * Register a callback to be invoked when a given MessageType is processed. If there is already a
+   * callback associated with the given MessageType, then this function has no effect.
+   */
+  void on(const MessageType type, const MessageCallback_t callback);
+
+  /**
+   * For each message in each MessageQueue that has been sent, a matching callback registered with
+   * on() (if one exists) will be invoked with the corresponding message payload.
    *
    * BLOCKS until messages are sent via a call to send(), unless RecvBehavior::NONBLOCK is provided
    * as the recvBehavior.
    */
-  void recv(const MessageCallback_t &callback, RecvBehavior recvBehavior = RecvBehavior::BLOCK);
+  void recv(RecvBehavior recvBehavior = RecvBehavior::BLOCK);
 
   /**
    * Submit a MessageQueue to this endpoint, which can then be serviced via a call to recv(). seal()
@@ -70,7 +83,13 @@ private:
   const U64        id_;
   std::atomic_bool claimed_;
 
+  ILogger             &logger_;
   MessageQueueFactory &mqfactory_;
+
+  /**
+   * Stores callbacks added by on().
+   */
+  std::map<MessageType, MessageCallback_t> callbacks_;
 
   /**
    * The underlying queue of MessageQueues. Accesses should be guarded by a mtx_.
@@ -81,7 +100,7 @@ private:
   std::mutex              mtx_;
 
   /**
-   * Atomically retrieve the next message from the message queue. Returns a pointer to a
+   * Atomically retrieve the next MessageQueue_ from queue_. Returns a pointer to a
    * MessageQueue if one could be dequeued, and nullptr otherwise.
    */
   MessageQueue *pop_next_();

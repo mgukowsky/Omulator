@@ -31,19 +31,13 @@ public:
     : Subsystem(logger, "TestSubsys", mbrouter, TypeHash<TestSubsys>),
       i_{i},
       sequencer_{sequencer} {
-    start_();
+    receiver_.on_trivial_payload<U64>(MessageType::DEMO_MSG_A, [&](const U64 payload) {
+      i_ = payload;
+      sequencer_.advance_step(1);
+    });
+    start();
   }
   ~TestSubsys() override = default;
-
-  void message_proc(const Message &msg) override {
-    if(msg.type == MessageType::DEMO_MSG_A) {
-      i_ = msg.payload;
-      sequencer_.advance_step(1);
-    }
-    else {
-      Subsystem::message_proc(msg);
-    }
-  }
 
   U64       &i_;
   Sequencer &sequencer_;
@@ -66,9 +60,6 @@ TEST(Subsystem_test, simpleSubsystem) {
   mq->push(MessageType::DEMO_MSG_B, 43);
   mq->seal();
 
-  // Ensure that calling Subsystem::message_proc on messages not processed by derived Subsystems
-  // produces the appropriate warning.
-  EXPECT_CALL(logger, warn(HasSubstr("Unprocessed message: "), _)).Times(Exactly(1));
   msend.send(mq);
 
   sequencer.wait_for_step(1);

@@ -23,7 +23,6 @@ public:
    * Execute a string as a script command.
    */
   void exec(std::string str);
-  void message_proc(const msg::Message &msg) override;
 
 private:
   di::Injector &injector_;

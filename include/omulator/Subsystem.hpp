@@ -25,11 +25,13 @@ public:
    * after thrd_proc_ returns. These callbacks are useful for thread-specific init/deinit, such as
    * for thread-specific variables.
    *
-   * N.B. that ALL derived classes should call start_() at the end of their constructors in order to
+   * N.B. that ALL derived classes should call start() at some point after construction in order to
    * begin execution of the underlying thread and receive messages! This is necessary in order to
    * ensure that the underlying thread (which will start before the child class is fully
    * constructed) doesn't start running and receiving messages until the derived class is fully
-   * constructed!
+   * constructed (e.g. all necessary on*() calls have been made in the constructor)! If the
+   * Subsystems are created using System::make_subsystem_list, then start() will be invoked once the
+   * Subsystem is fully constructed.
    */
   Subsystem(ILogger                  &logger,
             std::string_view          name,
@@ -50,15 +52,9 @@ public:
   std::string_view name() const noexcept;
 
   /**
-   * The function that will be called when messages are sent to the Mailbox. The default
-   * implementation is a no-op.
-   *
-   * While not required, classes which override this method should pass any messages which they do
-   * not process to the default implementation by explicitly calling Subsystem::message_proc(msg).
-   * This will give the message one last chance at being processed, and ensures that a message which
-   * would otherwise be dropped will be appropriately logged.
+   * Begin execution of the underlying thread. Has no effect if called more than once.
    */
-  virtual void message_proc(const msg::Message &msg);
+  void start();
 
   /**
    * Request that the underlying thread return exit its message loop and return.
@@ -66,12 +62,13 @@ public:
   void stop();
 
 protected:
-  /**
-   * Begin execution of the underlying thread. Has no effect if called more than once.
-   */
-  void start_();
 
   ILogger &logger_;
+
+  /**
+   * Mailbox which will wake the thread when it receives messages.
+   */
+  msg::MailboxReceiver receiver_;
 
 private:
   static constexpr auto PASS_ = [] {};
@@ -79,11 +76,6 @@ private:
   void thrd_proc_(std::function<void()> onStart, std::function<void()> onEnd);
 
   std::string_view name_;
-
-  /**
-   * Mailbox which will wake the thread when it receives messages.
-   */
-  msg::MailboxReceiver receiver_;
 
   /**
    * Used to send a wakeup message to the receiving Mailbox upon destruction. N.B. that this MUST

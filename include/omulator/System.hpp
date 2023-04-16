@@ -41,7 +41,8 @@ public:
    * via a call to pInjector_->get<T>().
    */
   template<typename... Ts>
-  requires(std::derived_from<Ts, Component> &&...) void make_component_list() {
+  requires(std::derived_from<Ts, Component> && ...)
+  void make_component_list() {
     if(componentsCreated_) {
       throw std::runtime_error("make_component_list() called on a System instance more than once");
     }
@@ -51,13 +52,22 @@ public:
     componentsCreated_ = true;
   }
 
+  /**
+   * Same as make_component_list but for Subsystems, with the difference being that start() is
+   * called for each subsystem once they are all created.
+   */
   template<typename... Ts>
-  requires(std::derived_from<Ts, Subsystem> &&...) void make_subsystem_list() {
+  requires(std::derived_from<Ts, Subsystem> && ...)
+  void make_subsystem_list() {
     if(subsystemsCreated_) {
       throw std::runtime_error("make_subsystem_list() called on a System instance more than once");
     }
 
     subsystems_ = SubsystemList_t{pInjector_->get<Ts>()...};
+
+    for(auto &subsys : subsystems_) {
+      subsys.get().start();
+    }
 
     subsystemsCreated_ = true;
   }

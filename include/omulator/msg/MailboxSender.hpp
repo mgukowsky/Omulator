@@ -7,8 +7,7 @@
 namespace omulator::msg {
 
 /**
- * Lightweight around MailboxEndpoint which only allows for acquiring MessageQueues and sending
- * them.
+ * Lightweight wrapper around MailboxEndpoint which only allows for sending MessageQueues.
  */
 class MailboxSender {
 public:
