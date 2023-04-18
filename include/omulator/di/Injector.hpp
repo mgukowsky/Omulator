@@ -25,10 +25,13 @@ using util::TypeHash;
 using util::TypeString;
 
 /**
+ * # SUMMARY
  * A class responsible for dependency injection. Can be used as a global service locator, but need
- * not be treated as a singleton. Types managed by the injector need not be aware of this injector,
- * as dependencies are injected via constructors.
+ * not be treated as a singleton. An Injector manages the instances of various types that it
+ * creates, but these instances do not need to be aware of the Injector that created them, or of the
+ * Injector API at all, since their dependencies are injected via their constructors.
  *
+ * # RECIPES
  * Instances of a given type are lazily created as they are requested with Injector#get, or
  * repeatedly created using Injector#creat. Type instances are creating using "recipes", which are
  * callbacks that return a pointer to a (usually newly allocated) instance of a given type T, and
@@ -39,19 +42,28 @@ using util::TypeString;
  * recipe will be invoked when an instance of type T is requested (either when creat() is called or
  * the first time get<T>() is invoked for type T).
  *
- * If a recipe is default-initializable, the injector does not need to have a recipe for it. As
+ * # NO RECIPES NEEDED FOR DEFAULT-INITIALIZABLE TYPES
+ * If a type is default-initializable, then the injector does not need to have a recipe for it. As
  * such, if an instance of type T is requested and no recipe for T has been added, the injector will
  * attempt to default-initialize T. If this fails, the injector will throw an error indicating that
  * it has no recipe for T and that T is not default initializable.
  *
+ * # CONSTRUCTOR RECIPES
  * For types that are not default-initializable but have a simple constructor, the
  * addCtorRecipe()<T, ...Ts> method can be used to automatically add a recipe for type T which will
  * call the constructor T((Ts)...). For TDep in Ts, the injector will call get() if TDep is an
  * lvalue reference type, otherwise creat() will be called to create a new instance of (decayed)
  * TDep.
  *
- * Injectors also have the ability to create a 'child' Injector: a parent ('upstream')
- * Injector will create a new Injector instance (the 'downstream') instance via a call to
+ * # BINDING AN INTERFACE TO AN IMPLEMENTATION
+ * It is also possible to bind a polymorphic interface to a specific implementation using the
+ * bindImpl() method. Once bindImpl() is invoked, subsequent calls to get() will return a reference
+ * to the given interface that in turn points to the given implementation (N.B. that creat() cannot
+ * not be used with an interface type if it is an abstract class).
+ *
+ * # CHILD INJECTORS
+ * Injectors also have the ability to create a 'child' Injector. A parent ('upstream')
+ * Injector will create a new Injector instance (the 'downstream') via a call to
  * Injector::creat<Injector>() (N.B. that a call to Injector::get<Injector>() will simply act as an
  * identity function and return a reference to the Injector which receives the call). This changes
  * the behavior of Injector::get and Injector::creat in the child Injector. If the child Injector
@@ -66,13 +78,10 @@ using util::TypeString;
  * a recipe for the type and the child does not: in such a case the parent's recipe will be used to
  * create the instance of the type, but it will be managed by the CHILD.
  *
- * It is also possible for the type to hold a polymorphic interface bound to a specific
- * implementation using the bindImpl() method. Once bindImpl() is invoked, subsequent calls to get()
- * will return a reference to the given interface pointing to the given implementation (N.B. that
- * creat() should not be used with an interface type if it is an abstract class).
- *
+ * # CYCLE CHECKING
  * Lastly, get() and creat() will throw an exception if a circular dependency is detected (e.g. T
- * invokes the constructor of U, which invokes the constructor of T, etc.)
+ * invokes the constructor of U, which invokes the constructor of T, etc.). N.B. that these checks
+ * take place at runtime.
  */
 class Injector {
 public:
@@ -100,6 +109,14 @@ public:
    * Deletes all entries in the typeMap_ in the opposite order from which they were constructed.
    */
   ~Injector();
+
+  /**
+   * No copying, no moving
+   */
+  Injector(const Injector &)            = delete;
+  Injector &operator=(const Injector &) = delete;
+  Injector(Injector &&)                 = delete;
+  Injector &operator=(Injector &&)      = delete;
 
   /**
    * Create and add a recipe for T which will create an instance of T by calling T(Ts...). Will
@@ -192,12 +209,24 @@ public:
   /**
    * Not the prettiest function in the world, but provides a nice convenience function for type
    * erasure.
+   *
+   * Takes a pointer to an instance of T and places it into a type agnostic container, which
+   * takes ownership of the instance.
    */
   template<typename T>
   Container_t containerize(T *pT) {
+    // Create an empty container for type T
+    // Container_t (std::unique_ptr<TypeContainerBase>) needs to take ownership of a pointer,
+    // so we first allocate a new TypeContainer here via unique_ptr
     std::unique_ptr<TypeContainer<T>> pCtr = std::make_unique<TypeContainer<T>>();
+
+    // N.B. this is calling TypeContainer::reset and NOT the std::unique_ptr method
     pCtr->reset(pT);
+
+    // Extract the newly allocated container from the unique_ptr which created it...
     TypeContainerBase *pBaseCtr = pCtr.release();
+
+    // ... and place it into a type agnostic container
     return Container_t(pBaseCtr);
   }
 
@@ -240,7 +269,10 @@ public:
    * type be moveable.
    */
   template<typename Raw_t, typename T = InjType_t<Raw_t>>
-  requires std::is_move_constructible_v<T> T creat_move() { return std::move(*(creat<T>())); }
+  requires std::is_move_constructible_v<T>
+  T creat_move() {
+    return std::move(*(creat<T>()));
+  }
 
   /**
    * Retrieve an instance of type T.
@@ -372,9 +404,10 @@ private:
       // Do we have a recipe available for the type? N.B. that this clause means that a recipe will
       // take precedence over any special cases which follow for various types.
       if(recipeFound) {
+        Container_t anyValue = recipe(*this);
+
         // The container returned by a recipe need not contain a value (e.g. in the case of an
         // interface that has an associated implementation).
-        Container_t anyValue = recipe(*this);
         if(anyValue.get() != nullptr) {
           auto *pCtr = reinterpret_cast<TypeContainer<T> *>(anyValue.get());
           T    *pVal = pCtr->release();
@@ -400,8 +433,8 @@ private:
       }
       else {
         std::stringstream ss;
-        ss << "Could not create instance of type "
-           << TypeString<T> << " because it was not default initializable and there was no recipe "
+        ss << "Could not create instance of type " << TypeString<T>
+           << " because it was not default initializable and there was no recipe "
            << "available. Perhaps use Injector#addCtorRecipe";
         throw std::runtime_error(ss.str());
       }
@@ -453,9 +486,10 @@ private:
   RecipeMap_t recipeMap_;
   TypeMap     typeMap_;
 
-  // Tracks the order in which type map instances are instantiated; used to ensure that dependencies
-  // are destroyed in the correct order, i.e. we destroy the dependencies in the reverse order in
-  // which they are created to ensure we don't destroy a dependency before its dependent(s).
+  // FILO which tracks the order in which type map instances are instantiated; used to ensure that
+  // dependencies are destroyed in the correct order, i.e. we destroy the dependencies in the
+  // reverse order in which they are created to ensure we don't destroy a dependency before its
+  // dependent(s).
   std::vector<util::Hash_t> invocationList_;
 
   // Tracks the types that are currently being injected; used to detect cycles. Though we use this

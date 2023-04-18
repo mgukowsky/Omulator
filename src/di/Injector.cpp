@@ -14,6 +14,7 @@ namespace {
 }  // namespace
 
 Injector::Injector() : isInCycleCheck_(false), pUpstream_(nullptr) {
+  // Make this->get<Injector>() return a reference to this
   typeMap_.emplace_external_ptr<Injector>(this);
 
   // Special recipe to which will create a "child" Injector

@@ -1,5 +1,5 @@
 ---
-# Targeted for clang-format 13.0.0
+# Targeted for clang-format 15.0.0
 Language:        Cpp
 BasedOnStyle:  Google
 AccessModifierOffset: -2
@@ -97,7 +97,7 @@ IndentCaseLabels: true
 IndentExternBlock: Indent
 IndentGotoLabels: false
 IndentPPDirectives: None
-IndentRequires: false
+IndentRequiresClause: false
 IndentWidth:     2
 IndentWrappedFunctionNames: false
 InsertTrailingCommas: Wrapped
@@ -114,6 +114,7 @@ ObjCBlockIndentWidth: 2
 ObjCSpaceAfterProperty: false
 ObjCSpaceBeforeProtocolList: true
 PPIndentWidth: 2
+PackConstructorInitializers: NextLine
 PenaltyBreakAssignment: 2
 PenaltyBreakBeforeFirstCallParameter: 1
 PenaltyBreakComment: 300
@@ -123,6 +124,8 @@ PenaltyBreakTemplateDeclaration: 10
 PenaltyExcessCharacter: 1000000
 PenaltyReturnTypeOnItsOwnLine: 200
 PointerAlignment: Right
+QualifierAlignment: Leave
+# QualifierOrder: ['inline', 'static', 'friend', 'constexpr', 'const', 'volatile', 'restrict', 'type']
 RawStringFormats:
   - Language:        Cpp
     Delimiters:
@@ -152,6 +155,8 @@ RawStringFormats:
     CanonicalDelimiter: ''
     BasedOnStyle:    google
 ReflowComments:  true
+RequiresClausePosition: OwnLine
+SeparateDefinitionBlocks: Always
 ShortNamespaceLines: 0
 SortIncludes:    CaseSensitive
 SortUsingDeclarations: true
