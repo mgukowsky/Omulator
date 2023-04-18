@@ -161,7 +161,7 @@ TEST(MailboxRouter_test, onMethods) {
 
   mq = msend.get_mq();
 
-  mq->push_managed_payload<int>(MessageType::DEMO_MSG_D, LIFEPLUSTWO);
+  mq->push_managed_payload<int>(MessageType::DEMO_MSG_D, static_cast<int>(LIFEPLUSTWO));
   msend.send(mq);
 
   // Managed payload

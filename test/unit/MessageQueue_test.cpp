@@ -34,9 +34,6 @@ TEST(MessageQueue_test, singleThreadSendRecv) {
   LoggerMock   logger;
   MessageQueue mq(logger);
 
-  EXPECT_EQ(0, mq.num_null_msgs())
-    << "A message queue's number of null messages should be initialized to zero";
-
   mq.push(MessageType::MSG_NULL, 0);
 
   mq.push(MessageType::DEMO_MSG_A, 42);
@@ -50,15 +47,11 @@ TEST(MessageQueue_test, singleThreadSendRecv) {
     }
   });
 
-  EXPECT_EQ(1, mq.num_null_msgs()) << "A message queue's number of null messages should be "
-                                      "incremented each time a MSG_NULL message is processed";
   EXPECT_EQ(42, i)
     << "MessageQueue::pump_msgs should invoke the provided callback for each message in the queue";
 
   mq.reset();
   i = 0;
-  EXPECT_EQ(0, mq.num_null_msgs()) << "A message queue's number of null messages should be set to "
-                                      "zero when MessageQueue::reset() is invoked";
 
   mq.seal();
 
@@ -67,8 +60,6 @@ TEST(MessageQueue_test, singleThreadSendRecv) {
       i = msg.payload;
     }
   });
-  EXPECT_EQ(0, mq.num_null_msgs())
-    << "Calling MessageQueue::reset() should remove any messages currently in the queue";
   EXPECT_EQ(0, i)
     << "Calling MessageQueue::reset() should remove any messages currently in the queue";
 }

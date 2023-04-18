@@ -7,9 +7,7 @@
 
 namespace omulator::msg {
 
-MessageQueue::MessageQueue(ILogger &logger) : logger_{logger}, sealed_{false}, numNulls_{0} { }
-
-std::size_t MessageQueue::num_null_msgs() const noexcept { return numNulls_; }
+MessageQueue::MessageQueue(ILogger &logger) : logger_{logger}, sealed_{false} { }
 
 void MessageQueue::pump_msgs(const MessageCallback_t &callback) {
   if(!sealed_) {
@@ -21,7 +19,7 @@ void MessageQueue::pump_msgs(const MessageCallback_t &callback) {
 
   for(auto &msg : queue_) {
     if(msg.type == MessageType::MSG_NULL) {
-      ++numNulls_;
+      /* no-op */
     }
     else if(util::to_underlying(msg.type) > util::to_underlying(MessageType::MSG_MAX)) {
       logger_.error("Message with type exceeding MSG_MAX detected by MessageQueue::pump_msgs; this "
@@ -42,7 +40,6 @@ void MessageQueue::pump_msgs(const MessageCallback_t &callback) {
 
 void MessageQueue::reset() noexcept {
   sealed_   = false;
-  numNulls_ = 0;
 
 #ifndef NDEBUG
   // Check for memory leaks; a message with a managed payload which is not a nullptr is probably a

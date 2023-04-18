@@ -28,9 +28,6 @@ std::pair<vk::Result, uint32_t> rawAcquireNextImageKHR(const vk::raii::Swapchain
   return std::make_pair(result, image_index);
 }
 
-/**
- * @brief vk::raii::Queue::presentKHR without exceptions
- */
 vk::Result rawQueuePresentKHR(const vk::raii::Queue    &queue,
                               const vk::PresentInfoKHR &present_info) {
   return static_cast<vk::Result>(queue.getDispatcher()->vkQueuePresentKHR(
@@ -67,9 +64,8 @@ bool Frame::render(std::function<void(vk::raii::CommandBuffer &)> cmdfn) {
 
   auto [nextImgResult, imageIdx] =
     rawAcquireNextImageKHR(swapchain_.swapchain(), GPU_MAX_TIMEOUT_NS, *presentSemaphore_, nullptr);
-  // On this codepath we should abandon the renderpass if we get eTimeout, and try again later. The
-  // semaphore will remain unsignaled, but that's OK since we will try again at the next frame; as
-  // long as the fences have been reset by this point we're OK to abandon the frame.
+  // N.B. that eTimeout can arise in certain legitimate situations, such as being paused on a
+  // breakpoint.
   if(nextImgResult == vk::Result::eTimeout || nextImgResult == vk::Result::eSuboptimalKHR
      || nextImgResult == vk::Result::eErrorOutOfDateKHR)
   {

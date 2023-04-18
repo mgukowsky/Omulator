@@ -28,7 +28,7 @@ public:
    * Register a callback function which takes a single by-value argument for a given message type.
    * The argument will be copied directly from the payload of the message.
    */
-  template<typename T = U64>
+  template<typename T>
   requires valid_trivial_payload_type<T>
   void on_trivial_payload(const MessageType type, std::function<void(const T)> callback) {
     if constexpr(std::is_pointer_v<T>) {

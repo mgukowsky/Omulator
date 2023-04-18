@@ -65,7 +65,7 @@ std::string CLIInput::trim_string_(const std::string &str) {
   const auto firstValidChar = str.find_first_not_of(WHITESPACE_CHARS);
   const auto lastValidChar  = str.find_last_not_of(WHITESPACE_CHARS);
   if(firstValidChar == std::string::npos || lastValidChar == std::string::npos) {
-    // The string is either empty of consists solely of whitespace
+    // The string is either empty or contains only whitespace
     return "";
   }
   else {

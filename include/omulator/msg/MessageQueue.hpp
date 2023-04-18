@@ -36,11 +36,6 @@ public:
   explicit MessageQueue(ILogger &logger);
 
   /**
-   * The number of MSG_NULL messages received since the queue was last unsealed.
-   */
-  std::size_t num_null_msgs() const noexcept;
-
-  /**
    * Invoke a callback for each message in the queue. If the queue is not sealed, then no
    * processing will take place.
    */
@@ -116,7 +111,5 @@ private:
   ILogger &logger_;
 
   bool sealed_;
-
-  std::size_t numNulls_;
 };
 }  // namespace omulator::msg
