@@ -30,10 +30,11 @@ using MessageCallback_t = std::function<void(const Message &)>;
  */
 class MessageQueue {
 public:
+  using Storage_t = std::vector<Message>;
   /**
    * Initialized the queue in an unsealed state.
    */
-  explicit MessageQueue(ILogger &logger);
+  MessageQueue(Storage_t *pStorage, ILogger &logger);
 
   /**
    * Invoke a callback for each message in the queue. If the queue is not sealed, then no
@@ -89,9 +90,11 @@ public:
   }
 
   /**
-   * Unseal the queue and reset its contents. Does NOT release any underlying memory.
+   * Unseal the queue and reset its contents. Does NOT release any underlying memory. Returns a
+   * pointer the underlying storage structure; we intenionally tie this retrieval to the reset
+   * action to decrease the likelihood that the internal storage structure will be misused.
    */
-  void reset() noexcept;
+  Storage_t *reset() noexcept;
 
   /**
    * Seal the queue. If already sealed, does nothing.
@@ -106,7 +109,7 @@ public:
 private:
   void push_impl_(const MessageType type, const MessageFlagType mflags, const U64 payload) noexcept;
 
-  std::vector<Message> queue_;
+  Storage_t *pStorage_;
 
   ILogger &logger_;
 

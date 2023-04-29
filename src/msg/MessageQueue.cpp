@@ -7,7 +7,8 @@
 
 namespace omulator::msg {
 
-MessageQueue::MessageQueue(ILogger &logger) : logger_{logger}, sealed_{false} { }
+MessageQueue::MessageQueue(Storage_t *pStorage, ILogger &logger)
+  : pStorage_{pStorage}, logger_{logger}, sealed_{false} { }
 
 void MessageQueue::pump_msgs(const MessageCallback_t &callback) {
   if(!sealed_) {
@@ -17,7 +18,7 @@ void MessageQueue::pump_msgs(const MessageCallback_t &callback) {
     return;
   }
 
-  for(auto &msg : queue_) {
+  for(auto &msg : *pStorage_) {
     if(msg.type == MessageType::MSG_NULL) {
       /* no-op */
     }
@@ -38,14 +39,14 @@ void MessageQueue::pump_msgs(const MessageCallback_t &callback) {
   }
 }
 
-void MessageQueue::reset() noexcept {
-  sealed_   = false;
+MessageQueue::Storage_t *MessageQueue::reset() noexcept {
+  sealed_ = false;
 
 #ifndef NDEBUG
   // Check for memory leaks; a message with a managed payload which is not a nullptr is probably a
   // memory leak (MessageQueue::pump_msgs() should delete the payload and set the pointer to it to a
   // nullptr once the message is processed)!
-  for(const auto &msg : queue_) {
+  for(const auto &msg : *pStorage_) {
     if(msg.has_managed_payload()) {
       assert(reinterpret_cast<void *>(msg.payload) == nullptr);
     }
@@ -54,7 +55,9 @@ void MessageQueue::reset() noexcept {
 
   // N.B. that std::vector::clear() won't free any of the underlying storage, which is what we
   // want, since we can call reset() on a MessageQueue and submit it back to a pool
-  queue_.clear();
+  pStorage_->clear();
+
+  return pStorage_;
 }
 
 void MessageQueue::push(const MessageType type) noexcept {
@@ -78,7 +81,7 @@ void MessageQueue::push_impl_(const MessageType     type,
     return;
   }
 
-  queue_.push_back({type, mflags, payload});
+  pStorage_->push_back({type, mflags, payload});
 }
 
 void MessageQueue::seal() noexcept { sealed_ = true; }

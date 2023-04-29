@@ -20,18 +20,32 @@ TEST(MessageQueue_test, getAndSubmit) {
   LoggerMock          logger;
   MessageQueueFactory mqf(logger);
 
-  MessageQueue *pmq = mqf.get();
-  EXPECT_NE(nullptr, pmq) << "MessageQueueFactory::get() should never return a nullptr";
+  MessageQueue mq = mqf.get();
 
-  mqf.submit(pmq);
-  MessageQueue *pmq2 = mqf.get();
-  EXPECT_EQ(pmq, pmq2)
-    << "MessageQueueFactory should reuse MessageQueues that have been submitted back to it";
+  mqf.submit(mq);
+  MessageQueue recycledStorageMQ = mqf.get();
+  MessageQueue freshStorageMQ    = mqf.get();
 
-  pmq2->seal();
-  EXPECT_TRUE(pmq2->sealed()) << "MessageQueueFactory::submit() should call MessageQueue::reset()";
-  mqf.submit(pmq2);
-  EXPECT_FALSE(pmq2->sealed()) << "MessageQueueFactory::submit() should call MessageQueue::reset()";
+  // Test for storage reuse via the reset() method, which returns a pointer to the MQ's internal
+  // storage.
+  EXPECT_EQ(mq.reset(), recycledStorageMQ.reset())
+    << "MessageQueueFactory should reuse MessageQueue::Storage_t "
+       "instances that have been submitted back to it";
+
+  EXPECT_NE(mq.reset(), freshStorageMQ.reset())
+    << "MessageQueueFactory should create a new instance of MessageQueue::Storage_t "
+       "if no instances have been submitted back to it";
+
+  // N.B. that what follows is only for testing purposes; MessageQueue instances should never be
+  // referenced once they are submitted back into a MessageQueueFactory
+  recycledStorageMQ.seal();
+  EXPECT_TRUE(recycledStorageMQ.sealed())
+    << "MessageQueueFactory::submit() should call MessageQueue::reset()";
+  mqf.submit(recycledStorageMQ);
+  EXPECT_FALSE(recycledStorageMQ.sealed())
+    << "MessageQueueFactory::submit() should call MessageQueue::reset()";
+
+  mqf.submit(freshStorageMQ);
 
   // Shouldn't warn about memory leaks since we have called submit() for each MessageQueue acquired
   // through get()
@@ -42,9 +56,9 @@ TEST(MessageQueue_test, memLeakWarn) {
   LoggerMock          logger;
   MessageQueueFactory mqf(logger);
 
-  MessageQueue                  *pmq1 = mqf.get();
-  [[maybe_unused]] MessageQueue *pmq2 = mqf.get();
+  MessageQueue                  mq1 = mqf.get();
+  [[maybe_unused]] MessageQueue mq2 = mqf.get();
 
-  mqf.submit(pmq1);
+  mqf.submit(mq1);
   EXPECT_CALL(logger, error).Times(Exactly(1));
 }

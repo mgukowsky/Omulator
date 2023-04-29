@@ -19,8 +19,8 @@
 #include <thread>
 
 namespace {
-const auto FPS    = 60;
-const auto PERIOD = std::chrono::nanoseconds(1'000'000'000) / FPS;
+constexpr auto FPS    = 60;
+constexpr auto PERIOD = std::chrono::nanoseconds(1'000'000'000) / FPS;
 }  // namespace
 
 namespace omulator {
@@ -42,7 +42,7 @@ int oml_main(const int argc, const char **argv) {
     propertyMap.get_prop<std::string>(props::RESOURCE_DIR)
       .set(std::filesystem::absolute(*argv).parent_path().string());
 
-    IWindow &wnd = injector.get<IWindow>();
+    auto &wnd = injector.get<IWindow>();
     // The window MUST be shown prior to creating the graphics backend, otherwise we may not be able
     // to associate the window with the graphics API.
     wnd.show();
@@ -61,7 +61,7 @@ int oml_main(const int argc, const char **argv) {
     msg::MailboxReceiver mbrecv = injector.get<msg::MailboxRouter>().claim_mailbox<App>();
     msg::MailboxSender   testEngineMailbox =
       injector.get<msg::MailboxRouter>().get_mailbox<CoreGraphicsEngine>();
-    IClock &clock = injector.get<IClock>();
+    auto &clock = injector.get<IClock>();
 
     bool done = false;
 

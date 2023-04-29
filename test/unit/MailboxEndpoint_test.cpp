@@ -31,14 +31,13 @@ TEST(MailboxEndpoint_test, usageTest) {
 
   EXPECT_TRUE(me.claimed()) << "MailboxEndpoint::claim should claim an endpoint";
 
-  auto *mq = me.get_mq();
-  EXPECT_NE(nullptr, mq) << "MailboxEndpoint::get_mq should never return a nullptr";
+  auto mq = me.get_mq();
 
-  mq->push(MessageType::DEMO_MSG_A, LIFE);
+  mq.push(MessageType::DEMO_MSG_A, LIFE);
 
-  EXPECT_FALSE(mq->sealed()) << "MailboxEndpoint::send() should call MessageQueue::seal()";
+  EXPECT_FALSE(mq.sealed()) << "MailboxEndpoint::send() should call MessageQueue::seal()";
   me.send(mq);
-  EXPECT_TRUE(mq->sealed()) << "MailboxEndpoint::send() should call MessageQueue::seal()";
+  EXPECT_TRUE(mq.sealed()) << "MailboxEndpoint::send() should call MessageQueue::seal()";
 
   U64 i = 0;
 
@@ -58,9 +57,9 @@ TEST(MailboxEndpoint_test, onOff) {
 
   me.claim();
 
-  auto *mq = me.get_mq();
-  mq->push(MessageType::DEMO_MSG_A, LIFE);
-  mq->push(MessageType::DEMO_MSG_B, LIFE);
+  auto mq = me.get_mq();
+  mq.push(MessageType::DEMO_MSG_A, LIFE);
+  mq.push(MessageType::DEMO_MSG_B, LIFE);
   me.send(mq);
 
   std::vector<U64> vals;
@@ -74,10 +73,10 @@ TEST(MailboxEndpoint_test, onOff) {
 
   me.off(MessageType::DEMO_MSG_A);
 
-  mq = me.get_mq();
-  mq->push(MessageType::DEMO_MSG_A, LIFE);
-  mq->push(MessageType::DEMO_MSG_B, LIFE);
-  me.send(mq);
+  auto mq2 = me.get_mq();
+  mq2.push(MessageType::DEMO_MSG_A, LIFE);
+  mq2.push(MessageType::DEMO_MSG_B, LIFE);
+  me.send(mq2);
 
   EXPECT_CALL(logger, warn(HasSubstr("Dropping message with type "), _)).Times(Exactly(1));
   me.recv();
@@ -89,9 +88,9 @@ TEST(MailboxEndpoint_test, onOff) {
     .Times(Exactly(1));
   me.on(MessageType::DEMO_MSG_B, [&]([[maybe_unused]] const Message &msg) { vals.pop_back(); });
 
-  mq = me.get_mq();
-  mq->push(MessageType::DEMO_MSG_B, LIFE);
-  me.send(mq);
+  auto mq3 = me.get_mq();
+  mq3.push(MessageType::DEMO_MSG_B, LIFE);
+  me.send(mq3);
 
   me.recv();
 
@@ -100,9 +99,9 @@ TEST(MailboxEndpoint_test, onOff) {
 
   me.on(MessageType::DEMO_MSG_A, [&]([[maybe_unused]] const Message &msg) { vals.pop_back(); });
 
-  mq = me.get_mq();
-  mq->push(MessageType::DEMO_MSG_A, LIFE);
-  me.send(mq);
+  auto mq4 = me.get_mq();
+  mq4.push(MessageType::DEMO_MSG_A, LIFE);
+  me.send(mq4);
 
   me.recv();
 

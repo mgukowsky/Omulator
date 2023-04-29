@@ -48,8 +48,8 @@ void CLIInput::input_loop() {
       std::atomic_bool fence = false;
 
       auto mq = msgSender_.get_mq();
-      mq->push_managed_payload<std::string>(msg::MessageType::STDIN_STRING, std::move(str));
-      mq->push<std::atomic_bool *>(msg::MessageType::SIMPLE_FENCE, &fence);
+      mq.push_managed_payload<std::string>(msg::MessageType::STDIN_STRING, std::move(str));
+      mq.push<std::atomic_bool *>(msg::MessageType::SIMPLE_FENCE, &fence);
       msgSender_.send(mq);
 
       // Wait on the fence to ensure that the CLI prompt only displays after the Interpreter has

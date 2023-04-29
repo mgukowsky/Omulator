@@ -13,8 +13,8 @@ class MailboxSender {
 public:
   explicit MailboxSender(MailboxEndpoint &endpoint);
 
-  MessageQueue *get_mq() noexcept;
-  void          send(MessageQueue *pmq);
+  MessageQueue get_mq() noexcept;
+  void         send(MessageQueue &mq);
 
   /**
    * Convenience function to send a single message. Should not be used too often, as it is more
@@ -23,8 +23,8 @@ public:
   template<typename T = const U64>
   requires valid_trivial_payload_type<T>
   void send_single_message(const MessageType type, const T payload = T()) {
-    auto *mq = get_mq();
-    mq->push(type, payload);
+    MessageQueue mq = get_mq();
+    mq.push(type, payload);
     send(mq);
   }
 

@@ -37,6 +37,7 @@ public:
     });
     start();
   }
+
   ~TestSubsys() override = default;
 
   U64       &i_;
@@ -56,9 +57,9 @@ TEST(Subsystem_test, simpleSubsystem) {
   TestSubsys subsys(logger, mr, i, sequencer);
 
   auto mq = msend.get_mq();
-  mq->push(MessageType::DEMO_MSG_A, 42);
-  mq->push(MessageType::DEMO_MSG_B, 43);
-  mq->seal();
+  mq.push(MessageType::DEMO_MSG_A, 42);
+  mq.push(MessageType::DEMO_MSG_B, 43);
+  mq.seal();
 
   msend.send(mq);
 

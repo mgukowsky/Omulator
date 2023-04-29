@@ -25,9 +25,9 @@ public:
   ~MessageQueueFactory();
 
   /**
-   * Retrieve a pointer to a MessageQueue that is ready to accept messages.
+   * Create a MessageQueue that is ready to accept messages.
    */
-  MessageQueue *get() noexcept;
+  MessageQueue get() noexcept;
 
   /**
    * Relinquish a MessageQueue back into the pool of available queues. Upon submission, reset() will
@@ -35,7 +35,7 @@ public:
    * memory leak! Once submitted, any references to the submitted MessageQueue will no longer be
    * valid.
    */
-  void submit(MessageQueue *pQueue) noexcept;
+  void submit(MessageQueue &mq) noexcept;
 
 private:
   struct Impl_;

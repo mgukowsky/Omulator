@@ -38,18 +38,16 @@ TEST(MailboxRouter_test, usageTest) {
   MailboxSender   msend1 = mr.get_mailbox<int>();
   MailboxSender   msend2 = mr.get_mailbox<int>();
 
-  MessageQueue *pmq1 = msend1.get_mq();
-  EXPECT_NE(nullptr, pmq1) << "MailboxSender::get_mq() should not return a nullptr";
+  MessageQueue mq1 = msend1.get_mq();
 
-  pmq1->push(MessageType::DEMO_MSG_A, LIFE);
-  pmq1->push(MessageType::DEMO_MSG_A, LIFEPLUSONE);
-  msend1.send(pmq1);
+  mq1.push(MessageType::DEMO_MSG_A, LIFE);
+  mq1.push(MessageType::DEMO_MSG_A, LIFEPLUSONE);
+  msend1.send(mq1);
 
-  MessageQueue *pmq2 = msend2.get_mq();
-  EXPECT_NE(nullptr, pmq2) << "MailboxSender::get_mq() should not return a nullptr";
+  MessageQueue mq2 = msend2.get_mq();
 
-  pmq2->push(MessageType::DEMO_MSG_A, LIFEPLUSTWO);
-  msend2.send(pmq2);
+  mq2.push(MessageType::DEMO_MSG_A, LIFEPLUSTWO);
+  msend2.send(mq2);
 
   std::vector<U64> vals;
 
@@ -102,9 +100,9 @@ TEST(MailboxRouter_test, multithreaded) {
 
   sequencer.wait_for_step(1);
 
-  MessageQueue *pmq = msend.get_mq();
-  pmq->push(MessageType::DEMO_MSG_A, 1);
-  msend.send(pmq);
+  MessageQueue mq = msend.get_mq();
+  mq.push(MessageType::DEMO_MSG_A, 1);
+  msend.send(mq);
 
   sequencer.wait_for_step(2);
   EXPECT_EQ(1, i) << "MailboxEndpoint::recv should block until messages are received";
@@ -120,9 +118,9 @@ TEST(MailboxRouter_test, onMethods) {
 
   std::vector<U64> vals;
 
-  MessageQueue *mq = msend.get_mq();
+  MessageQueue mq = msend.get_mq();
 
-  mq->push(MessageType::DEMO_MSG_A, LIFE);
+  mq.push(MessageType::DEMO_MSG_A, LIFE);
   msend.send(mq);
 
   mrecv.on(MessageType::DEMO_MSG_A, [&] { vals.push_back(LIFE); });
@@ -131,11 +129,11 @@ TEST(MailboxRouter_test, onMethods) {
   EXPECT_EQ(vals.size(), 1);
   EXPECT_EQ(vals.at(0), LIFE);
 
-  mq = msend.get_mq();
+  MessageQueue mq2 = msend.get_mq();
 
   int i = 0x1234;
-  mq->push(MessageType::DEMO_MSG_B, i);
-  msend.send(mq);
+  mq2.push(MessageType::DEMO_MSG_B, i);
+  msend.send(mq2);
 
   // Conversion to trivial type
   mrecv.on_trivial_payload<int>(
@@ -144,12 +142,12 @@ TEST(MailboxRouter_test, onMethods) {
   EXPECT_EQ(vals.size(), 2);
   EXPECT_EQ(vals.at(1), 0x1234);
 
-  mq = msend.get_mq();
+  MessageQueue mq3 = msend.get_mq();
 
   int  i2 = LIFEPLUSONE;
   int *pi = &i2;
-  mq->push(MessageType::DEMO_MSG_C, pi);
-  msend.send(mq);
+  mq3.push(MessageType::DEMO_MSG_C, pi);
+  msend.send(mq3);
 
   // Conversion to pointer
   mrecv.on_trivial_payload<int *>(MessageType::DEMO_MSG_C, [&](const int *payload) {
@@ -159,10 +157,10 @@ TEST(MailboxRouter_test, onMethods) {
   EXPECT_EQ(vals.size(), 3);
   EXPECT_EQ(vals.at(2), LIFEPLUSONE);
 
-  mq = msend.get_mq();
+  MessageQueue mq4 = msend.get_mq();
 
-  mq->push_managed_payload<int>(MessageType::DEMO_MSG_D, static_cast<int>(LIFEPLUSTWO));
-  msend.send(mq);
+  mq4.push_managed_payload<int>(MessageType::DEMO_MSG_D, static_cast<int>(LIFEPLUSTWO));
+  msend.send(mq4);
 
   // Managed payload
   mrecv.on_managed_payload<int>(MessageType::DEMO_MSG_D, [&](const int &payload) {
@@ -172,12 +170,12 @@ TEST(MailboxRouter_test, onMethods) {
   EXPECT_EQ(vals.size(), 4);
   EXPECT_EQ(vals.at(3), LIFEPLUSTWO);
 
-  mq = msend.get_mq();
+  MessageQueue mq5 = msend.get_mq();
 
   int  i3  = LIFEPLUSTHREE;
   int *pi2 = &i3;
-  mq->push(MessageType::DEMO_MSG_E, pi2);
-  msend.send(mq);
+  mq5.push(MessageType::DEMO_MSG_E, pi2);
+  msend.send(mq5);
 
   // Managed payload
   mrecv.on_unmanaged_payload<int>(MessageType::DEMO_MSG_E,

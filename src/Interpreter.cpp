@@ -106,7 +106,7 @@ PYBIND11_EMBEDDED_MODULE(omulator, m) {
     [&](std::string shader) {
       auto sender = mbrouter.get_mailbox<omulator::CoreGraphicsEngine>();
       auto mq     = sender.get_mq();
-      mq->push_managed_payload<std::string>(omulator::msg::MessageType::SET_VERTEX_SHADER, shader);
+      mq.push_managed_payload<std::string>(omulator::msg::MessageType::SET_VERTEX_SHADER, shader);
       sender.send(mq);
     },
     doc{"Set the vertex shader to the specified file"});

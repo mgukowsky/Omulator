@@ -56,13 +56,13 @@ public:
    * Returns a fresh MessageQueue from the internal MessageQueueFactory, which can be filled with
    * messages and then sent via a call to send().
    */
-  MessageQueue *get_mq() noexcept;
+  MessageQueue get_mq() noexcept;
 
   /**
    * Register a callback to be invoked when a given MessageType is processed. If there is already a
    * callback associated with the given MessageType, then this function has no effect.
    */
-  void on(const MessageType type, const MessageCallback_t callback);
+  void on(const MessageType type, const MessageCallback_t &callback);
 
   /**
    * For each message in each MessageQueue that has been sent, a matching callback registered with
@@ -77,7 +77,7 @@ public:
    * Submit a MessageQueue to this endpoint, which can then be serviced via a call to recv(). seal()
    * will be called on the MessageQueue prior to submission.
    */
-  void send(MessageQueue *mq);
+  void send(MessageQueue &mq);
 
 private:
   const U64        id_;
@@ -94,16 +94,10 @@ private:
   /**
    * The underlying queue of MessageQueues. Accesses should be guarded by a mtx_.
    */
-  std::queue<MessageQueue *> queue_;
+  std::queue<MessageQueue> queue_;
 
   std::condition_variable cv_;
   std::mutex              mtx_;
-
-  /**
-   * Atomically retrieve the next MessageQueue_ from queue_. Returns a pointer to a
-   * MessageQueue if one could be dequeued, and nullptr otherwise.
-   */
-  MessageQueue *pop_next_();
 };
 
 }  // namespace omulator::msg

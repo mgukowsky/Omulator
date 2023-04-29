@@ -14,9 +14,9 @@ void MailboxEndpoint::claim() noexcept { claimed_ = true; }
 
 bool MailboxEndpoint::claimed() const noexcept { return claimed_; }
 
-MessageQueue *MailboxEndpoint::get_mq() noexcept { return mqfactory_.get(); }
+MessageQueue MailboxEndpoint::get_mq() noexcept { return mqfactory_.get(); }
 
-void MailboxEndpoint::on(const MessageType type, const MessageCallback_t callback) {
+void MailboxEndpoint::on(const MessageType type, const MessageCallback_t &callback) {
   std::scoped_lock lck{mtx_};
 
   if(callbacks_.contains(type)) {
@@ -43,18 +43,17 @@ void MailboxEndpoint::recv(RecvBehavior recvBehavior) {
     cv_.wait(lck, [this] { return !(queue_.empty()); });
   }
 
-  MessageQueue *pQueue = nullptr;
-
   while(true) {
-    pQueue = pop_next_();
-
-    if(pQueue == nullptr) {
+    if(queue_.empty()) {
       break;
     }
 
+    // TODO: this is very coarse-grained locking in that the mailbox will
+    // remain locked until all messages in all pending queues have been processed...
     std::scoped_lock lck{mtx_};
+    MessageQueue    &currentMQ = queue_.front();
 
-    pQueue->pump_msgs([this](const Message &msg) {
+    currentMQ.pump_msgs([this](const Message &msg) {
       auto it = callbacks_.find(msg.type);
       if(it != callbacks_.end()) {
         it->second(msg);
@@ -67,30 +66,19 @@ void MailboxEndpoint::recv(RecvBehavior recvBehavior) {
       }
     });
 
-    mqfactory_.submit(pQueue);
+    mqfactory_.submit(currentMQ);
+
+    queue_.pop();
   }
 }
 
-void MailboxEndpoint::send(MessageQueue *pQueue) {
-  pQueue->seal();
+void MailboxEndpoint::send(MessageQueue &mq) {
+  mq.seal();
   {
     std::scoped_lock lck{mtx_};
-    queue_.push(pQueue);
+    // N.B. we are copying the queue in
+    queue_.push(mq);
     cv_.notify_all();
-  }
-}
-
-MessageQueue *MailboxEndpoint::pop_next_() {
-  std::scoped_lock lck{mtx_};
-
-  if(queue_.empty()) {
-    return nullptr;
-  }
-  else {
-    MessageQueue *retval = queue_.front();
-    queue_.pop();
-
-    return retval;
   }
 }
 

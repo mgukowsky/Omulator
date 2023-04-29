@@ -31,8 +31,9 @@ TEST(MessageQueue_test, msgPayloadFieldSizeCheck) {
 }
 
 TEST(MessageQueue_test, singleThreadSendRecv) {
-  LoggerMock   logger;
-  MessageQueue mq(logger);
+  LoggerMock              logger;
+  MessageQueue::Storage_t storage;
+  MessageQueue            mq(&storage, logger);
 
   mq.push(MessageType::MSG_NULL, 0);
 
@@ -65,8 +66,9 @@ TEST(MessageQueue_test, singleThreadSendRecv) {
 }
 
 TEST(MessageQueue_test, sealUnseal) {
-  LoggerMock   logger;
-  MessageQueue mq(logger);
+  LoggerMock              logger;
+  MessageQueue::Storage_t storage;
+  MessageQueue            mq(&storage, logger);
 
   mq.push(MessageType::DEMO_MSG_A, 42);
 
@@ -97,8 +99,9 @@ TEST(MessageQueue_test, sealUnseal) {
 }
 
 TEST(MessageQueue_test, multipleMsgTypes) {
-  LoggerMock   logger;
-  MessageQueue mq(logger);
+  LoggerMock              logger;
+  MessageQueue::Storage_t storage;
+  MessageQueue            mq(&storage, logger);
 
   std::atomic_int  flag = 0;
   std::vector<U64> vals;
@@ -151,12 +154,15 @@ TEST(MessageQueue_test, multipleMsgTypes) {
 }
 
 TEST(MessageQueue_test, managedPayloads) {
-  LoggerMock   logger;
-  MessageQueue mq(logger);
+  LoggerMock              logger;
+  MessageQueue::Storage_t storage;
+  MessageQueue            mq(&storage, logger);
 
   struct A {
     A() : val(0) { }
+
     ~A() { ++aDtorCount; }
+
     int val;
   };
 
@@ -194,8 +200,9 @@ TEST(MessageQueue_test, managedPayloads) {
 
 // Make sure that we get a warning when we drop messages with types > MessageType::MSG_MAX
 TEST(MessageQueue_test, msgMaxTest) {
-  LoggerMock   logger;
-  MessageQueue mq(logger);
+  LoggerMock              logger;
+  MessageQueue::Storage_t storage;
+  MessageQueue            mq(&storage, logger);
 
   mq.push(static_cast<MessageType>(to_underlying(MessageType::MSG_MAX) + 1));
   mq.seal();
