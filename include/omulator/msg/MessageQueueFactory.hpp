@@ -16,7 +16,7 @@ namespace omulator::msg {
  */
 class MessageQueueFactory {
 public:
-  explicit MessageQueueFactory(ILogger &logger);
+  MessageQueueFactory(ILogger &logger, U64 id);
 
   /**
    * Iterate and free each MessageQueue in an unsynchronized manner, meaning that this destructor
@@ -35,13 +35,15 @@ public:
    * memory leak! Once submitted, any references to the submitted MessageQueue will no longer be
    * valid.
    */
-  void submit(MessageQueue &mq) noexcept;
+  void submit(MessageQueue &mq);
 
 private:
   struct Impl_;
   util::Pimpl<Impl_> impl_;
 
   ILogger &logger_;
+
+  const U64 id_;
 
   std::atomic<U64> numActiveQueues_;
 };

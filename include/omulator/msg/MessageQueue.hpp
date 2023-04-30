@@ -21,20 +21,53 @@ using MessageCallback_t = std::function<void(const Message &)>;
 /**
  * A queue containing a series of messages. Messages are pushed and popped in a FIFO manner. This
  * class is entirely unsynchronized and should only be accessed by a single thread at a given time.
+ *
  * At any given time, MessageQueues can be unsealed, meaning they can accept additional messages, or
  * sealed, meaning that they cannot accept any additional messages and are in a read-only state.
- * MessageQueues can be put back into an unsealed state for reuse, however doing so will result in
- * the loss of any messages currently in the queue. The internal implementation is designed to hold
- * on to any allocated memory until the queue is destroyed, making this class an ideal candidate for
- * re-use within a resource pool.
+ * Marking a queue as sealed is a one-way transformation; once sealed it cannot be unsealed.
+ *
+ * Queues start out in a valid state (meaning that their internal storage is safe for reading and
+ * writing) but become invalid once they relinquish their storage via a call to release() or a call
+ * to mark_invalid(). This is also a one-way transformation, and there is no way for an invalid
+ * queue to become valid again. Once a queue is marked invalid, most operations performed on it will
+ * no longer succeed.
+ *
+ * N.B. that this class is meant to be lightweight and as such does not manage its own storage; this
+ * allows it to be efficiently passed by value regardless of how large its storage grows.
  */
 class MessageQueue {
 public:
-  using Storage_t = std::vector<Message>;
+  struct Storage_t {
+    explicit Storage_t(const U64 idArg) : id{idArg} { }
+
+    const U64            id;
+    std::vector<Message> storage;
+  };
+
   /**
    * Initialized the queue in an unsealed state.
    */
   MessageQueue(Storage_t *pStorage, ILogger &logger);
+
+  ~MessageQueue() noexcept = default;
+
+  // TODO: do we want to mark a copied-from MessageQueue as invalid? We need the copy ctors in order
+  // to play nicely with the STL containers which use them, however lifetime issues could arise
+  // since both MessageQueues could be valid and refer to the same storage, and one could
+  // potentially outlive the other and still reference the storage... for now best to advise not to
+  // copy if possible, and if copying must happen, to not use the copied-from instance for
+  // anything...
+  MessageQueue(const MessageQueue &)            = default;
+  MessageQueue &operator=(const MessageQueue &) = default;
+
+  // N.B. that moved-from MessageQueues will no longer be valid!
+  MessageQueue(MessageQueue &&rhs) noexcept;
+  MessageQueue &operator=(MessageQueue &&rhs) noexcept;
+
+  /**
+   * Set valid_ to false.
+   */
+  void mark_invalid() noexcept;
 
   /**
    * Invoke a callback for each message in the queue. If the queue is not sealed, then no
@@ -83,6 +116,13 @@ public:
    */
   template<typename T, typename... Args>
   T &push_managed_payload(const MessageType type, Args &&...args) {
+    if(!valid_) {
+      // If we don't throw here, then we will get a memory leak/undefined behavior via the return
+      // value since pCtr will be created but not added as a managed payload since the call to
+      // push() will fail.
+      throw std::runtime_error(
+        "Attempted to call MessageQueue::pump_msgs() on a MessageQueue that is not valid");
+    }
     auto pCtr = new di::TypeContainer<T>();
     pCtr->createInstance(std::forward<Args>(args)...);
     push(type, MessageFlagType::MANAGED_PTR, pCtr);
@@ -90,11 +130,10 @@ public:
   }
 
   /**
-   * Unseal the queue and reset its contents. Does NOT release any underlying memory. Returns a
-   * pointer the underlying storage structure; we intenionally tie this retrieval to the reset
-   * action to decrease the likelihood that the internal storage structure will be misused.
+   * Retrieve a pointer to the internal storage and release ownership over the storage by marking
+   * the MessageQueue as invalid.
    */
-  Storage_t *reset() noexcept;
+  Storage_t *release() noexcept;
 
   /**
    * Seal the queue. If already sealed, does nothing.
@@ -106,13 +145,29 @@ public:
    */
   bool sealed() const noexcept;
 
+  /**
+   * Returns true if the queue contains valid storage.
+   */
+  bool valid() const noexcept;
+
 private:
   void push_impl_(const MessageType type, const MessageFlagType mflags, const U64 payload) noexcept;
 
+  /**
+   * Pointer to externally managed storage.
+   */
   Storage_t *pStorage_;
 
   ILogger &logger_;
 
+  /**
+   * Indicates that the queue can accept additional messages.
+   */
   bool sealed_;
+
+  /**
+   * Indicates that the queue's internal storage is valid.
+   */
+  bool valid_;
 };
 }  // namespace omulator::msg

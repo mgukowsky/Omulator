@@ -31,7 +31,7 @@ constexpr U64 LIFEPLUSTHREE = 45;
 
 TEST(MailboxRouter_test, usageTest) {
   LoggerMock          logger;
-  MessageQueueFactory mqf(logger);
+  MessageQueueFactory mqf(logger, 0);
   MailboxRouter       mr(logger, mqf);
 
   MailboxReceiver mrecv  = mr.claim_mailbox<int>();
@@ -70,7 +70,7 @@ TEST(MailboxRouter_test, usageTest) {
 
 TEST(MailboxRouter_test, doubleClaimTest) {
   LoggerMock          logger;
-  MessageQueueFactory mqf(logger);
+  MessageQueueFactory mqf(logger, 0);
   MailboxRouter       mr(logger, mqf);
 
   [[maybe_unused]] MailboxReceiver mrecv = mr.claim_mailbox<int>();
@@ -82,7 +82,7 @@ TEST(MailboxRouter_test, doubleClaimTest) {
 TEST(MailboxRouter_test, multithreaded) {
   Sequencer           sequencer(2);
   LoggerMock          logger;
-  MessageQueueFactory mqf(logger);
+  MessageQueueFactory mqf(logger, 0);
   MailboxRouter       mr(logger, mqf);
 
   MailboxReceiver mrecv = mr.claim_mailbox<int>();
@@ -110,7 +110,7 @@ TEST(MailboxRouter_test, multithreaded) {
 
 TEST(MailboxRouter_test, onMethods) {
   LoggerMock          logger;
-  MessageQueueFactory mqf(logger);
+  MessageQueueFactory mqf(logger, 0);
   MailboxRouter       mr(logger, mqf);
 
   MailboxReceiver mrecv = mr.claim_mailbox<int>();

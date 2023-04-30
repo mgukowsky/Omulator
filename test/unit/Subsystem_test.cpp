@@ -48,7 +48,7 @@ TEST(Subsystem_test, simpleSubsystem) {
   Sequencer  sequencer(1);
   LoggerMock logger;
 
-  MessageQueueFactory mqf(logger);
+  MessageQueueFactory mqf(logger, 0);
   MailboxRouter       mr(logger, mqf);
 
   MailboxSender msend = mr.get_mailbox<TestSubsys>();
@@ -59,7 +59,6 @@ TEST(Subsystem_test, simpleSubsystem) {
   auto mq = msend.get_mq();
   mq.push(MessageType::DEMO_MSG_A, 42);
   mq.push(MessageType::DEMO_MSG_B, 43);
-  mq.seal();
 
   msend.send(mq);
 

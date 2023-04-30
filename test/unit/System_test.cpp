@@ -42,6 +42,7 @@ class A : public Component {
 public:
   A(ILogger &logger, std::vector<std::string_view> &vs, Cycle_t &cycleTracker)
     : Component(logger, TypeString<A>), vs_(vs), cycleTracker_(cycleTracker) { }
+
   ~A() override = default;
 
   Cycle_t step(const Cycle_t numCycles) override {
@@ -59,6 +60,7 @@ class B : public Component {
 public:
   B(ILogger &logger, std::vector<std::string_view> &vs, Cycle_t &cycleTracker)
     : Component(logger, TypeString<B>), vs_(vs), cycleTracker_(cycleTracker) { }
+
   ~B() override = default;
 
   Cycle_t step(const Cycle_t numCycles) override {
@@ -85,6 +87,7 @@ public:
                                       [&](const U64 payload) { onDemoMsgA_(payload); });
     start();
   }
+
   ~SubsysA() override { onDestruction_(); }
 
 private:
@@ -119,7 +122,14 @@ TEST(System_test, simpleSystem) {
   U64           destructionTracker = 0;
 
   injector.bindImpl<ILogger, LoggerMock>();
-  injector.addCtorRecipe<MessageQueueFactory, ILogger &>();
+
+  injector.addRecipe<omulator::msg::MessageQueueFactory>([](Injector &injectorInstance) {
+    static std::atomic<U64> factoryInstanceCounter = 0;
+    return new omulator::msg::MessageQueueFactory(
+      injectorInstance.get<ILogger>(),
+      factoryInstanceCounter.fetch_add(1, std::memory_order_acq_rel));
+  });
+
   injector.addCtorRecipe<MailboxRouter, ILogger &, MessageQueueFactory &>();
   injector.addRecipe<A>([&]([[maybe_unused]] omulator::di::Injector &inj) {
     return new A(inj.get<ILogger>(), recorder, aCycleTracker);

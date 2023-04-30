@@ -9,6 +9,7 @@
 
 #include <atomic>
 #include <thread>
+#include <utility>
 #include <vector>
 
 using ::testing::_;
@@ -32,7 +33,7 @@ TEST(MessageQueue_test, msgPayloadFieldSizeCheck) {
 
 TEST(MessageQueue_test, singleThreadSendRecv) {
   LoggerMock              logger;
-  MessageQueue::Storage_t storage;
+  MessageQueue::Storage_t storage(0);
   MessageQueue            mq(&storage, logger);
 
   mq.push(MessageType::MSG_NULL, 0);
@@ -50,24 +51,11 @@ TEST(MessageQueue_test, singleThreadSendRecv) {
 
   EXPECT_EQ(42, i)
     << "MessageQueue::pump_msgs should invoke the provided callback for each message in the queue";
-
-  mq.reset();
-  i = 0;
-
-  mq.seal();
-
-  mq.pump_msgs([&](const Message &msg) {
-    if(msg.type == MessageType::DEMO_MSG_A) {
-      i = msg.payload;
-    }
-  });
-  EXPECT_EQ(0, i)
-    << "Calling MessageQueue::reset() should remove any messages currently in the queue";
 }
 
 TEST(MessageQueue_test, sealUnseal) {
   LoggerMock              logger;
-  MessageQueue::Storage_t storage;
+  MessageQueue::Storage_t storage(0);
   MessageQueue            mq(&storage, logger);
 
   mq.push(MessageType::DEMO_MSG_A, 42);
@@ -100,7 +88,7 @@ TEST(MessageQueue_test, sealUnseal) {
 
 TEST(MessageQueue_test, multipleMsgTypes) {
   LoggerMock              logger;
-  MessageQueue::Storage_t storage;
+  MessageQueue::Storage_t storage(0);
   MessageQueue            mq(&storage, logger);
 
   std::atomic_int  flag = 0;
@@ -155,7 +143,7 @@ TEST(MessageQueue_test, multipleMsgTypes) {
 
 TEST(MessageQueue_test, managedPayloads) {
   LoggerMock              logger;
-  MessageQueue::Storage_t storage;
+  MessageQueue::Storage_t storage(0);
   MessageQueue            mq(&storage, logger);
 
   struct A {
@@ -185,12 +173,13 @@ TEST(MessageQueue_test, managedPayloads) {
     << "Messages with managed payloads should be properly cleaned up; unmanaged "
        "payloads (even if the payload is a pointer) should not be cleaned up by the MessageQueue";
 
-  mq.reset();
-
   A *paUnmanaged = new A;
-  mq.push(MessageType::DEMO_MSG_A, paUnmanaged);
-  mq.seal();
-  mq.pump_msgs([&]([[maybe_unused]] const Message &msg) {});
+
+  storage.storage.clear();
+  MessageQueue mq2(&storage, logger);
+  mq2.push(MessageType::DEMO_MSG_A, paUnmanaged);
+  mq2.seal();
+  mq2.pump_msgs([&]([[maybe_unused]] const Message &msg) {});
 
   EXPECT_EQ(1, aDtorCount) << "Messages with unmanaged payloads (even if the payloads are "
                               "pointers) should not be clean up by the MessageQueue";
@@ -201,7 +190,7 @@ TEST(MessageQueue_test, managedPayloads) {
 // Make sure that we get a warning when we drop messages with types > MessageType::MSG_MAX
 TEST(MessageQueue_test, msgMaxTest) {
   LoggerMock              logger;
-  MessageQueue::Storage_t storage;
+  MessageQueue::Storage_t storage(0);
   MessageQueue            mq(&storage, logger);
 
   mq.push(static_cast<MessageType>(to_underlying(MessageType::MSG_MAX) + 1));
@@ -213,4 +202,57 @@ TEST(MessageQueue_test, msgMaxTest) {
                     _))
     .Times(Exactly(1));
   mq.pump_msgs([]([[maybe_unused]] const Message &msg) {});
+}
+
+TEST(MessageQueue_test, validityCheckTests) {
+  LoggerMock              logger;
+  MessageQueue::Storage_t storage(0);
+  MessageQueue            mq(&storage, logger);
+
+  mq.mark_invalid();
+
+  EXPECT_CALL(
+    logger,
+    error(HasSubstr("Attempted to call MessageQueue::push() on a MessageQueue that is not valid"),
+          _))
+    .Times(Exactly(1));
+  mq.push(MessageType::DEMO_MSG_A);
+
+  EXPECT_CALL(
+    logger,
+    error(
+      HasSubstr("Attempted to call MessageQueue::pump_msgs() on a MessageQueue that is not valid"),
+      _))
+    .Times(Exactly(1));
+  mq.pump_msgs([]([[maybe_unused]] const Message &msg) {});
+
+  EXPECT_THROW(mq.push_managed_payload<int>(MessageType::DEMO_MSG_A), std::runtime_error)
+    << "MessageQueue::push_managed_payload() should throw when called on an invalid MessageQueue";
+}
+
+TEST(MessageQueue_test, moveCtorTest) {
+  LoggerMock              logger;
+  MessageQueue::Storage_t storage(0);
+  MessageQueue            mq(&storage, logger);
+
+  MessageQueue mq1(std::move(mq));
+
+  EXPECT_TRUE(mq1.valid())
+    << "MessageQueue's move constructors should mark moved-from instances as invalid";
+  EXPECT_FALSE(mq.valid())
+    << "MessageQueue's move constructors should mark moved-from instances as invalid";
+
+  MessageQueue mq2 = std::move(mq1);
+  EXPECT_TRUE(mq2.valid())
+    << "MessageQueue's move constructors should mark moved-from instances as invalid";
+  EXPECT_FALSE(mq1.valid())
+    << "MessageQueue's move constructors should mark moved-from instances as invalid";
+
+  mq2.mark_invalid();
+
+  MessageQueue mq3(std::move(mq2));
+  EXPECT_FALSE(mq3.valid()) << "MessageQueue's move constructors should correctly move instances "
+                               "which have been marked invalid";
+  EXPECT_FALSE(mq2.valid()) << "MessageQueue's move constructors should correctly move instances "
+                               "which have been marked invalid";
 }

@@ -17,6 +17,12 @@ bool MailboxEndpoint::claimed() const noexcept { return claimed_; }
 MessageQueue MailboxEndpoint::get_mq() noexcept { return mqfactory_.get(); }
 
 void MailboxEndpoint::on(const MessageType type, const MessageCallback_t &callback) {
+  if(!claimed()) {
+    logger_.warn("Attempted to call MailboxEndpoint::on with a MailboxEndpoint that has not been "
+                 "claimed; no callback will be registered");
+    return;
+  }
+
   std::scoped_lock lck{mtx_};
 
   if(callbacks_.contains(type)) {
@@ -73,6 +79,19 @@ void MailboxEndpoint::recv(RecvBehavior recvBehavior) {
 }
 
 void MailboxEndpoint::send(MessageQueue &mq) {
+  if(!mq.valid()) {
+    logger_.error("Attempted to send an invalid MessageQueue");
+    return;
+  }
+
+  if(mq.sealed()) {
+    logger_.error(
+      "Attempted to send a MessageQueue that has already been sealed; this MessageQueue "
+      "will not be send in order to potentially prevent the same MessageQueue instance "
+      "from being sent more than once.");
+    return;
+  }
+
   mq.seal();
   {
     std::scoped_lock lck{mtx_};
@@ -80,6 +99,10 @@ void MailboxEndpoint::send(MessageQueue &mq) {
     queue_.push(mq);
     cv_.notify_all();
   }
+
+  // The queue which we created via the copy ctor will be valid, but we need to mark the copied-from
+  // queue as invalid since they both refer to the same underlying storage
+  mq.mark_invalid();
 }
 
 }  // namespace omulator::msg

@@ -34,7 +34,6 @@ void Injector::installDefaultRules(Injector &injector) {
    * Constructor recipes should be added here. N.B. that types which can be default-initialized DO
    * NOT need to be listed here!
    */
-  injector.addCtorRecipe<msg::MessageQueueFactory, ILogger &>();
   injector.addCtorRecipe<msg::MailboxRouter, ILogger &, msg::MessageQueueFactory &>();
   injector.addCtorRecipe<SystemWindow, ILogger &, InputHandler &>();
   injector.addCtorRecipe<InputHandler, msg::MailboxRouter &>();
@@ -59,7 +58,12 @@ void Injector::installDefaultRules(Injector &injector) {
   /**
    * Custom recipes for types should be added here.
    */
-  // injector.addRecipe<T>(...)
+  injector.addRecipe<msg::MessageQueueFactory>([](Injector &injectorInstance) {
+    static std::atomic<U64> factoryInstanceCounter = 0;
+    return new msg::MessageQueueFactory(
+      injectorInstance.get<ILogger>(),
+      factoryInstanceCounter.fetch_add(1, std::memory_order_acq_rel));
+  });
 }
 
 void Injector::installMinimalRules(Injector &injector) {
