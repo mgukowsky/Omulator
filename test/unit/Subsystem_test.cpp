@@ -59,15 +59,19 @@ TEST(Subsystem_test, simpleSubsystem) {
   TestSubsys subsys(logger, mr, i, sequencer);
 
   auto mq = msend.get_mq();
-  mq.push(MessageType::DEMO_MSG_A, 42);
-  mq.push(MessageType::DEMO_MSG_B, 43);
 
+  // MSG_B must be sent first in order to prevent the following race condition scenario:
+  //  - The sequencer unblocks on MSG_A
+  //  - This function exits before the receiver thread can service MSG_B
+  //  - The EXPECT_CALL below fails because MSG_B has not yet been serviced
+  mq.push(MessageType::DEMO_MSG_B, 43);
+  mq.push(MessageType::DEMO_MSG_A, 42);
+
+  EXPECT_CALL(logger, warn(HasSubstr("Dropping message with type"), _)).Times(Exactly(1));
   msend.send(mq);
 
   sequencer.wait_for_step(1);
 
   EXPECT_EQ(i, 42) << "A specialized subsystem should execute its message_proc() member function "
                       "when messages are sent to the Subsystem";
-
-  EXPECT_CALL(logger, warn(HasSubstr("Dropping message with type"), _)).Times(Exactly(1));
 }
