@@ -10,6 +10,17 @@ namespace omulator::msg {
 MailboxEndpoint::MailboxEndpoint(const U64 id, ILogger &logger, MessageQueueFactory &mqfactory)
   : id_(id), claimed_(false), logger_(logger), mqfactory_(mqfactory) { }
 
+MailboxEndpoint::~MailboxEndpoint() {
+  while(!queue_.empty()) {
+    MessageQueue &currentMQ = queue_.front();
+
+    currentMQ.clear();
+    mqfactory_.submit(currentMQ);
+
+    queue_.pop();
+  }
+}
+
 void MailboxEndpoint::claim() noexcept { claimed_ = true; }
 
 bool MailboxEndpoint::claimed() const noexcept { return claimed_; }

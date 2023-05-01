@@ -36,6 +36,11 @@ public:
   MailboxEndpoint(const U64 id, ILogger &logger, MessageQueueFactory &mqfactory);
 
   /**
+   * Destroys any pending MessageQueues; N.B. any messages in them will be dropped.
+   */
+  ~MailboxEndpoint();
+
+  /**
    * Claim a given mailbox. MailboxEndpoint instances cannot be claimed more than once; they can
    * never be un-claimed.
    */

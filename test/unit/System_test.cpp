@@ -101,6 +101,7 @@ TEST(System_test, emptySystemWarning) {
   LoggerMock logger;
   Injector   injector;
 
+  EXPECT_CALL(logger, info(HasSubstr("Creating component: emptySystem"), _)).Times(Exactly(1));
   [[maybe_unused]] System system(logger, "emptySystem", injector);
 
   EXPECT_CALL(logger, warn(HasSubstr("has no components!"), _)).Times(Exactly(1));
@@ -109,7 +110,6 @@ TEST(System_test, emptySystemWarning) {
 }
 
 TEST(System_test, simpleSystem) {
-  LoggerMock                    logger;
   Injector                      injector;
   std::vector<std::string_view> recorder;
 
@@ -122,6 +122,7 @@ TEST(System_test, simpleSystem) {
   U64           destructionTracker = 0;
 
   injector.bindImpl<ILogger, LoggerMock>();
+  auto &logger = injector.get<LoggerMock>();
 
   injector.addRecipe<omulator::msg::MessageQueueFactory>([](Injector &injectorInstance) {
     static std::atomic<U64> factoryInstanceCounter = 0;
@@ -139,6 +140,7 @@ TEST(System_test, simpleSystem) {
   });
 
   {
+    EXPECT_CALL(logger, info(HasSubstr("Creating component: testsystem"), _)).Times(Exactly(1));
     [[maybe_unused]] System system(logger, "testsystem", injector);
 
     // Create the recipe for SubsysA on the child Injector, not the parent. Helps ensure that only
@@ -157,8 +159,10 @@ TEST(System_test, simpleSystem) {
         });
     });
 
+    EXPECT_CALL(logger, info(HasSubstr("Creating component"), _)).Times(Exactly(2));
     system.make_component_list<A, B>();
 
+    EXPECT_CALL(logger, info(HasSubstr("Creating subsystem"), _)).Times(Exactly(1));
     system.make_subsystem_list<SubsysA>();
 
     EXPECT_EQ(3, system.step(3)) << "System::step should return the number of cycles taken";

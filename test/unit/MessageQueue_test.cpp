@@ -24,6 +24,15 @@ using omulator::util::to_underlying;
 
 namespace {
 U64 aDtorCount = 0;
+
+struct A {
+  A() : val(0) { }
+
+  ~A() { ++aDtorCount; }
+
+  int val;
+};
+
 }  // namespace
 
 TEST(MessageQueue_test, msgPayloadFieldSizeCheck) {
@@ -142,17 +151,11 @@ TEST(MessageQueue_test, multipleMsgTypes) {
 }
 
 TEST(MessageQueue_test, managedPayloads) {
+  aDtorCount = 0;
+
   LoggerMock              logger;
   MessageQueue::Storage_t storage(0);
   MessageQueue            mq(&storage, logger);
-
-  struct A {
-    A() : val(0) { }
-
-    ~A() { ++aDtorCount; }
-
-    int val;
-  };
 
   constexpr int MAGIC = 7;
 
@@ -255,4 +258,41 @@ TEST(MessageQueue_test, moveCtorTest) {
                                "which have been marked invalid";
   EXPECT_FALSE(mq2.valid()) << "MessageQueue's move constructors should correctly move instances "
                                "which have been marked invalid";
+}
+
+TEST(MessageQueue_test, clear) {
+  aDtorCount = 0;
+
+  LoggerMock              logger;
+  MessageQueue::Storage_t storage(0);
+  MessageQueue            mq(&storage, logger);
+
+  mq.push_managed_payload<A>(MessageType::DEMO_MSG_A);
+  mq.push_managed_payload<A>(MessageType::DEMO_MSG_B);
+
+  for(const Message &msg : storage.storage) {
+    EXPECT_TRUE(msg.has_managed_payload())
+      << "MessageQueue::push_managed_payload() should mark the pushed message as managed";
+    EXPECT_NE(0, msg.payload) << "MessageQueue::push_managed_payload should add a message with a "
+                                 "pointer to the managed payload";
+  }
+
+  EXPECT_EQ(0, aDtorCount);
+  EXPECT_FALSE(mq.sealed());
+
+  mq.clear();
+
+  for(const Message &msg : storage.storage) {
+    EXPECT_TRUE(msg.has_managed_payload());
+    EXPECT_EQ(0, msg.payload)
+      << "MessageQueue::clear should set the payload of each message with a managed payload to 0";
+  }
+
+  EXPECT_EQ(2, aDtorCount)
+    << "MessageQueue::clear should properly destroy any managed payloads in the MessageQueue";
+  EXPECT_TRUE(mq.sealed()) << "MessageQueue::clear should seal the queue";
+
+  mq.clear();
+  EXPECT_EQ(2, aDtorCount) << "Subsequent calls MessageQueue::clear on the same MessageQueue "
+                              "instance should have no effect";
 }

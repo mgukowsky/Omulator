@@ -25,6 +25,26 @@ MessageQueue &MessageQueue::operator=(MessageQueue &&rhs) noexcept {
   return *this;
 }
 
+void MessageQueue::clear() {
+  for(auto &msg : pStorage_->storage) {
+    if(msg.has_managed_payload() && msg.payload != 0) {
+      free_managed_payload_(msg);
+    }
+  }
+
+  seal();
+}
+
+void MessageQueue::free_managed_payload_(Message &msg) {
+  assert(msg.has_managed_payload());
+
+  di::TypeContainerBase *pPayload = reinterpret_cast<di::TypeContainerBase *>(msg.payload);
+  assert(pPayload != nullptr);
+  delete pPayload;
+
+  msg.payload = 0;
+}
+
 void MessageQueue::mark_invalid() noexcept { valid_ = false; }
 
 void MessageQueue::pump_msgs(const MessageCallback_t &callback) {
@@ -53,10 +73,7 @@ void MessageQueue::pump_msgs(const MessageCallback_t &callback) {
       callback(msg);
 
       if(msg.has_managed_payload()) {
-        di::TypeContainerBase *pPayload = reinterpret_cast<di::TypeContainerBase *>(msg.payload);
-        assert(pPayload != nullptr);
-        delete pPayload;
-        msg.payload = 0;
+        free_managed_payload_(msg);
       }
     }
   }

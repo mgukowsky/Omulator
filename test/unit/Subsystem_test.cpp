@@ -53,7 +53,9 @@ TEST(Subsystem_test, simpleSubsystem) {
 
   MailboxSender msend = mr.get_mailbox<TestSubsys>();
 
-  U64        i = 0;
+  U64 i = 0;
+
+  EXPECT_CALL(logger, info(HasSubstr("Creating subsystem: TestSubsys"), _)).Times(Exactly(1));
   TestSubsys subsys(logger, mr, i, sequencer);
 
   auto mq = msend.get_mq();
@@ -66,4 +68,6 @@ TEST(Subsystem_test, simpleSubsystem) {
 
   EXPECT_EQ(i, 42) << "A specialized subsystem should execute its message_proc() member function "
                       "when messages are sent to the Subsystem";
+
+  EXPECT_CALL(logger, warn(HasSubstr("Dropping message with type"), _)).Times(Exactly(1));
 }

@@ -65,6 +65,12 @@ public:
   MessageQueue &operator=(MessageQueue &&rhs) noexcept;
 
   /**
+   * Free any managed payloads in the queue, and then seals it. Has no effect if called more than
+   * once.
+   */
+  void clear();
+
+  /**
    * Set valid_ to false.
    */
   void mark_invalid() noexcept;
@@ -151,6 +157,11 @@ public:
   bool valid() const noexcept;
 
 private:
+  /**
+   * Leverage the type erasure we get from TypeContainer to delete a managed payload.
+   */
+  static void free_managed_payload_(Message &msg);
+
   void push_impl_(const MessageType type, const MessageFlagType mflags, const U64 payload) noexcept;
 
   /**
