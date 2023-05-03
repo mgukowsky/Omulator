@@ -58,7 +58,7 @@ class OmulatorBuilder
     # Make compile_commands.json available for tools that need it in the working directory
     begin
       File.delete(COMPILE_COMMANDS_FILE) if File.exist?(COMPILE_COMMANDS_FILE)
-      FileUtils.cp("#{@build_dir}/#{COMPILE_COMMANDS_FILE}", COMPILE_COMMANDS_FILE)
+      FileUtils.ln_sf("#{@build_dir}/#{COMPILE_COMMANDS_FILE}", COMPILE_COMMANDS_FILE)
     rescue => msg
       puts "Unable to copy compile_commands.json to the current directory (#{msg})"
     end
