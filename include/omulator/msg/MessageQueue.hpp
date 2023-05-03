@@ -57,8 +57,10 @@ public:
   // potentially outlive the other and still reference the storage... for now best to advise not to
   // copy if possible, and if copying must happen, to not use the copied-from instance for
   // anything...
-  MessageQueue(const MessageQueue &)            = default;
-  MessageQueue &operator=(const MessageQueue &) = default;
+  MessageQueue(const MessageQueue &) = default;
+
+  // N.B. copy assignment will be deleted by the compiler b/c logger_ is a reference
+  MessageQueue &operator=(const MessageQueue &) = delete;
 
   // N.B. that moved-from MessageQueues will no longer be valid!
   MessageQueue(MessageQueue &&rhs) noexcept;
