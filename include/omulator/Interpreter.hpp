@@ -4,9 +4,11 @@
 #include "omulator/Subsystem.hpp"
 #include "omulator/di/Injector.hpp"
 #include "omulator/msg/Message.hpp"
+#include "omulator/util/Pimpl.hpp"
 
 #include <mutex>
 #include <string>
+#include <string_view>
 #include <utility>
 
 /**
@@ -22,22 +24,13 @@ public:
   /**
    * Execute a string as a script command.
    */
-  void exec(std::string str);
+  void exec(std::string_view str);
 
 private:
+  struct Impl_;
+  util::Pimpl<Impl_> impl_;
+
   di::Injector &injector_;
   ILogger      &logger_;
-
-  /**
-   * Used to enforce having only a single instance of the Interpreter at any given time.
-   */
-  static bool       instanceFlag_;
-  static std::mutex instanceLock_;
-
-  /**
-   * Extract stdout and stdin from the interpreter, and return them as a pair of strings. Also
-   * resets the io buffers used by the interpreter.
-   */
-  std::pair<std::string, std::string> reset_stdio_();
 };
 }  // namespace omulator

@@ -87,6 +87,52 @@ find_package(
   #   glslc
 )
 
+set(LUAJIT_DIR ${PROJECT_SOURCE_DIR}/third_party/LuaJIT/src)
+if(MSVC)
+  set(LUAJIT_MAKE_CMD "msvcbuild.bat")
+  set(LUAJIT_MAKE_CMD_ARGS "static")
+  set(LUA_LIB ${LUAJIT_DIR}/lua51.lib)
+  set(LUAJIT_LIB ${LUAJIT_DIR}/luajit.lib)
+else()
+  set(LUAJIT_MAKE_CMD "make")
+  set(LUAJIT_MAKE_CMD_ARGS "-j")
+  set(LUA_LIB ${LUAJIT_DIR}/lua.a)
+  set(LUAJIT_LIB ${LUAJIT_DIR}/luajit.a)
+endif()
+
+add_custom_command(
+  COMMAND
+    ${LUAJIT_MAKE_CMD}
+  ARGS
+    ${LUAJIT_MAKE_CMD_ARGS}
+  OUTPUT
+    ${LUA_LIB}
+    ${LUAJIT_LIB}
+  WORKING_DIRECTORY
+    ${LUAJIT_DIR}
+  COMMENT
+    "Compiling LuaJIT"
+)
+
+add_custom_target(
+  LUAJIT_COMPILATION
+  DEPENDS
+    ${LUA_LIB}
+    ${LUAJIT_LIB}
+)
+
+add_dependencies(
+  ${PROJECT_NAME}
+    LUAJIT_COMPILATION
+)
+
+target_link_libraries(
+  ${PROJECT_NAME}
+  PUBLIC
+    ${LUA_LIB}
+    ${LUAJIT_LIB}
+)
+
 find_program(GLSLC_EXE NAMES glslc HINTS Vulkan::glslc)
 
 if(NOT MSVC)
@@ -124,6 +170,7 @@ endif()
 
 add_subdirectory("third_party/glm")
 add_subdirectory("third_party/pybind11")
+add_subdirectory("third_party/sol2")
 add_subdirectory("third_party/vk-bootstrap")
 add_subdirectory("third_party/VulkanMemoryAllocator")
 
@@ -139,6 +186,7 @@ target_link_libraries(
     vk-bootstrap::vk-bootstrap
     VulkanMemoryAllocator
     ${CMAKE_DL_LIBS}
+    sol2::sol2
   PRIVATE
     pybind11::embed
 )
@@ -185,6 +233,8 @@ target_include_directories(
     $<INSTALL_INTERFACE:third_party/vk-bootstrap/src>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/VulkanMemoryAllocator/include>
     $<INSTALL_INTERFACE:third_party/VulkanMemoryAllocator/include>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/LuaJIT/src>
+    $<INSTALL_INTERFACE:third_party/LuaJIT/src>
 )
 
 # Select which platform folder to use
