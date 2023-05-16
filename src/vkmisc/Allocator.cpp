@@ -70,6 +70,12 @@ Allocator::~Allocator() { vmaDestroyAllocator(impl_->allocator); }
 
 AllocatedBuffer Allocator::alloc(const vk::BufferCreateInfo &bufferCreateInfo,
                                  const Allocator::Residency  residency) {
+  if(bufferCreateInfo.size == 0) {
+    // VMA will fail with a somewhat nebulous error in this situation, so throw here with a
+    // more obvious error
+    throw std::runtime_error("Requested a VMA Buffer allocation with a size of zero");
+  }
+
   VmaAllocationCreateInfo allocCreateInfo{.flags          = 0,
                                           .usage          = residency_to_vma_usage(residency),
                                           .requiredFlags  = 0,
@@ -79,8 +85,8 @@ AllocatedBuffer Allocator::alloc(const vk::BufferCreateInfo &bufferCreateInfo,
                                           .pUserData      = nullptr,
                                           .priority       = 0.0f};
 
-  VkBuffer           buff;
-  VmaAllocation      allocation;
+  VkBuffer           buff{};
+  VmaAllocation      allocation{};
   VkBufferCreateInfo rawBufferCreateInfo(bufferCreateInfo);
 
   validate_vk_return(
@@ -104,8 +110,8 @@ AllocatedImage Allocator::alloc(const vk::ImageCreateInfo &imageCreateInfo,
     .pUserData      = nullptr,
     .priority       = 0.0f};
 
-  VkImage           image;
-  VmaAllocation     allocation;
+  VkImage           image{};
+  VmaAllocation     allocation{};
   VkImageCreateInfo rawImageCreateInfo(imageCreateInfo);
 
   validate_vk_return(
@@ -126,7 +132,7 @@ void Allocator::free(AllocatedImage &image) {
 }
 
 void Allocator::upload(AllocatedBuffer &buffer, void *localData, const std::size_t size) {
-  void *gpuData;
+  void *gpuData = nullptr;
   validate_vk_return(
     logger_,
     "vmaMapMemory",

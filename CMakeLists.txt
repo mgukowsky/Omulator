@@ -87,10 +87,12 @@ find_package(
   #   glslc
 )
 
+# Compile LuaJIT using its platform-specific build system
 set(LUAJIT_DIR ${PROJECT_SOURCE_DIR}/third_party/LuaJIT/src)
 if(MSVC)
   set(LUAJIT_MAKE_CMD "msvcbuild.bat")
   set(LUAJIT_MAKE_CMD_ARGS "static")
+  # LuaJIT on windows seemingly splits the lua bindings and LuaJIT into 2 separate libs
   set(LUA_LIB ${LUAJIT_DIR}/lua51.lib)
   set(LUAJIT_LIB ${LUAJIT_DIR}/luajit.lib)
 else()
@@ -102,6 +104,7 @@ endif()
 
 add_custom_command(
   COMMAND
+    # TODO: this cmd may not necessarily respect the CMake toolchain file...
     ${LUAJIT_MAKE_CMD}
   ARGS
     ${LUAJIT_MAKE_CMD_ARGS}
@@ -336,6 +339,7 @@ foreach(URL IN LISTS OML_DOWNLOADED_ASSET_MANIFEST)
       DOWNLOAD
         ${URL}
         ${OUTFILE}
+        SHOW_PROGRESS
     )
   endif()
 endforeach()

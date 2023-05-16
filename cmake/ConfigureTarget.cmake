@@ -45,6 +45,9 @@ function(configure_target target_name)
 
       # Use the default vulkan.hpp loader
       VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
+
+      # Lua safety
+      SOL_ALL_SAFETIES_ON
   )
 
   # Best practice to check for PIE before enabling it
