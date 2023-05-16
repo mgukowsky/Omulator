@@ -18,28 +18,34 @@ namespace omulator::util {
  *
  * @param T the underlying type. MUST have its constructor(s) and destructor
  *    declared and defined!
+ *
+ * N.B. that if compiler issues involving an incomplete type arise, then double check that
+ * the type which OWNS the Pimpl instance has its ctor and dtor declared and defined. The
+ * definition may have to be placed OUTSIDE the class; see https://stackoverflow.com/a/9954553
  */
 template<typename T>
 class Pimpl {
 public:
   template<typename... Args>
-  explicit Pimpl(Args &&... args) : pimpl_(std::make_unique<T>(std::forward<Args>(args)...)) {}
+  explicit Pimpl(Args &&...args) : pimpl_(std::make_unique<T>(std::forward<Args>(args)...)) { }
 
   ~Pimpl() = default;
 
   // Copying would not be enabled anyway because unique_ptr is move only
-  Pimpl(const Pimpl &) = delete;
+  Pimpl(const Pimpl &)            = delete;
   Pimpl &operator=(const Pimpl &) = delete;
 
   // Moving is fine
-  Pimpl(Pimpl &&) noexcept = default;
+  Pimpl(Pimpl &&) noexcept            = default;
   Pimpl &operator=(Pimpl &&) noexcept = default;
 
   // Functions enabling this class to act as a pointer proxy
   inline T *operator->() noexcept { return pimpl_.get(); }
+
   inline T &operator*() noexcept { return *pimpl_.get(); }
 
   inline const T *operator->() const noexcept { return pimpl_.get(); }
+
   inline const T &operator*() const noexcept { return *pimpl_.get(); }
 
 private:

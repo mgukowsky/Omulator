@@ -19,7 +19,7 @@ namespace omulator {
 class Interpreter : public Subsystem {
 public:
   explicit Interpreter(di::Injector &injector);
-  ~Interpreter() = default;
+  ~Interpreter() override;
 
   /**
    * Execute a string as a script command.

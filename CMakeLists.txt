@@ -96,8 +96,8 @@ if(MSVC)
 else()
   set(LUAJIT_MAKE_CMD "make")
   set(LUAJIT_MAKE_CMD_ARGS "-j")
-  set(LUA_LIB ${LUAJIT_DIR}/lua.a)
-  set(LUAJIT_LIB ${LUAJIT_DIR}/luajit.a)
+  set(LUA_LIB "")
+  set(LUAJIT_LIB ${LUAJIT_DIR}/libluajit.a)
 endif()
 
 add_custom_command(

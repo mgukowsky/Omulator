@@ -25,9 +25,10 @@ using omulator::util::TypeString;
 namespace omulator {
 
 struct Interpreter::Impl_ {
+  sol::state lua;
+
   Impl_()  = default;
   ~Impl_() = default;
-  sol::state lua;
 };
 
 Interpreter::Interpreter(di::Injector &injector)
@@ -53,15 +54,14 @@ Interpreter::Interpreter(di::Injector &injector)
         logger_.info(ss);
       });
 
-      oml.set_function("set_prop",
-                       [&](std::string_view prop, PropertyMap::PropVariant_t val) {
+      oml.set_function("set_prop", [&](std::string_view prop, PropertyMap::PropVariant_t val) {
         injector_.get<PropertyMap>().set_prop_variant(prop.data(), val);
-                       });
+      });
 
       oml.set_function("set_vertex_shader", [&](std::string shader) {
         auto sender =
           injector.get<msg::MailboxRouter>().get_mailbox<omulator::graphics::CoreGraphicsEngine>();
-        auto mq     = sender.get_mq();
+        auto mq = sender.get_mq();
         mq.push_managed_payload<std::string>(omulator::msg::MessageType::SET_VERTEX_SHADER, shader);
         sender.send(mq);
       });
@@ -75,15 +75,15 @@ Interpreter::Interpreter(di::Injector &injector)
     injector_(injector),
     logger_(injector_.get<ILogger>()) {
   receiver_.on_managed_payload<std::string>(msg::MessageType::STDIN_STRING,
-                                            [this](const std::string &execstr) {
-                                              exec(execstr);
-                                            });
+                                            [this](const std::string &execstr) { exec(execstr); });
   receiver_.on_unmanaged_payload<std::atomic_bool>(msg::MessageType::SIMPLE_FENCE,
                                                    [](std::atomic_bool &fence) {
                                                      fence.store(true, std::memory_order_release);
                                                      fence.notify_all();
                                                    });
 }
+
+Interpreter::~Interpreter() { }
 
 void Interpreter::exec(std::string_view str) {
   auto result = impl_->lua.safe_script(str, sol::script_pass_on_error);
