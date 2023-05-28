@@ -6,14 +6,15 @@ on:
       - main
 
 jobs:
-  msvc:
+  windows-build:
     runs-on: windows-latest
     strategy:
       matrix:
         build_type: [Debug, Release]
+        toolchain: [msvc, clang-cl]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: seanmiddleditch/gha-setup-ninja@master
       - uses: ilammy/msvc-dev-cmd@v1 # defaults to x64
       - uses: humbletim/setup-vulkan-sdk@v1.2.0
@@ -24,4 +25,19 @@ jobs:
       - name: Init submodules
         run: git submodule update --init --recursive --depth 1
       - name: build.rb
-        run: ruby.exe build.rb -t msvc -b ${{ matrix.build_type }} -v build test
+        run: ruby.exe build.rb -t ${{ matrix.toolchain }} -b ${{ matrix.build_type }} -v build test
+
+  linux-build:
+    runs-on: ubuntu-latest
+    container: mgukowsky/ubuntu-oml-builder
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
+        toolchain: [gcc, clang]
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+      - name: build.rb
+        run: ./build.rb -t ${{ matrix.toolchain }} -b ${{ matrix.build_type }} -v build test
