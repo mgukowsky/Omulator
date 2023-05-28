@@ -172,8 +172,6 @@ if(MSVC)
 endif()
 
 add_subdirectory("third_party/glm")
-add_subdirectory("third_party/pybind11")
-add_subdirectory("third_party/sol2")
 add_subdirectory("third_party/vk-bootstrap")
 add_subdirectory("third_party/VulkanMemoryAllocator")
 
@@ -189,9 +187,6 @@ target_link_libraries(
     vk-bootstrap::vk-bootstrap
     VulkanMemoryAllocator
     ${CMAKE_DL_LIBS}
-    sol2::sol2
-  PRIVATE
-    pybind11::embed
 )
 
 configure_target(${PROJECT_NAME})
@@ -238,6 +233,8 @@ target_include_directories(
     $<INSTALL_INTERFACE:third_party/VulkanMemoryAllocator/include>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/LuaJIT/src>
     $<INSTALL_INTERFACE:third_party/LuaJIT/src>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/sol2/include>
+    $<INSTALL_INTERFACE:third_party/sol2/include>
 )
 
 # Select which platform folder to use

@@ -10,7 +10,7 @@
 #include "omulator/util/TypeHash.hpp"
 #include "omulator/util/TypeString.hpp"
 
-#include "sol/state.hpp"
+#include <sol/state.hpp>
 
 #include <cassert>
 #include <memory>
@@ -61,12 +61,16 @@ Interpreter::Interpreter(di::Injector &injector)
       oml.set_function("set_vertex_shader", [&](std::string shader) {
         auto sender =
           injector.get<msg::MailboxRouter>().get_mailbox<omulator::graphics::CoreGraphicsEngine>();
+
         auto mq = sender.get_mq();
         mq.push_managed_payload<std::string>(omulator::msg::MessageType::SET_VERTEX_SHADER, shader);
         sender.send(mq);
       });
 
-      oml.set_function("shutdown", [&] {
+      // TODO: providing a lambda with no args to set_function() seems to trigger a warning for a
+      // possible nullptr derefernce when using GCC in release mode with sol v3.3.0... set() seems
+      // to have no problem though...
+      oml.set("shutdown", [&] {
         injector_.get<msg::MailboxRouter>().get_mailbox<App>().send_single_message(
           msg::MessageType::APP_QUIT);
       });
