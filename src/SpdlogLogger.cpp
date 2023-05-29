@@ -5,6 +5,7 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Weverything"
 #endif
+#include <spdlog/fmt/bundled/color.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #if defined(OML_COMPILER_CLANG_CL)
@@ -13,15 +14,23 @@
 
 #include <memory>
 
+using fmt::terminal_color;
+
 namespace {
 constexpr const char * const CONCISE_FMTSTR = "{}";
 constexpr const char * const VERBOSE_FMTSTR = "{}:{} ({}): {}";
+
+auto colorize_string(const terminal_color color, const std::string &msg) {
+  return fmt::format(fmt::fg(color), msg);
+}
+
 }  // namespace
 
 namespace omulator {
 
 struct SpdlogLogger::Impl_ {
   Impl_() : logger(spdlog::stdout_color_mt("SpdlogLogger")) { }
+
   ~Impl_() = default;
   std::shared_ptr<spdlog::logger> logger;
 };
@@ -40,52 +49,57 @@ void SpdlogLogger::critical(const char * const msg, const util::SourceLocation l
       VERBOSE_FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
   }
   else {
-    impl_->logger->critical(CONCISE_FMTSTR, msg);
+    impl_->logger->critical(CONCISE_FMTSTR, colorize_string(terminal_color::bright_magenta, msg));
   }
 }
+
 void SpdlogLogger::error(const char * const msg, const util::SourceLocation location) {
   if(verbosity_ == Verbosity::VERBOSE) {
     impl_->logger->error(
       VERBOSE_FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
   }
   else {
-    impl_->logger->error(CONCISE_FMTSTR, msg);
+    impl_->logger->error(CONCISE_FMTSTR, colorize_string(terminal_color::bright_red, msg));
   }
 }
+
 void SpdlogLogger::warn(const char * const msg, const util::SourceLocation location) {
   if(verbosity_ == Verbosity::VERBOSE) {
     impl_->logger->warn(
       VERBOSE_FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
   }
   else {
-    impl_->logger->warn(CONCISE_FMTSTR, msg);
+    impl_->logger->warn(CONCISE_FMTSTR, colorize_string(terminal_color::bright_yellow, msg));
   }
 }
+
 void SpdlogLogger::info(const char * const msg, const util::SourceLocation location) {
   if(verbosity_ == Verbosity::VERBOSE) {
     impl_->logger->info(
       VERBOSE_FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
   }
   else {
-    impl_->logger->info(CONCISE_FMTSTR, msg);
+    impl_->logger->info(CONCISE_FMTSTR, colorize_string(terminal_color::cyan, msg));
   }
 }
+
 void SpdlogLogger::debug(const char * const msg, const util::SourceLocation location) {
   if(verbosity_ == Verbosity::VERBOSE) {
     impl_->logger->debug(
       VERBOSE_FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
   }
   else {
-    impl_->logger->debug(CONCISE_FMTSTR, msg);
+    impl_->logger->debug(CONCISE_FMTSTR, colorize_string(terminal_color::bright_white, msg));
   }
 }
+
 void SpdlogLogger::trace(const char * const msg, const util::SourceLocation location) {
   if(verbosity_ == Verbosity::VERBOSE) {
     impl_->logger->trace(
       VERBOSE_FMTSTR, location.file_name(), location.line(), location.function_name(), msg);
   }
   else {
-    impl_->logger->trace(CONCISE_FMTSTR, msg);
+    impl_->logger->trace(CONCISE_FMTSTR, colorize_string(terminal_color::white, msg));
   }
 }
 

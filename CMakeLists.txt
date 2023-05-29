@@ -172,6 +172,7 @@ if(MSVC)
 endif()
 
 add_subdirectory("third_party/glm")
+add_subdirectory("third_party/spdlog")
 add_subdirectory("third_party/vk-bootstrap")
 add_subdirectory("third_party/VulkanMemoryAllocator")
 
@@ -179,6 +180,7 @@ target_link_libraries(
   ${PROJECT_NAME}
   PUBLIC
     Threads::Threads
+    spdlog::spdlog
     Vulkan::Vulkan
     glm::glm
     imgui
