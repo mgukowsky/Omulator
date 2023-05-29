@@ -182,6 +182,10 @@ function(config_for_msvc target_name add_warnings)
         $<$<CXX_COMPILER_ID:Clang>:-W3 -Wno-c++98-compat -Wno-c++98-compat-pedantic>
 
         $<$<CXX_COMPILER_ID:Clang>:-Wno-unused-lambda-capture -Wno-unused-private-field>
+
+        # Some libraries (e.g. spdlog) don't differentiate between msvc and clang-cl, and will
+        # pass MSVC options to both compilers, including some which clang-cl won't understand
+        $<$<CXX_COMPILER_ID:Clang>:-Wno-unused-command-line-argument>
     )
   endif()
 

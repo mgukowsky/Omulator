@@ -164,17 +164,19 @@ endif()
 include(libimgui)
 
 add_subdirectory("third_party/docopt.cpp")
-add_subdirectory("third_party/tinyobjloader")
-# Add exception handling to docopt to make MSVC happy
-if(MSVC)
-  configure_target(docopt)
-  configure_target(tinyobjloader)
-endif()
-
 add_subdirectory("third_party/glm")
 add_subdirectory("third_party/spdlog")
+add_subdirectory("third_party/tinyobjloader")
 add_subdirectory("third_party/vk-bootstrap")
 add_subdirectory("third_party/VulkanMemoryAllocator")
+
+# Add exception handling to some libraries which don't define it in order to make MSVC and clang-cl
+# happy
+if(MSVC)
+  configure_target(docopt)
+  configure_target(spdlog)
+  configure_target(tinyobjloader)
+endif()
 
 target_link_libraries(
   ${PROJECT_NAME}
