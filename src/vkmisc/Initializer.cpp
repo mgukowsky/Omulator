@@ -244,7 +244,7 @@ vkb::Instance *vkb_instance_recipe(di::Injector &injector) {
   // Also recommended for interoperatiblity with vk-bootstrap per//
   // https://github.com/charles-lunarg/vk-bootstrap/issues/68
   VULKAN_HPP_DEFAULT_DISPATCHER.init(pVkbInstance->fp_vkGetInstanceProcAddr);
-  VULKAN_HPP_DEFAULT_DISPATCHER.init(pVkbInstance->instance);
+  VULKAN_HPP_DEFAULT_DISPATCHER.init(vk::Instance(pVkbInstance->instance));
 
   return pVkbInstance;
 }
